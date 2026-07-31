@@ -12,7 +12,7 @@ import {
   Alert,
   StatusBar,
 } from 'react-native';
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 
 export default function App() {
   const [tela, setTela] = useState('login'); // 'login', 'registro', 'painel'
