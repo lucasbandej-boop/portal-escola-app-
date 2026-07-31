@@ -57,7 +57,7 @@ export default function App() {
       const { data, error } = await supabase
         .from('escolas')
         .select('*')
-        .or(`numero_licenca.eq.${loginInput.trim()},nome.ilike.%${loginInput.trim()%}`)
+        .or(`numero_licenca.eq.${loginInput.trim()},nome.ilike.%${loginInput.trim()}%`)
         .eq('senha_acesso', loginSenha.trim())
         .maybeSingle();
 
