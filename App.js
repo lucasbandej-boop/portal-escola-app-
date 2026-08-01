@@ -16,7 +16,7 @@ import { supabase } from './supabase';
 
 export default function App() {
   // NAVEGAÇÃO
-  const [tela, setTela] = useState('login'); // 'login', 'registro', 'validar_email', 'dashboard', 'secretaria', 'turmas', 'notas'
+  const [tela, setTela] = useState('login'); // 'login', 'registro', 'validar_email', 'dashboard', 'secretaria'
   const [subAbaSecretaria, setSubAbaSecretaria] = useState('estudantes');
   const [loading, setLoading] = useState(false);
   const [usuario, setUsuario] = useState(null);
@@ -37,11 +37,9 @@ export default function App() {
   const [codigoDigitado, setCodigoDigitado] = useState('');
   const [dadosEscolaPendente, setDadosEscolaPendente] = useState(null);
 
-  // DADOS DA SECRETARIA E TURMAS
-  const [turmas, setTurmas] = useState([]);
+  // DADOS DA SECRETARIA
   const [estudantes, setEstudantes] = useState([]);
   const [professores, setProfessores] = useState([]);
-  const [notasLista, setNotasLista] = useState([]);
 
   // FORMULÁRIOS DA SECRETARIA
   const [nomeEstudante, setNomeEstudante] = useState('');
@@ -51,14 +49,6 @@ export default function App() {
   const [nomeProf, setNomeProf] = useState('');
   const [discProf, setDiscProf] = useState('');
   const [telProf, setTelProf] = useState('');
-
-  // FORM TURMAS E NOTAS
-  const [novaTurma, setNovaTurma] = useState('');
-  const [alunoNome, setAlunoNome] = useState('');
-  const [disciplina, setDisciplina] = useState('');
-  const [mac, setMac] = useState('');
-  const [npp, setNpp] = useState('');
-  const [npt, setNpt] = useState('');
 
   const showAlert = (titulo, msg) => {
     if (typeof window !== 'undefined' && window.alert) {
@@ -71,7 +61,7 @@ export default function App() {
   // --- LOGIN ---
   const handleLogin = async () => {
     if (!loginInput.trim() || !loginSenha.trim()) {
-      showAlert('Atenção', 'Preencha os campos de login e senha.');
+      showAlert('Atenção', 'Preencha o campo de login e a senha.');
       return;
     }
     setLoading(true);
@@ -86,7 +76,7 @@ export default function App() {
       if (error) throw error;
 
       if (!data) {
-        showAlert('Erro', 'Dados incorretos ou escola não encontrada.');
+        showAlert('Erro', 'Credenciais inválidas.');
       } else {
         setUsuario(data);
         setTela('dashboard');
@@ -99,36 +89,32 @@ export default function App() {
     }
   };
 
-  // --- INICIAR REGISTO COM CÓDIGO POR EMAIL ---
+  // --- REGISTO DA ESCOLA (GERAR CÓDIGO) ---
   const handleEnviarCodigoRegisto = () => {
     if (!regNomeEscola.trim() || !regLicenca.trim() || !regEmail.trim() || !regSenha.trim()) {
-      showAlert('Atenção', 'Preencha todos os campos obrigatórios para o registo.');
+      showAlert('Atenção', 'Preencha todos os campos obrigatórios.');
       return;
     }
 
-    // Gerar código de 6 dígitos
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
     setCodigoGerado(codigo);
 
-    // Guardar dados temporariamente
     setDadosEscolaPendente({
       nome: regNomeEscola.trim(),
       numero_licenca: regLicenca.trim(),
       email: regEmail.trim().toLowerCase(),
       foto_url: regFotoUrl.trim() || null,
-      senha_acesso: regSenha.trim(),
-      email_confirmado: true
+      senha_acesso: regSenha.trim()
     });
 
-    // Simulação do envio do código por e-mail (alerta na tela)
-    showAlert('Código de Verificação', `O seu código de verificação é: ${codigo}`);
+    showAlert('Código de Verificação Sent', `O seu código de verificação é: ${codigo}`);
     setTela('validar_email');
   };
 
-  // --- CONFIRMAR CÓDIGO E CRIAR ESCOLA NO BANCO ---
+  // --- CONFIRMAR CÓDIGO E SALVAR NO SUPABASE ---
   const handleConfirmarCodigoEFinalizar = async () => {
     if (codigoDigitado.trim() !== codigoGerado) {
-      showAlert('Erro', 'Código de verificação incorreto. Tente novamente.');
+      showAlert('Erro', 'Código de verificação incorreto.');
       return;
     }
 
@@ -142,7 +128,7 @@ export default function App() {
 
       if (error) throw error;
 
-      showAlert('Sucesso', 'Instituição cadastrada e e-mail verificado com sucesso!');
+      showAlert('Sucesso', 'Instituição cadastrada com sucesso!');
       setUsuario(data);
       setTela('dashboard');
       carregarDadosIsolados(data.id);
@@ -157,8 +143,6 @@ export default function App() {
   const carregarDadosIsolados = (escolaId) => {
     fetchEstudantes(escolaId);
     fetchProfessores(escolaId);
-    fetchTurmas(escolaId);
-    fetchNotas(escolaId);
   };
 
   const fetchEstudantes = async (escolaId) => {
@@ -171,20 +155,10 @@ export default function App() {
     if (data) setProfessores(data);
   };
 
-  const fetchTurmas = async (escolaId) => {
-    const { data } = await supabase.from('turmas').select('*').eq('escola_id', escolaId).order('created_at', { ascending: false });
-    if (data) setTurmas(data);
-  };
-
-  const fetchNotas = async (escolaId) => {
-    const { data } = await supabase.from('notas').select('*').eq('escola_id', escolaId).order('created_at', { ascending: false });
-    if (data) setNotasLista(data);
-  };
-
-  // --- CADASTRAR ESTUDANTE NO BANCO ---
+  // --- CADASTRAR ESTUDANTE ---
   const handleCadastrarEstudante = async () => {
     if (!nomeEstudante.trim() || !numProcesso.trim() || !classeEstudante.trim()) {
-      showAlert('Atenção', 'Por favor, preencha o Nome, Nº de Processo e Classe.');
+      showAlert('Atenção', 'Preencha Nome, Nº de Processo e Classe.');
       return;
     }
 
@@ -201,7 +175,7 @@ export default function App() {
 
       if (error) throw error;
 
-      showAlert('Sucesso', 'Estudante cadastrado com sucesso!');
+      showAlert('Sucesso', 'Estudante matriculado com sucesso!');
       setNomeEstudante('');
       setNumProcesso('');
       setClasseEstudante('');
@@ -213,10 +187,10 @@ export default function App() {
     }
   };
 
-  // --- CADASTRAR PROFESSOR NO BANCO ---
+  // --- CADASTRAR PROFESSOR ---
   const handleCadastrarProfessor = async () => {
     if (!nomeProf.trim() || !discProf.trim()) {
-      showAlert('Atenção', 'Por favor, preencha o Nome e a Disciplina.');
+      showAlert('Atenção', 'Preencha Nome e Disciplina.');
       return;
     }
 
@@ -245,14 +219,14 @@ export default function App() {
     }
   };
 
-  // TELA DE LOGIN
+  // TELA LOGIN
   if (tela === 'login') {
     return (
       <SafeAreaView style={styles.containerLogin}>
         <StatusBar barStyle="light-content" />
         <View style={styles.cardLogin}>
           <Text style={styles.logoTitle}>Portal Escola 🎓</Text>
-          <Text style={styles.subTitle}>Gestão Escolar Integrada</Text>
+          <Text style={styles.subTitle}>Sistema Integrado de Gestão Escolar</Text>
 
           <TextInput style={styles.input} placeholder="E-mail ou Nº Licença" placeholderTextColor="#999" value={loginInput} onChangeText={setLoginInput} />
           <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#999" secureTextEntry value={loginSenha} onChangeText={setLoginSenha} />
@@ -269,7 +243,7 @@ export default function App() {
     );
   }
 
-  // TELA DE REGISTO
+  // TELA REGISTO
   if (tela === 'registro') {
     return (
       <SafeAreaView style={styles.containerLogin}>
@@ -277,7 +251,7 @@ export default function App() {
         <ScrollView contentContainerStyle={{ width: '100%', alignItems: 'center' }}>
           <View style={styles.cardLogin}>
             <Text style={styles.logoTitle}>Cadastrar Escola 🏫</Text>
-            <Text style={styles.subTitle}>Registo com validação de código por e-mail</Text>
+            <Text style={styles.subTitle}>Preencha os dados da sua instituição</Text>
 
             <TextInput style={styles.input} placeholder="Nome Oficial da Escola *" placeholderTextColor="#999" value={regNomeEscola} onChangeText={setRegNomeEscola} />
             <TextInput style={styles.input} placeholder="Nº da Licença / Decreto *" placeholderTextColor="#999" value={regLicenca} onChangeText={setRegLicenca} />
@@ -298,14 +272,14 @@ export default function App() {
     );
   }
 
-  // TELA DE VALIDAÇÃO DO CÓDIGO
+  // TELA VALIDAÇÃO CÓDIGO
   if (tela === 'validar_email') {
     return (
       <SafeAreaView style={styles.containerLogin}>
         <StatusBar barStyle="light-content" />
         <View style={styles.cardLogin}>
           <Text style={styles.logoTitle}>Validar E-mail 📩</Text>
-          <Text style={styles.subTitle}>Insira o código de 6 dígitos enviado para {dadosEscolaPendente?.email}</Text>
+          <Text style={styles.subTitle}>Insira o código enviado para {dadosEscolaPendente?.email}</Text>
 
           <TextInput
             style={[styles.input, { textAlign: 'center', fontSize: 24, letterSpacing: 8 }]}
@@ -318,14 +292,14 @@ export default function App() {
           />
 
           <TouchableOpacity style={styles.btnPrimary} onPress={handleConfirmarCodigoEFinalizar} disabled={loading}>
-            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>CONFIRMAR CÓDIGO E ENTRAR</Text>}
+            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>CONFIRMAR CÓDIGO E CONCLUIR</Text>}
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // TELA PRINCIPAL / SECRETARIA
+  // DASHBOARD PRINCIPAL
   return (
     <SafeAreaView style={styles.containerApp}>
       <StatusBar barStyle="dark-content" />
@@ -352,14 +326,14 @@ export default function App() {
           <Text style={[styles.navText, tela === 'dashboard' && styles.navTextActive]}>Painel</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.navItem, tela === 'secretaria' && styles.navItemActive]} onPress={() => setTela('secretaria')}>
-          <Text style={[styles.navText, tela === 'secretaria' && styles.navTextActive]}>Secretaria</Text>
+          <Text style={[styles.navText, tela === 'secretaria' && styles.navTextActive]}>Secretaria Virtual</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.contentScroll}>
         {tela === 'dashboard' && (
           <View>
-            <Text style={styles.sectionTitle}>Resumo Geral</Text>
+            <Text style={styles.sectionTitle}>Resumo da Instituição</Text>
             <View style={styles.gridStats}>
               <View style={styles.cardStat}>
                 <Text style={styles.statNum}>{estudantes.length}</Text>
@@ -391,26 +365,26 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* FORMULÁRIO ESTUDANTES */}
+            {/* ESTUDANTES */}
             {subAbaSecretaria === 'estudantes' && (
               <View>
-                <Text style={styles.sectionTitle}>Registar Estudante</Text>
+                <Text style={styles.sectionTitle}>Cadastrar Novo Estudante</Text>
                 <View style={styles.cardForm}>
-                  <Text style={styles.label}>Nome Completo do Aluno:</Text>
-                  <TextInput style={styles.inputForm} placeholder="Ex: João Manuel" value={nomeEstudante} onChangeText={setNomeEstudante} />
+                  <Text style={styles.label}>Nome Completo:</Text>
+                  <TextInput style={styles.inputForm} placeholder="Nome do Aluno" value={nomeEstudante} onChangeText={setNomeEstudante} />
 
                   <Text style={styles.label}>Nº do Processo:</Text>
-                  <TextInput style={styles.inputForm} placeholder="Ex: 4052" value={numProcesso} onChangeText={setNumProcesso} />
+                  <TextInput style={styles.inputForm} placeholder="Ex: 2026/01" value={numProcesso} onChangeText={setNumProcesso} />
 
                   <Text style={styles.label}>Classe:</Text>
                   <TextInput style={styles.inputForm} placeholder="Ex: 10ª Classe" value={classeEstudante} onChangeText={setClasseEstudante} />
 
                   <TouchableOpacity style={styles.btnSuccess} onPress={handleCadastrarEstudante} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>SALVAR ESTUDANTE</Text>}
+                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>MATRICULAR ESTUDANTE</Text>}
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Estudantes Registados</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Estudantes Matriculados</Text>
                 {estudantes.map((est) => (
                   <View key={est.id} style={styles.listItem}>
                     <View>
@@ -422,31 +396,31 @@ export default function App() {
               </View>
             )}
 
-            {/* FORMULÁRIO PROFESSORES */}
+            {/* PROFESSORES */}
             {subAbaSecretaria === 'professores' && (
               <View>
-                <Text style={styles.sectionTitle}>Registar Professor</Text>
+                <Text style={styles.sectionTitle}>Cadastrar Novo Professor</Text>
                 <View style={styles.cardForm}>
                   <Text style={styles.label}>Nome do Professor:</Text>
-                  <TextInput style={styles.inputForm} placeholder="Ex: Professor António" value={nomeProf} onChangeText={setNomeProf} />
+                  <TextInput style={styles.inputForm} placeholder="Nome Completo" value={nomeProf} onChangeText={setNomeProf} />
 
-                  <Text style={styles.label}>Disciplina:</Text>
+                  <Text style={styles.label}>Disciplina Principal:</Text>
                   <TextInput style={styles.inputForm} placeholder="Ex: Matemática" value={discProf} onChangeText={setDiscProf} />
 
-                  <Text style={styles.label}>Telefone de Contacto:</Text>
+                  <Text style={styles.label}>Telefone / Contacto:</Text>
                   <TextInput style={styles.inputForm} placeholder="Ex: 923000111" value={telProf} onChangeText={setTelProf} />
 
                   <TouchableOpacity style={styles.btnSuccess} onPress={handleCadastrarProfessor} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>SALVAR PROFESSOR</Text>}
+                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>CADASTRAR PROFESSOR</Text>}
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Professores Registados</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Professores Cadastrados</Text>
                 {professores.map((prof) => (
                   <View key={prof.id} style={styles.listItem}>
                     <View>
                       <Text style={styles.itemTitle}>{prof.nome}</Text>
-                      <Text style={styles.itemSub}>Disciplina: {prof.disciplina} | Tel: {prof.telefone || 'Sem contacto'}</Text>
+                      <Text style={styles.itemSub}>Disciplina: {prof.disciplina} | Tel: {prof.telefone || 'N/A'}</Text>
                     </View>
                   </View>
                 ))}
