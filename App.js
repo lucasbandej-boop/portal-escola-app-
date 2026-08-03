@@ -27,7 +27,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const INSTITUICAO_ID = 1;
 
 // ==========================================
-// 2. MODAL DE BOLETIM, NOTAS E MÉDIAS
+// 2. MODAL DE BOLETIM (NOTAS E FALTAS)
 // ==========================================
 function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   const [disciplina, setDisciplina] = useState('');
@@ -87,7 +87,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
           .eq('id', notaEmEdicaoId);
 
         if (error) throw error;
-        Alert.alert('Sucesso', 'Nota atualizada com sucesso!');
+        Alert.alert('Sucesso', 'Nota atualizada!');
       } else {
         const { error } = await supabase.from('avaliacoes').insert([
           {
@@ -100,7 +100,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
         ]);
 
         if (error) throw error;
-        Alert.alert('Sucesso', 'Avaliação registada!');
+        Alert.alert('Sucesso', 'Nota registada!');
       }
 
       limparFormularioNota();
@@ -126,7 +126,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   };
 
   const handleEliminarNota = (id) => {
-    Alert.alert('Eliminar Nota', 'Deseja realmente apagar este registo de nota?', [
+    Alert.alert('Eliminar Nota', 'Deseja apagar esta nota?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
@@ -144,7 +144,6 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
     ]);
   };
 
-  // Cálculo da Média Geral e Faltas
   const totalNotas = historico.reduce((acc, curr) => acc + Number(curr.nota || 0), 0);
   const totalFaltas = historico.reduce((acc, curr) => acc + Number(curr.faltas || 0), 0);
   const mediaGeral = historico.length > 0 ? (totalNotas / historico.length).toFixed(2) : 'N/A';
@@ -177,10 +176,9 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
         </View>
 
         <ScrollView style={{ padding: 15 }}>
-          {/* Ficha Académica */}
           <View style={styles.fichaResumo}>
             <Text style={styles.nomeEstudanteBoletim}>{estudante.nome_completo}</Text>
-            <Text style={styles.subFicha}>Curso: {estudante.curso || 'Geral'} | Classe: {estudante.classe_ou_ano || 'N/A'} | Turma: {estudante.turma || 'N/A'}</Text>
+            <Text style={styles.subFicha}>Curso: {estudante.curso || 'Geral'} | Turma: {estudante.turma || 'N/A'}</Text>
             <Text style={styles.subFicha}>BI: {estudante.num_bilhete}</Text>
 
             <View style={styles.caixaIndicadores}>
@@ -199,17 +197,16 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
             </View>
           </View>
 
-          {/* Form Lançar/Editar Nota (Visível no Modo Admin) */}
           {modoAdmin && (
             <View style={styles.cardFormNota}>
               <Text style={styles.subTituloSecao}>
-                {notaEmEdicaoId ? '✏️ Alterar Nota / Falta' : '➕ Lançar Nova Nota / Falta'}
+                {notaEmEdicaoId ? '✏️ Alterar Nota' : '➕ Lançar Nova Nota'}
               </Text>
 
               <Text style={styles.label}>Disciplina</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: Matemática, Física"
+                placeholder="Ex: Matemática"
                 value={disciplina}
                 onChangeText={setDisciplina}
               />
@@ -219,7 +216,6 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
                   <Text style={styles.label}>Trimestre</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="1º Trimestre"
                     value={trimestre}
                     onChangeText={setTrimestre}
                   />
@@ -228,7 +224,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
                   <Text style={styles.label}>Nota (0-20)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="14.5"
+                    placeholder="14"
                     keyboardType="numeric"
                     value={nota}
                     onChangeText={setNota}
@@ -238,7 +234,6 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
                   <Text style={styles.label}>Faltas</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="0"
                     keyboardType="numeric"
                     value={faltas}
                     onChangeText={setFaltas}
@@ -249,7 +244,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                 <TouchableOpacity style={[styles.btnSalvarNota, { flex: 1 }]} onPress={handleSalvarNota}>
                   <Text style={styles.txtSalvar}>
-                    {notaEmEdicaoId ? 'Guardar Alterações' : '+ Lançar no Boletim'}
+                    {notaEmEdicaoId ? 'Atualizar Nota' : '+ Lançar Nota'}
                   </Text>
                 </TouchableOpacity>
 
@@ -262,12 +257,11 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
             </View>
           )}
 
-          {/* Histórico de Notas */}
-          <Text style={[styles.subTituloSecao, { marginTop: 20 }]}>Disciplinas e AVALIAÇÕES</Text>
+          <Text style={[styles.subTituloSecao, { marginTop: 20 }]}>Histórico de Avaliações</Text>
           {loading ? (
             <ActivityIndicator size="small" color="#1877f2" />
           ) : historico.length === 0 ? (
-            <Text style={styles.vazio}>Nenhuma nota lançada até ao momento.</Text>
+            <Text style={styles.vazio}>Nenhuma nota registada.</Text>
           ) : (
             historico.map((item) => (
               <View key={item.id} style={styles.itemNota}>
@@ -305,7 +299,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
 }
 
 // ==========================================
-// 3. COMPONENTE: CADASTRO / EDIÇÃO DE PESSOAS
+// 3. PÁGINA DE CADASTRAMENTO / EDIÇÃO
 // ==========================================
 function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancelar }) {
   const isEdicao = !!membroParaEditar;
@@ -413,9 +407,14 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
 
   return (
     <ScrollView style={styles.formContainer}>
-      <Text style={styles.formTitle}>
-        {isEdicao ? `Editar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}` : 'Cadastrar Novo Membro'}
-      </Text>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
+          <Text style={styles.txtVoltarHeader}>← Voltar à Página Principal</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>
+          {isEdicao ? `Editar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}` : 'Cadastrar Novo Membro'}
+        </Text>
+      </View>
 
       {!isEdicao && (
         <View style={styles.abaTipo}>
@@ -492,17 +491,15 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
         )}
       </TouchableOpacity>
 
-      {isEdicao && (
-        <TouchableOpacity style={styles.btnCancelar} onPress={onCancelar}>
-          <Text style={styles.txtCancelar}>Cancelar Edição</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity style={styles.btnCancelar} onPress={onCancelar}>
+        <Text style={styles.txtCancelar}>Cancelar e Voltar</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 // ==========================================
-// 4. COMPONENTE: PERFIL DA INSTITUIÇÃO
+// 4. PÁGINA PRINCIPAL / PERFIL DA INSTITUIÇÃO
 // ==========================================
 function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEditarMembro }) {
   const [instituicao, setInstituicao] = useState(null);
@@ -510,11 +507,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
   const [professores, setProfessores] = useState([]);
   const [abaAtiva, setAbaAtiva] = useState('geral');
   const [loading, setLoading] = useState(true);
-
-  // Estados de Pesquisa
   const [termoBusca, setTermoBusca] = useState('');
-
-  // Estado para Modal de Notas
   const [estudanteNota, setEstudanteNota] = useState(null);
 
   useEffect(() => {
@@ -572,7 +565,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
             try {
               const { error } = await supabase.from(tabela).delete().eq('id', id);
               if (error) throw error;
-              Alert.alert('Sucesso', 'Registo eliminado com sucesso.');
+              Alert.alert('Sucesso', 'Registo eliminado.');
               carregarDadosPerfil();
             } catch (err) {
               Alert.alert('Erro ao eliminar', err.message);
@@ -583,7 +576,6 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
     );
   };
 
-  // Filtragem Dinâmica
   const estudantesFiltrados = estudantes.filter((est) =>
     est.nome_completo.toLowerCase().includes(termoBusca.toLowerCase()) ||
     (est.curso && est.curso.toLowerCase().includes(termoBusca.toLowerCase())) ||
@@ -599,7 +591,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#1877f2" />
-        <Text style={{ marginTop: 10 }}>A carregar perfil...</Text>
+        <Text style={{ marginTop: 10 }}>A carregar dados...</Text>
       </View>
     );
   }
@@ -634,12 +626,11 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
 
         {modoAdmin && (
           <TouchableOpacity style={styles.btnAdicionar} onPress={onNavegarCadastro}>
-            <Text style={styles.txtBtnAdicionar}>+ Adicionar Estudante / Professor</Text>
+            <Text style={styles.txtBtnAdicionar}>+ Ir para Cadastramento</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* BARRA DE PESQUISA */}
       <View style={styles.searchBarContainer}>
         <TextInput
           style={styles.inputSearch}
@@ -780,24 +771,24 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
 }
 
 // ==========================================
-// 5. COMPONENTE PRINCIPAL
+// 5. COMPONENTE PRINCIPAL (GERENCIADOR DE NA VEGAÇÃO)
 // ==========================================
 export default function App() {
-  const [telaAtual, setTelaAtual] = useState('perfil');
+  const [telaAtual, setTelaAtual] = useState('perfil'); // 'perfil' ou 'cadastro'
   const [membroParaEditar, setMembroParaEditar] = useState(null);
   const [modoAdmin, setModoAdmin] = useState(true);
 
-  const iniciarCadastro = () => {
+  const irParaCadastro = () => {
     setMembroParaEditar(null);
     setTelaAtual('cadastro');
   };
 
-  const iniciarEdicao = (membro) => {
+  const irParaEdicao = (membro) => {
     setMembroParaEditar(membro);
     setTelaAtual('cadastro');
   };
 
-  const concluirAcao = () => {
+  const voltarParaPerfil = () => {
     setMembroParaEditar(null);
     setTelaAtual('perfil');
   };
@@ -806,15 +797,19 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
+      {/* BARRA SUPERIOR DE CONTEXTO */}
       <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>Portal Escola</Text>
+        <TouchableOpacity onPress={voltarParaPerfil}>
+          <Text style={styles.topBarTitle}>Portal Escola</Text>
+        </TouchableOpacity>
+
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <TouchableOpacity
             style={[styles.btnNavegar, { backgroundColor: modoAdmin ? '#28a745' : '#6c757d' }]}
             onPress={() => setModoAdmin(!modoAdmin)}
           >
             <Text style={styles.btnNavegarTexto}>
-              {modoAdmin ? '👑 Admin ON' : '👁️ Modo Leitura'}
+              {modoAdmin ? '👑 Admin ON' : '👁️ Leitura'}
             </Text>
           </TouchableOpacity>
 
@@ -822,8 +817,8 @@ export default function App() {
             <TouchableOpacity 
               style={styles.btnNavegar} 
               onPress={() => {
-                if (telaAtual === 'perfil') iniciarCadastro();
-                else concluirAcao();
+                if (telaAtual === 'perfil') irParaCadastro();
+                else voltarParaPerfil();
               }}
             >
               <Text style={styles.btnNavegarTexto}>
@@ -834,19 +829,20 @@ export default function App() {
         </View>
       </View>
 
+      {/* TROCA DE TELAS */}
       {telaAtual === 'perfil' ? (
         <PerfilInstituicao 
           instituicaoId={INSTITUICAO_ID} 
           modoAdmin={modoAdmin}
-          onNavegarCadastro={iniciarCadastro}
-          onEditarMembro={iniciarEdicao}
+          onNavegarCadastro={irParaCadastro}
+          onEditarMembro={irParaEdicao}
         />
       ) : (
         <CadastroPessoas 
           instituicaoId={INSTITUICAO_ID}
           membroParaEditar={membroParaEditar}
-          onSucesso={concluirAcao}
-          onCancelar={concluirAcao}
+          onSucesso={voltarParaPerfil}
+          onCancelar={voltarParaPerfil}
         />
       )}
     </SafeAreaView>
@@ -854,7 +850,7 @@ export default function App() {
 }
 
 // ==========================================
-// 6. ESTILOS GERAIS
+// 6. ESTILOS DA APLICAÇÃO
 // ==========================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
@@ -921,9 +917,12 @@ const styles = StyleSheet.create({
   btnAcaoEliminar: { padding: 6, backgroundColor: '#ffebe9', borderRadius: 6 },
   txtAcaoEliminar: { fontSize: 14 },
 
-  // Formulario
+  // Formulario e Cadastramento
   formContainer: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#050505', marginBottom: 15 },
+  formHeader: { marginBottom: 15 },
+  btnVoltarHeader: { paddingVertical: 6, marginBottom: 8 },
+  txtVoltarHeader: { color: '#1877f2', fontWeight: 'bold', fontSize: 13 },
+  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#050505' },
   abaTipo: { flexDirection: 'row', gap: 10, marginBottom: 15 },
   btnTipo: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#1877f2', alignItems: 'center' },
   btnTipoAtivo: { backgroundColor: '#1877f2' },
@@ -941,7 +940,7 @@ const styles = StyleSheet.create({
   btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 40 },
   txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 },
 
-  // Modal Notas / Ficha Resumo
+  // Modal Notas
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#050505' },
   btnFecharModal: { padding: 5 },
