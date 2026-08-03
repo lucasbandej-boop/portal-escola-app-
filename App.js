@@ -27,7 +27,169 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const INSTITUICAO_ID = 1;
 
 // ==========================================
-// 2. COMPONENTE: CADASTRO / EDIÇÃO DE PESSOAS
+// 2. MODAL DE NOTAS E FALTAS
+// ==========================================
+function ModalNotasFaltas({ visivel, estudante, onClose }) {
+  const [disciplina, setDisciplina] = useState('');
+  const [trimestre, setTrimestre] = useState('1º Trimestre');
+  const [nota, setNota] = useState('');
+  const [faltas, setFaltas] = useState('0');
+  const [historico, setHistorico] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (estudante && visivel) {
+      carregarNotas();
+    }
+  }, [estudante, visivel]);
+
+  const carregarNotas = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('avaliacoes')
+        .select('*')
+        .eq('estudante_id', estudante.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setHistorico(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar notas:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSalvarNota = async () => {
+    if (!disciplina.trim() || !nota.trim()) {
+      Alert.alert('Erro', 'Preencha a disciplina e a nota.');
+      return;
+    }
+
+    const numNota = parseFloat(nota.replace(',', '.'));
+    if (isNaN(numNota) || numNota < 0 || numNota > 20) {
+      Alert.alert('Nota inválida', 'A nota deve ser um número de 0 a 20.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('avaliacoes').insert([
+        {
+          estudante_id: estudante.id,
+          disciplina: disciplina.trim(),
+          trimestre,
+          nota: numNota,
+          faltas: parseInt(faltas) || 0,
+        },
+      ]);
+
+      if (error) throw error;
+
+      Alert.alert('Sucesso', 'Avaliação registada!');
+      setDisciplina('');
+      setNota('');
+      setFaltas('0');
+      carregarNotas();
+    } catch (err) {
+      Alert.alert('Erro ao guardar', err.message);
+    }
+  };
+
+  if (!estudante) return null;
+
+  return (
+    <Modal visible={visivel} animationType="slide" transparent={false}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Boletim: {estudante.nome_completo}</Text>
+          <TouchableOpacity onPress={onClose} style={styles.btnFecharModal}>
+            <Text style={styles.txtFecharModal}>✕ Fechar</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={{ padding: 15 }}>
+          {/* Form Lançar Nota */}
+          <View style={styles.cardFormNota}>
+            <Text style={styles.subTituloSecao}>Lançar Nova Nota / Falta</Text>
+
+            <Text style={styles.label}>Disciplina</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ex: Matemática, Física"
+              value={disciplina}
+              onChangeText={setDisciplina}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Trimestre</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 1º Trimestre"
+                  value={trimestre}
+                  onChangeText={setTrimestre}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Nota (0-20)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 14.5"
+                  keyboardType="numeric"
+                  value={nota}
+                  onChangeText={setNota}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Faltas</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={faltas}
+                  onChangeText={setFaltas}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.btnSalvarNota} onPress={handleSalvarNota}>
+              <Text style={styles.txtSalvar}>+ Lançar no Boletim</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Histórico de Notas */}
+          <Text style={[styles.subTituloSecao, { marginTop: 20 }]}>Histórico Académico</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#1877f2" />
+          ) : historico.length === 0 ? (
+            <Text style={styles.vazio}>Nenhuma nota registada ainda.</Text>
+          ) : (
+            historico.map((item) => (
+              <View key={item.id} style={styles.itemNota}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14 }}>{item.disciplina}</Text>
+                  <Text style={{ fontSize: 12, color: '#65676b' }}>{item.trimestre}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={[styles.badgeNota, item.nota >= 10 ? styles.notaAprovado : styles.notaReprovado]}>
+                    Nota: {item.nota}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#65676b', marginTop: 2 }}>
+                    Faltas: {item.faltas}
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ==========================================
+// 3. COMPONENTE: CADASTRO / EDIÇÃO DE PESSOAS
 // ==========================================
 function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancelar }) {
   const isEdicao = !!membroParaEditar;
@@ -40,12 +202,10 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
   const [foto, setFoto] = useState(null);
   const [fotoUrlExistente, setFotoUrlExistente] = useState(membroParaEditar?.foto_url || null);
 
-  // Campos específicos de Estudante
   const [turma, setTurma] = useState(membroParaEditar?.turma || '');
   const [classe, setClasse] = useState(membroParaEditar?.classe_ou_ano || '');
   const [curso, setCurso] = useState(membroParaEditar?.curso || '');
 
-  // Campos específicos de Professor
   const [formacao, setFormacao] = useState(membroParaEditar?.formacao_academica || '');
   const [disciplina, setDisciplina] = useState(membroParaEditar?.disciplina || '');
 
@@ -77,7 +237,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
       const response = await fetch(uri);
       const blob = await response.blob();
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('fotos')
         .upload(filePath, blob, { contentType: `image/${ext}`, upsert: true });
 
@@ -256,14 +416,20 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
 }
 
 // ==========================================
-// 3. COMPONENTE: PERFIL DA INSTITUIÇÃO (COM EDITAR E APAGAR)
+// 4. COMPONENTE: PERFIL DA INSTITUIÇÃO
 // ==========================================
-function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro }) {
+function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEditarMembro }) {
   const [instituicao, setInstituicao] = useState(null);
   const [estudantes, setEstudantes] = useState([]);
   const [professores, setProfessores] = useState([]);
   const [abaAtiva, setAbaAtiva] = useState('geral');
   const [loading, setLoading] = useState(true);
+
+  // Estados de Pesquisa e Filtro
+  const [termoBusca, setTermoBusca] = useState('');
+
+  // Estado para Modal de Notas
+  const [estudanteNota, setEstudanteNota] = useState(null);
 
   useEffect(() => {
     carregarDadosPerfil();
@@ -321,13 +487,8 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error } = await supabase
-                .from(tabela)
-                .delete()
-                .eq('id', id);
-
+              const { error } = await supabase.from(tabela).delete().eq('id', id);
               if (error) throw error;
-
               Alert.alert('Sucesso', 'Registo eliminado com sucesso.');
               carregarDadosPerfil();
             } catch (err) {
@@ -339,17 +500,35 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
     );
   };
 
+  // Filtragem Dinâmica
+  const estudantesFiltrados = estudantes.filter((est) =>
+    est.nome_completo.toLowerCase().includes(termoBusca.toLowerCase()) ||
+    (est.curso && est.curso.toLowerCase().includes(termoBusca.toLowerCase())) ||
+    (est.turma && est.turma.toLowerCase().includes(termoBusca.toLowerCase()))
+  );
+
+  const professoresFiltrados = professores.filter((prof) =>
+    prof.nome_completo.toLowerCase().includes(termoBusca.toLowerCase()) ||
+    (prof.disciplina && prof.disciplina.toLowerCase().includes(termoBusca.toLowerCase()))
+  );
+
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#1877f2" />
-        <Text style={{ marginTop: 10 }}>A carregar dados do perfil...</Text>
+        <Text style={{ marginTop: 10 }}>A carregar perfil...</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.profileContainer}>
+      <ModalNotasFaltas
+        visivel={!!estudanteNota}
+        estudante={estudanteNota}
+        onClose={() => setEstudanteNota(null)}
+      />
+
       <View style={styles.capaContainer}>
         <Image
           source={{ uri: instituicao?.foto_capa_url || 'https://via.placeholder.com/800x300/1877f2/ffffff?text=Capa+da+Instituicao' }}
@@ -369,9 +548,21 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
           {instituicao?.categoria_primaria} • {instituicao?.localizacao || 'Luanda, Angola'}
         </Text>
 
-        <TouchableOpacity style={styles.btnAdicionar} onPress={onNavegarCadastro}>
-          <Text style={styles.txtBtnAdicionar}>+ Adicionar Estudante / Professor</Text>
-        </TouchableOpacity>
+        {modoAdmin && (
+          <TouchableOpacity style={styles.btnAdicionar} onPress={onNavegarCadastro}>
+            <Text style={styles.txtBtnAdicionar}>+ Adicionar Estudante / Professor</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* BARRA DE PESQUISA */}
+      <View style={styles.searchBarContainer}>
+        <TextInput
+          style={styles.inputSearch}
+          placeholder="🔍 Pesquisar por nome, curso, turma ou disciplina..."
+          value={termoBusca}
+          onChangeText={setTermoBusca}
+        />
       </View>
 
       <View style={styles.abasContainer}>
@@ -387,7 +578,7 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
           onPress={() => setAbaAtiva('estudantes')}
         >
           <Text style={[styles.txtAba, abaAtiva === 'estudantes' && styles.txtAbaAtiva]}>
-            Estudantes ({estudantes.length})
+            Estudantes ({estudantesFiltrados.length})
           </Text>
         </TouchableOpacity>
 
@@ -396,7 +587,7 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
           onPress={() => setAbaAtiva('professores')}
         >
           <Text style={[styles.txtAba, abaAtiva === 'professores' && styles.txtAbaAtiva]}>
-            Professores ({professores.length})
+            Professores ({professoresFiltrados.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -416,11 +607,10 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
 
         {abaAtiva === 'estudantes' && (
           <View>
-            <Text style={styles.subTituloSecao}>Lista de Estudantes Cadastrados</Text>
-            {estudantes.length === 0 ? (
-              <Text style={styles.vazio}>Nenhum estudante registado até ao momento.</Text>
+            {estudantesFiltrados.length === 0 ? (
+              <Text style={styles.vazio}>Nenhum estudante encontrado.</Text>
             ) : (
-              estudantes.map((est) => (
+              estudantesFiltrados.map((est) => (
                 <View key={est.id} style={styles.listItem}>
                   <Image
                     source={{ uri: est.foto_url || 'https://via.placeholder.com/50' }}
@@ -429,22 +619,33 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.listNome}>{est.nome_completo}</Text>
                     <Text style={styles.listDetalhe}>Curso: {est.curso || 'Geral'}</Text>
-                    <Text style={styles.listDetalhe}>Classe: {est.classe_ou_ano || 'N/A'} | Turma: {est.turma || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.acoesContainer}>
+                    <Text style={styles.listDetalhe}>
+                      Classe: {est.classe_ou_ano || 'N/A'} | Turma: {est.turma || 'N/A'}
+                    </Text>
                     <TouchableOpacity
-                      style={styles.btnAcaoEditar}
-                      onPress={() => onEditarMembro({ ...est, tipo: 'estudante' })}
+                      style={styles.btnVerBoletim}
+                      onPress={() => setEstudanteNota(est)}
                     >
-                      <Text style={styles.txtAcaoEditar}>✏️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.btnAcaoEliminar}
-                      onPress={() => handleEliminar(est.id, est.nome_completo, 'estudantes')}
-                    >
-                      <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                      <Text style={styles.txtVerBoletim}>📊 Ver / Lançar Notas</Text>
                     </TouchableOpacity>
                   </View>
+
+                  {modoAdmin && (
+                    <View style={styles.acoesContainer}>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEditar}
+                        onPress={() => onEditarMembro({ ...est, tipo: 'estudante' })}
+                      >
+                        <Text style={styles.txtAcaoEditar}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEliminar}
+                        onPress={() => handleEliminar(est.id, est.nome_completo, 'estudantes')}
+                      >
+                        <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               ))
             )}
@@ -453,11 +654,10 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
 
         {abaAtiva === 'professores' && (
           <View>
-            <Text style={styles.subTituloSecao}>Corpo Docente</Text>
-            {professores.length === 0 ? (
-              <Text style={styles.vazio}>Nenhum professor registado até ao momento.</Text>
+            {professoresFiltrados.length === 0 ? (
+              <Text style={styles.vazio}>Nenhum professor encontrado.</Text>
             ) : (
-              professores.map((prof) => (
+              professoresFiltrados.map((prof) => (
                 <View key={prof.id} style={styles.listItem}>
                   <Image
                     source={{ uri: prof.foto_url || 'https://via.placeholder.com/50' }}
@@ -466,22 +666,27 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.listNome}>{prof.nome_completo}</Text>
                     <Text style={styles.listDetalhe}>Disciplina: {prof.disciplina || 'Geral'}</Text>
-                    <Text style={styles.listDetalhe}>Formação: {prof.formacao_academica || 'Não especificada'}</Text>
+                    <Text style={styles.listDetalhe}>
+                      Formação: {prof.formacao_academica || 'Não especificada'}
+                    </Text>
                   </View>
-                  <View style={styles.acoesContainer}>
-                    <TouchableOpacity
-                      style={styles.btnAcaoEditar}
-                      onPress={() => onEditarMembro({ ...prof, tipo: 'professor' })}
-                    >
-                      <Text style={styles.txtAcaoEditar}>✏️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.btnAcaoEliminar}
-                      onPress={() => handleEliminar(prof.id, prof.nome_completo, 'professores')}
-                    >
-                      <Text style={styles.txtAcaoEliminar}>🗑️</Text>
-                    </TouchableOpacity>
-                  </View>
+
+                  {modoAdmin && (
+                    <View style={styles.acoesContainer}>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEditar}
+                        onPress={() => onEditarMembro({ ...prof, tipo: 'professor' })}
+                      >
+                        <Text style={styles.txtAcaoEditar}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEliminar}
+                        onPress={() => handleEliminar(prof.id, prof.nome_completo, 'professores')}
+                      >
+                        <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               ))
             )}
@@ -493,11 +698,12 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro })
 }
 
 // ==========================================
-// 4. COMPONENTE PRINCIPAL (Navegação Root)
+// 5. COMPONENTE PRINCIPAL
 // ==========================================
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('perfil');
   const [membroParaEditar, setMembroParaEditar] = useState(null);
+  const [modoAdmin, setModoAdmin] = useState(true); // Alternar Modo Admin / Visitante
 
   const iniciarCadastro = () => {
     setMembroParaEditar(null);
@@ -518,29 +724,38 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      {/* BANNER SUPERIOR */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Portal Escola</Text>
-        <TouchableOpacity 
-          style={styles.btnNavegar} 
-          onPress={() => {
-            if (telaAtual === 'perfil') {
-              iniciarCadastro();
-            } else {
-              concluirAcao();
-            }
-          }}
-        >
-          <Text style={styles.btnNavegarTexto}>
-            {telaAtual === 'perfil' ? '+ Cadastrar Membro' : 'Ver Perfil FB'}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <TouchableOpacity
+            style={[styles.btnNavegar, { backgroundColor: modoAdmin ? '#28a745' : '#6c757d' }]}
+            onPress={() => setModoAdmin(!modoAdmin)}
+          >
+            <Text style={styles.btnNavegarTexto}>
+              {modoAdmin ? '👑 Admin ON' : '👁️ Modo Leitura'}
+            </Text>
+          </TouchableOpacity>
+
+          {modoAdmin && (
+            <TouchableOpacity 
+              style={styles.btnNavegar} 
+              onPress={() => {
+                if (telaAtual === 'perfil') iniciarCadastro();
+                else concluirAcao();
+              }}
+            >
+              <Text style={styles.btnNavegarTexto}>
+                {telaAtual === 'perfil' ? '+ Cadastrar' : 'Ver Perfil'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* CONTEÚDO DINÂMICO */}
       {telaAtual === 'perfil' ? (
         <PerfilInstituicao 
           instituicaoId={INSTITUICAO_ID} 
+          modoAdmin={modoAdmin}
           onNavegarCadastro={iniciarCadastro}
           onEditarMembro={iniciarEdicao}
         />
@@ -557,7 +772,7 @@ export default function App() {
 }
 
 // ==========================================
-// 5. ESTILOS GERAIS
+// 6. ESTILOS GERAIS
 // ==========================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
@@ -568,15 +783,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e4e6eb',
     elevation: 2,
   },
-  topBarTitle: { fontSize: 18, fontWeight: 'bold', color: '#1877f2' },
-  btnNavegar: { backgroundColor: '#1877f2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  btnNavegarTexto: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
+  topBarTitle: { fontSize: 17, fontWeight: 'bold', color: '#1877f2' },
+  btnNavegar: { backgroundColor: '#1877f2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
+  btnNavegarTexto: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
   
+  // Search
+  searchBarContainer: { paddingHorizontal: 15, paddingTop: 10, backgroundColor: '#fff' },
+  inputSearch: { backgroundColor: '#f0f2f5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, fontSize: 13 },
+
   // Perfil
   profileContainer: { flex: 1, backgroundColor: '#f0f2f5' },
   capaContainer: { height: 160, backgroundColor: '#ddd', position: 'relative', marginBottom: 45 },
@@ -611,6 +830,8 @@ const styles = StyleSheet.create({
   avatarList: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#eee' },
   listNome: { fontSize: 14, fontWeight: 'bold', color: '#050505' },
   listDetalhe: { fontSize: 12, color: '#65676b', marginTop: 2 },
+  btnVerBoletim: { marginTop: 6, backgroundColor: '#e7f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
+  txtVerBoletim: { color: '#1877f2', fontSize: 11, fontWeight: 'bold' },
   vazio: { textAlign: 'center', color: '#65676b', marginTop: 20 },
   acoesContainer: { flexDirection: 'row', gap: 6 },
   btnAcaoEditar: { padding: 6, backgroundColor: '#e4e6eb', borderRadius: 6 },
@@ -636,5 +857,17 @@ const styles = StyleSheet.create({
   btnSalvar: { backgroundColor: '#1877f2', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 10 },
   txtSalvar: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
   btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 40 },
-  txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 }
+  txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 },
+
+  // Modal Notas
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
+  modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#050505' },
+  btnFecharModal: { padding: 5 },
+  txtFecharModal: { color: '#e41e3f', fontWeight: 'bold' },
+  cardFormNota: { backgroundColor: '#f7f8fa', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e4e6eb' },
+  btnSalvarNota: { backgroundColor: '#28a745', paddingVertical: 10, borderRadius: 6, alignItems: 'center', marginTop: 12 },
+  itemNota: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderBottomWidth: 1, borderColor: '#eee', marginBottom: 6 },
+  badgeNota: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, fontWeight: 'bold', fontSize: 12 },
+  notaAprovado: { backgroundColor: '#d4edda', color: '#155724' },
+  notaReprovado: { backgroundColor: '#f8d7da', color: '#721c24' }
 });
