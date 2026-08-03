@@ -17,10 +17,10 @@ import { createClient } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
 
 // ==========================================
-// 1. CONFIGURAÇÃO DO SUPABASE (SUAS CREDENCIAIS INTEGRADAS)
+// 1. CONFIGURAÇÃO DO SUPABASE
 // ==========================================
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
-const SUPABASE_ANON_KEY = 'Sb_publishable_CcLk4Iky6KwB7s32bSebNw_wLh2mYxZ';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -771,10 +771,10 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
 }
 
 // ==========================================
-// 5. COMPONENTE PRINCIPAL (GERENCIADOR DE NAVEGAÇÃO)
+// 5. COMPONENTE PRINCIPAL
 // ==========================================
 export default function App() {
-  const [telaAtual, setTelaAtual] = useState('perfil'); // 'perfil' ou 'cadastro'
+  const [telaAtual, setTelaAtual] = useState('perfil');
   const [membroParaEditar, setMembroParaEditar] = useState(null);
   const [modoAdmin, setModoAdmin] = useState(true);
 
@@ -797,7 +797,6 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      {/* BARRA SUPERIOR DE CONTEXTO */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={voltarParaPerfil}>
           <Text style={styles.topBarTitle}>Portal Escola</Text>
@@ -829,7 +828,6 @@ export default function App() {
         </View>
       </View>
 
-      {/* TROCA DE TELAS */}
       {telaAtual === 'perfil' ? (
         <PerfilInstituicao 
           instituicaoId={INSTITUICAO_ID} 
@@ -870,11 +868,9 @@ const styles = StyleSheet.create({
   btnNavegar: { backgroundColor: '#1877f2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
   btnNavegarTexto: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
   
-  // Search
   searchBarContainer: { paddingHorizontal: 15, paddingTop: 10, backgroundColor: '#fff' },
   inputSearch: { backgroundColor: '#f0f2f5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, fontSize: 13 },
 
-  // Perfil
   profileContainer: { flex: 1, backgroundColor: '#f0f2f5' },
   capaContainer: { height: 160, backgroundColor: '#ddd', position: 'relative', marginBottom: 45 },
   capa: { width: '100%', height: '100%' },
@@ -917,7 +913,6 @@ const styles = StyleSheet.create({
   btnAcaoEliminar: { padding: 6, backgroundColor: '#ffebe9', borderRadius: 6 },
   txtAcaoEliminar: { fontSize: 14 },
 
-  // Formulario e Cadastramento
   formContainer: { flex: 1, padding: 20, backgroundColor: '#fff' },
   formHeader: { marginBottom: 15 },
   btnVoltarHeader: { paddingVertical: 6, marginBottom: 8 },
@@ -940,7 +935,6 @@ const styles = StyleSheet.create({
   btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 40 },
   txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 },
 
-  // Modal Notas
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#050505' },
   btnFecharModal: { padding: 5 },
