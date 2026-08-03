@@ -16,9 +16,6 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
 
-// ==========================================
-// 1. CONFIGURAÇÃO DO SUPABASE
-// ==========================================
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
@@ -26,9 +23,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const INSTITUICAO_ID = 1;
 
-// ==========================================
-// 2. MODAL DE BOLETIM (NOTAS E FALTAS)
-// ==========================================
 function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   const [disciplina, setDisciplina] = useState('');
   const [trimestre, setTrimestre] = useState('1º Trimestre');
@@ -106,7 +100,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
       limparFormularioNota();
       carregarNotas();
     } catch (err) {
-      Alert.alert('Erro ao guardar', err.message);
+      Alert.alert('Erro no Supabase', err.message || JSON.stringify(err));
     }
   };
 
@@ -298,9 +292,6 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   );
 }
 
-// ==========================================
-// 3. PÁGINA DE CADASTRAMENTO / EDIÇÃO
-// ==========================================
 function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancelar }) {
   const isEdicao = !!membroParaEditar;
   const [tipo, setTipo] = useState(membroParaEditar?.tipo || 'estudante');
@@ -320,27 +311,31 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
   const [disciplina, setDisciplina] = useState(membroParaEditar?.disciplina || '');
 
   const escolherFoto = async () => {
-    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissao.granted) {
-      Alert.alert('Permissão necessária', 'Acesso à galeria é necessário para escolher foto.');
-      return;
-    }
+    try {
+      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissao.granted) {
+        alert('Acesso à galeria é necessário para escolher foto.');
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
 
-    if (!result.canceled) {
-      setFoto(result.assets[0]);
+      if (!result.canceled) {
+        setFoto(result.assets[0]);
+      }
+    } catch (e) {
+      console.log('Erro imagem:', e);
     }
   };
 
   const handleSalvar = async () => {
     if (!nome.trim() || !bilhete.trim()) {
-      Alert.alert('Atenção', 'Preencha o nome completo e o número do BI.');
+      alert('Atenção: Preencha o nome completo e o número do BI.');
       return;
     }
 
@@ -354,21 +349,25 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
           nome_completo: nome,
           data_nascimento: dataNascimento || null,
           num_bilhete: bilhete,
-          turma,
-          classe_ou_ano: classe,
-          curso,
-          foto_url: fotoUrl
+          turma: turma || null,
+          classe_ou_ano: classe || null,
+          curso: curso || null,
+          foto_url: fotoUrl || null
         };
 
+        let res;
         if (isEdicao) {
-          const { error } = await supabase
+          res = await supabase
             .from('estudantes')
             .update(dadosEstudante)
             .eq('id', membroParaEditar.id);
-          if (error) throw error;
         } else {
-          const { error } = await supabase.from('estudantes').insert([dadosEstudante]);
-          if (error) throw error;
+          res = await supabase.from('estudantes').insert([dadosEstudante]);
+        }
+
+        if (res.error) {
+          alert('Erro no Supabase (Estudante): ' + res.error.message + '\nCódigo: ' + res.error.code);
+          return;
         }
       } else {
         const dadosProfessor = {
@@ -376,30 +375,31 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
           nome_completo: nome,
           data_nascimento: dataNascimento || null,
           num_bilhete: bilhete,
-          formacao_academica: formacao,
-          disciplina,
-          foto_url: fotoUrl
+          formacao_academica: formacao || null,
+          disciplina: disciplina || null,
+          foto_url: fotoUrl || null
         };
 
+        let res;
         if (isEdicao) {
-          const { error } = await supabase
+          res = await supabase
             .from('professores')
             .update(dadosProfessor)
             .eq('id', membroParaEditar.id);
-          if (error) throw error;
         } else {
-          const { error } = await supabase.from('professores').insert([dadosProfessor]);
-          if (error) throw error;
+          res = await supabase.from('professores').insert([dadosProfessor]);
+        }
+
+        if (res.error) {
+          alert('Erro no Supabase (Professor): ' + res.error.message + '\nCódigo: ' + res.error.code);
+          return;
         }
       }
 
-      Alert.alert(
-        'Sucesso',
-        `${tipo === 'estudante' ? 'Estudante' : 'Professor'} ${isEdicao ? 'atualizado' : 'cadastrado'} com sucesso!`
-      );
+      alert(`Sucesso! ${tipo === 'estudante' ? 'Estudante' : 'Professor'} ${isEdicao ? 'atualizado' : 'cadastrado'}.`);
       if (onSucesso) onSucesso();
     } catch (err) {
-      Alert.alert('Erro ao guardar', err.message);
+      alert('Erro inesperado: ' + (err.message || JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
@@ -498,9 +498,6 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
   );
 }
 
-// ==========================================
-// 4. PÁGINA PRINCIPAL / PERFIL DA INSTITUIÇÃO
-// ==========================================
 function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEditarMembro }) {
   const [instituicao, setInstituicao] = useState(null);
   const [estudantes, setEstudantes] = useState([]);
@@ -565,10 +562,10 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
             try {
               const { error } = await supabase.from(tabela).delete().eq('id', id);
               if (error) throw error;
-              Alert.alert('Sucesso', 'Registo eliminado.');
+              alert('Registo eliminado.');
               carregarDadosPerfil();
             } catch (err) {
-              Alert.alert('Erro ao eliminar', err.message);
+              alert('Erro ao eliminar: ' + err.message);
             }
           }
         }
@@ -770,9 +767,6 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
   );
 }
 
-// ==========================================
-// 5. COMPONENTE PRINCIPAL
-// ==========================================
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('perfil');
   const [membroParaEditar, setMembroParaEditar] = useState(null);
@@ -847,9 +841,6 @@ export default function App() {
   );
 }
 
-// ==========================================
-// 6. ESTILOS DA APLICAÇÃO
-// ==========================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
