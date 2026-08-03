@@ -27,15 +27,16 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const INSTITUICAO_ID = 1;
 
 // ==========================================
-// 2. MODAL DE NOTAS E FALTAS
+// 2. MODAL DE BOLETIM, NOTAS E MÉDIAS
 // ==========================================
-function ModalNotasFaltas({ visivel, estudante, onClose }) {
+function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   const [disciplina, setDisciplina] = useState('');
   const [trimestre, setTrimestre] = useState('1º Trimestre');
   const [nota, setNota] = useState('');
   const [faltas, setFaltas] = useState('0');
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notaEmEdicaoId, setNotaEmEdicaoId] = useState(null);
 
   useEffect(() => {
     if (estudante && visivel) {
@@ -63,38 +64,105 @@ function ModalNotasFaltas({ visivel, estudante, onClose }) {
 
   const handleSalvarNota = async () => {
     if (!disciplina.trim() || !nota.trim()) {
-      Alert.alert('Erro', 'Preencha a disciplina e a nota.');
+      Alert.alert('Atenção', 'Preencha a disciplina e a nota.');
       return;
     }
 
     const numNota = parseFloat(nota.replace(',', '.'));
     if (isNaN(numNota) || numNota < 0 || numNota > 20) {
-      Alert.alert('Nota inválida', 'A nota deve ser um número de 0 a 20.');
+      Alert.alert('Nota inválida', 'A nota deve ser um número entre 0 e 20.');
       return;
     }
 
     try {
-      const { error } = await supabase.from('avaliacoes').insert([
-        {
-          estudante_id: estudante.id,
-          disciplina: disciplina.trim(),
-          trimestre,
-          nota: numNota,
-          faltas: parseInt(faltas) || 0,
-        },
-      ]);
+      if (notaEmEdicaoId) {
+        const { error } = await supabase
+          .from('avaliacoes')
+          .update({
+            disciplina: disciplina.trim(),
+            trimestre,
+            nota: numNota,
+            faltas: parseInt(faltas) || 0,
+          })
+          .eq('id', notaEmEdicaoId);
 
-      if (error) throw error;
+        if (error) throw error;
+        Alert.alert('Sucesso', 'Nota atualizada com sucesso!');
+      } else {
+        const { error } = await supabase.from('avaliacoes').insert([
+          {
+            estudante_id: estudante.id,
+            disciplina: disciplina.trim(),
+            trimestre,
+            nota: numNota,
+            faltas: parseInt(faltas) || 0,
+          },
+        ]);
 
-      Alert.alert('Sucesso', 'Avaliação registada!');
-      setDisciplina('');
-      setNota('');
-      setFaltas('0');
+        if (error) throw error;
+        Alert.alert('Sucesso', 'Avaliação registada!');
+      }
+
+      limparFormularioNota();
       carregarNotas();
     } catch (err) {
       Alert.alert('Erro ao guardar', err.message);
     }
   };
+
+  const limparFormularioNota = () => {
+    setDisciplina('');
+    setNota('');
+    setFaltas('0');
+    setNotaEmEdicaoId(null);
+  };
+
+  const handleEditarNota = (item) => {
+    setNotaEmEdicaoId(item.id);
+    setDisciplina(item.disciplina);
+    setTrimestre(item.trimestre);
+    setNota(item.nota.toString());
+    setFaltas(item.faltas.toString());
+  };
+
+  const handleEliminarNota = (id) => {
+    Alert.alert('Eliminar Nota', 'Deseja realmente apagar este registo de nota?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const { error } = await supabase.from('avaliacoes').delete().eq('id', id);
+            if (error) throw error;
+            carregarNotas();
+          } catch (err) {
+            Alert.alert('Erro ao eliminar', err.message);
+          }
+        },
+      },
+    ]);
+  };
+
+  // Cálculo da Média Geral e Faltas
+  const totalNotas = historico.reduce((acc, curr) => acc + Number(curr.nota || 0), 0);
+  const totalFaltas = historico.reduce((acc, curr) => acc + Number(curr.faltas || 0), 0);
+  const mediaGeral = historico.length > 0 ? (totalNotas / historico.length).toFixed(2) : 'N/A';
+
+  let estadoAluno = 'Sem Notas';
+  let corEstado = '#65676b';
+  if (historico.length > 0) {
+    if (mediaGeral >= 10) {
+      estadoAluno = 'Aprovado';
+      corEstado = '#28a745';
+    } else if (mediaGeral >= 7) {
+      estadoAluno = 'Em Recurso';
+      corEstado = '#ffc107';
+    } else {
+      estadoAluno = 'Reprovado';
+      corEstado = '#dc3545';
+    }
+  }
 
   if (!estudante) return null;
 
@@ -102,68 +170,104 @@ function ModalNotasFaltas({ visivel, estudante, onClose }) {
     <Modal visible={visivel} animationType="slide" transparent={false}>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Boletim: {estudante.nome_completo}</Text>
+          <Text style={styles.modalTitle}>Boletim Escolar</Text>
           <TouchableOpacity onPress={onClose} style={styles.btnFecharModal}>
             <Text style={styles.txtFecharModal}>✕ Fechar</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={{ padding: 15 }}>
-          {/* Form Lançar Nota */}
-          <View style={styles.cardFormNota}>
-            <Text style={styles.subTituloSecao}>Lançar Nova Nota / Falta</Text>
+          {/* Ficha Académica */}
+          <View style={styles.fichaResumo}>
+            <Text style={styles.nomeEstudanteBoletim}>{estudante.nome_completo}</Text>
+            <Text style={styles.subFicha}>Curso: {estudante.curso || 'Geral'} | Classe: {estudante.classe_ou_ano || 'N/A'} | Turma: {estudante.turma || 'N/A'}</Text>
+            <Text style={styles.subFicha}>BI: {estudante.num_bilhete}</Text>
 
-            <Text style={styles.label}>Disciplina</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: Matemática, Física"
-              value={disciplina}
-              onChangeText={setDisciplina}
-            />
-
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Trimestre</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 1º Trimestre"
-                  value={trimestre}
-                  onChangeText={setTrimestre}
-                />
+            <View style={styles.caixaIndicadores}>
+              <View style={styles.indicadorItem}>
+                <Text style={styles.indicadorTitulo}>Média Geral</Text>
+                <Text style={[styles.indicadorValor, { color: corEstado }]}>{mediaGeral}</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Nota (0-20)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 14.5"
-                  keyboardType="numeric"
-                  value={nota}
-                  onChangeText={setNota}
-                />
+              <View style={styles.indicadorItem}>
+                <Text style={styles.indicadorTitulo}>Estado</Text>
+                <Text style={[styles.indicadorValor, { color: corEstado }]}>{estadoAluno}</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Faltas</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  value={faltas}
-                  onChangeText={setFaltas}
-                />
+              <View style={styles.indicadorItem}>
+                <Text style={styles.indicadorTitulo}>Total Faltas</Text>
+                <Text style={styles.indicadorValor}>{totalFaltas}</Text>
               </View>
             </View>
-
-            <TouchableOpacity style={styles.btnSalvarNota} onPress={handleSalvarNota}>
-              <Text style={styles.txtSalvar}>+ Lançar no Boletim</Text>
-            </TouchableOpacity>
           </View>
 
+          {/* Form Lançar/Editar Nota (Visível no Modo Admin) */}
+          {modoAdmin && (
+            <View style={styles.cardFormNota}>
+              <Text style={styles.subTituloSecao}>
+                {notaEmEdicaoId ? '✏️ Alterar Nota / Falta' : '➕ Lançar Nova Nota / Falta'}
+              </Text>
+
+              <Text style={styles.label}>Disciplina</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: Matemática, Física"
+                value={disciplina}
+                onChangeText={setDisciplina}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Trimestre</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="1º Trimestre"
+                    value={trimestre}
+                    onChangeText={setTrimestre}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Nota (0-20)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="14.5"
+                    keyboardType="numeric"
+                    value={nota}
+                    onChangeText={setNota}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Faltas</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0"
+                    keyboardType="numeric"
+                    value={faltas}
+                    onChangeText={setFaltas}
+                  />
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                <TouchableOpacity style={[styles.btnSalvarNota, { flex: 1 }]} onPress={handleSalvarNota}>
+                  <Text style={styles.txtSalvar}>
+                    {notaEmEdicaoId ? 'Guardar Alterações' : '+ Lançar no Boletim'}
+                  </Text>
+                </TouchableOpacity>
+
+                {notaEmEdicaoId && (
+                  <TouchableOpacity style={styles.btnCancelarMini} onPress={limparFormularioNota}>
+                    <Text style={styles.txtCancelarMini}>Cancelar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* Histórico de Notas */}
-          <Text style={[styles.subTituloSecao, { marginTop: 20 }]}>Histórico Académico</Text>
+          <Text style={[styles.subTituloSecao, { marginTop: 20 }]}>Disciplinas e AVALIAÇÕES</Text>
           {loading ? (
             <ActivityIndicator size="small" color="#1877f2" />
           ) : historico.length === 0 ? (
-            <Text style={styles.vazio}>Nenhuma nota registada ainda.</Text>
+            <Text style={styles.vazio}>Nenhuma nota lançada até ao momento.</Text>
           ) : (
             historico.map((item) => (
               <View key={item.id} style={styles.itemNota}>
@@ -171,7 +275,8 @@ function ModalNotasFaltas({ visivel, estudante, onClose }) {
                   <Text style={{ fontWeight: 'bold', fontSize: 14 }}>{item.disciplina}</Text>
                   <Text style={{ fontSize: 12, color: '#65676b' }}>{item.trimestre}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
+
+                <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
                   <Text style={[styles.badgeNota, item.nota >= 10 ? styles.notaAprovado : styles.notaReprovado]}>
                     Nota: {item.nota}
                   </Text>
@@ -179,6 +284,17 @@ function ModalNotasFaltas({ visivel, estudante, onClose }) {
                     Faltas: {item.faltas}
                   </Text>
                 </View>
+
+                {modoAdmin && (
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    <TouchableOpacity style={styles.btnAcaoEditar} onPress={() => handleEditarNota(item)}>
+                      <Text style={styles.txtAcaoEditar}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.btnAcaoEliminar} onPress={() => handleEliminarNota(item.id)}>
+                      <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ))
           )}
@@ -212,7 +328,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
   const escolherFoto = async () => {
     const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissao.granted) {
-      Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+      Alert.alert('Permissão necessária', 'Acesso à galeria é necessário para escolher foto.');
       return;
     }
 
@@ -228,32 +344,6 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
     }
   };
 
-  const uploadFotoSupabase = async (uri) => {
-    try {
-      const ext = uri.split('.').pop();
-      const fileName = `${tipo}_${Date.now()}.${ext}`;
-      const filePath = `membros/${fileName}`;
-
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      const { error } = await supabase.storage
-        .from('fotos')
-        .upload(filePath, blob, { contentType: `image/${ext}`, upsert: true });
-
-      if (error) throw error;
-
-      const { data: publicUrlData } = supabase.storage
-        .from('fotos')
-        .getPublicUrl(filePath);
-
-      return publicUrlData.publicUrl;
-    } catch (err) {
-      console.error('Erro no upload da foto:', err);
-      return null;
-    }
-  };
-
   const handleSalvar = async () => {
     if (!nome.trim() || !bilhete.trim()) {
       Alert.alert('Atenção', 'Preencha o nome completo e o número do BI.');
@@ -261,11 +351,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
     }
 
     setLoading(true);
-    let fotoUrl = fotoUrlExistente;
-
-    if (foto) {
-      fotoUrl = await uploadFotoSupabase(foto.uri);
-    }
+    let fotoUrl = foto ? foto.uri : fotoUrlExistente;
 
     try {
       if (tipo === 'estudante') {
@@ -319,7 +405,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
       );
       if (onSucesso) onSucesso();
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message);
+      Alert.alert('Erro ao guardar', err.message);
     } finally {
       setLoading(false);
     }
@@ -425,7 +511,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
   const [abaAtiva, setAbaAtiva] = useState('geral');
   const [loading, setLoading] = useState(true);
 
-  // Estados de Pesquisa e Filtro
+  // Estados de Pesquisa
   const [termoBusca, setTermoBusca] = useState('');
 
   // Estado para Modal de Notas
@@ -438,13 +524,11 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
   async function carregarDadosPerfil() {
     setLoading(true);
     try {
-      const { data: dadosInst, error: errInst } = await supabase
+      const { data: dadosInst } = await supabase
         .from('instituicoes')
         .select('*')
         .eq('id', instituicaoId)
         .single();
-      
-      if (errInst && errInst.code !== 'PGRST116') throw errInst;
       
       setInstituicao(dadosInst || {
         nome: 'Instituto Politécnico Exemplo',
@@ -452,7 +536,6 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
         localizacao: 'Viana, Luanda',
         email: 'contacto@escola.ao',
         director: 'Prof. Manuel',
-        estado_aprovacao: 'aprovado'
       });
 
       const { data: dadosEst } = await supabase
@@ -526,6 +609,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
       <ModalNotasFaltas
         visivel={!!estudanteNota}
         estudante={estudanteNota}
+        modoAdmin={modoAdmin}
         onClose={() => setEstudanteNota(null)}
       />
 
@@ -597,8 +681,6 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
           <View style={styles.card}>
             <Text style={styles.tituloCard}>Corpo Diretivo</Text>
             <Text style={styles.textoItem}>• Diretor Geral: {instituicao?.director || 'Não informado'}</Text>
-            <Text style={styles.textoItem}>• Vice-Diretor: {instituicao?.vice_director || 'Não informado'}</Text>
-            <Text style={styles.textoItem}>• Secretário(a): {instituicao?.secretario || 'Não informado'}</Text>
 
             <Text style={[styles.tituloCard, { marginTop: 15 }]}>Contacto Institucional</Text>
             <Text style={styles.textoItem}>📧 Email: {instituicao?.email}</Text>
@@ -626,7 +708,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
                       style={styles.btnVerBoletim}
                       onPress={() => setEstudanteNota(est)}
                     >
-                      <Text style={styles.txtVerBoletim}>📊 Ver / Lançar Notas</Text>
+                      <Text style={styles.txtVerBoletim}>📊 Abrir Boletim Académico</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -703,7 +785,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('perfil');
   const [membroParaEditar, setMembroParaEditar] = useState(null);
-  const [modoAdmin, setModoAdmin] = useState(true); // Alternar Modo Admin / Visitante
+  const [modoAdmin, setModoAdmin] = useState(true);
 
   const iniciarCadastro = () => {
     setMembroParaEditar(null);
@@ -859,13 +941,22 @@ const styles = StyleSheet.create({
   btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 40 },
   txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 },
 
-  // Modal Notas
+  // Modal Notas / Ficha Resumo
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#050505' },
   btnFecharModal: { padding: 5 },
   txtFecharModal: { color: '#e41e3f', fontWeight: 'bold' },
+  fichaResumo: { backgroundColor: '#e7f3ff', padding: 14, borderRadius: 8, marginBottom: 12 },
+  nomeEstudanteBoletim: { fontSize: 16, fontWeight: 'bold', color: '#050505' },
+  subFicha: { fontSize: 12, color: '#444', marginTop: 2 },
+  caixaIndicadores: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#cce5ff' },
+  indicadorItem: { alignItems: 'center', flex: 1 },
+  indicadorTitulo: { fontSize: 11, color: '#65676b', fontWeight: 'bold' },
+  indicadorValor: { fontSize: 15, fontWeight: 'bold', marginTop: 2 },
   cardFormNota: { backgroundColor: '#f7f8fa', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e4e6eb' },
-  btnSalvarNota: { backgroundColor: '#28a745', paddingVertical: 10, borderRadius: 6, alignItems: 'center', marginTop: 12 },
+  btnSalvarNota: { backgroundColor: '#28a745', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
+  btnCancelarMini: { backgroundColor: '#e4e6eb', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 6, justifyContent: 'center' },
+  txtCancelarMini: { color: '#333', fontWeight: 'bold', fontSize: 12 },
   itemNota: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderBottomWidth: 1, borderColor: '#eee', marginBottom: 6 },
   badgeNota: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, fontWeight: 'bold', fontSize: 12 },
   notaAprovado: { backgroundColor: '#d4edda', color: '#155724' },
