@@ -17,10 +17,10 @@ import { createClient } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
 
 // ==========================================
-// 1. CONFIGURAÇÃO DO SUPABASE
+// 1. CONFIGURAÇÃO DO SUPABASE (SUAS CREDENCIAIS INTEGRADAS)
 // ==========================================
-const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co';
-const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLIC';
+const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
+const SUPABASE_ANON_KEY = 'Sb_publishable_CcLk4Iky6KwB7s32bSebNw_wLh2mYxZ';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -771,7 +771,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
 }
 
 // ==========================================
-// 5. COMPONENTE PRINCIPAL (GERENCIADOR DE NA VEGAÇÃO)
+// 5. COMPONENTE PRINCIPAL (GERENCIADOR DE NAVEGAÇÃO)
 // ==========================================
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('perfil'); // 'perfil' ou 'cadastro'
