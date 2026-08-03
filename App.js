@@ -16,25 +16,46 @@ import { supabase } from './supabase';
 
 export default function App() {
   // NAVEGAÇÃO GERAL
-  const [tela, setTela] = useState('menu_principal'); // 'menu_principal', 'login', 'reg_escola', 'reg_professor', 'consulta_alunos', 'info_app', 'dashboard', 'secretaria', 'validar_email'
+  const [tela, setTela] = useState('menu_principal'); 
   const [subAbaSecretaria, setSubAbaSecretaria] = useState('estudantes');
   const [loading, setLoading] = useState(false);
   const [usuario, setUsuario] = useState(null);
 
-  // BANNER DE PUBLICIDADE ROTATIVO (MATERIAL ESCOLAR)
-  const bannersPublicidade = [
-    { titulo: '📚 Papelaria Moderna', desc: 'Tudo em material escolar com 20% de desconto para estudantes!', cor: '#1E3A8A' },
-    { titulo: '✏️ Mochilas & Cadernos', desc: 'Equipe os seus alunos com o melhor material didático do mercado.', cor: '#065F46' },
-    { titulo: '💻 Tecnologias Educativas', desc: 'Computadores e tablets para escolas com condições especiais.', cor: '#581C87' }
-  ];
+  // PUBLICIDADE DINÂMICA DO SUPABASE
+  const [bannersPublicidade, setBannersPublicidade] = useState([
+    { id: 1, titulo: '📚 Espaço Publicitário', descricao: 'Anuncie aqui a sua loja de material escolar ou serviços educativos!', contacto: 'Contacto: Comercial', cor_fundo: '#1E3A8A' }
+  ]);
   const [bannerAtual, setBannerAtual] = useState(0);
 
+  // Carregar Publicidades do Supabase
   useEffect(() => {
+    fetchPublicidades();
+  }, []);
+
+  const fetchPublicidades = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('publicidades')
+        .select('*')
+        .eq('ativo', true)
+        .order('created_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        setBannersPublicidade(data);
+      }
+    } catch (err) {
+      console.log('Erro ao carregar publicidades:', err.message);
+    }
+  };
+
+  // Rotação dos Anúncios a cada 4 segundos
+  useEffect(() => {
+    if (bannersPublicidade.length <= 1) return;
     const timer = setInterval(() => {
       setBannerAtual((prev) => (prev + 1) % bannersPublicidade.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [bannersPublicidade]);
 
   // CAMPOS DE LOGIN
   const [loginInput, setLoginInput] = useState('');
@@ -51,6 +72,7 @@ export default function App() {
   const [regNomeProf, setRegNomeProf] = useState('');
   const [regDiscProf, setRegDiscProf] = useState('');
   const [regTelProf, setRegTelProf] = useState('');
+  const [regFotoProfUrl, setRegFotoProfUrl] = useState('');
   const [regEmailProf, setRegEmailProf] = useState('');
   const [regSenhaProf, setRegSenhaProf] = useState('');
 
@@ -68,13 +90,17 @@ export default function App() {
   const [estudantes, setEstudantes] = useState([]);
   const [professores, setProfessores] = useState([]);
 
+  // CAMPOS DE NOVO ESTUDANTE (COM FOTO TIPO PASSE)
   const [nomeEstudante, setNomeEstudante] = useState('');
   const [numProcesso, setNumProcesso] = useState('');
   const [classeEstudante, setClasseEstudante] = useState('');
+  const [fotoEstudanteUrl, setFotoEstudanteUrl] = useState('');
 
+  // CAMPOS DE NOVO PROFESSOR PELA ESCOLA
   const [novoNomeProf, setNovoNomeProf] = useState('');
   const [novoDiscProf, setNovoDiscProf] = useState('');
   const [novoTelProf, setNovoTelProf] = useState('');
+  const [novoFotoProfUrl, setNovoFotoProfUrl] = useState('');
 
   const showAlert = (titulo, msg) => {
     if (typeof window !== 'undefined' && window.alert) {
@@ -84,15 +110,14 @@ export default function App() {
     }
   };
 
-  // LOGIN GERAL (Instituição ou Professor)
+  // LOGIN GERAL
   const handleLogin = async () => {
     if (!loginInput.trim() || !loginSenha.trim()) {
-      showAlert('Atenção', 'Preencha o campo de identificação e a senha.');
+      showAlert('Atenção', 'Preencha a identificação e a palavra-passe.');
       return;
     }
     setLoading(true);
     try {
-      // Tentar login na tabela de escolas
       let { data: escolaData } = await supabase
         .from('escolas')
         .select('*')
@@ -108,7 +133,6 @@ export default function App() {
         return;
       }
 
-      // Tentar login na tabela de professores
       let { data: profData } = await supabase
         .from('professores')
         .select('*')
@@ -123,7 +147,7 @@ export default function App() {
         return;
       }
 
-      showAlert('Erro', 'Credenciais inválidas ou utilizador não encontrado.');
+      showAlert('Erro', 'Credenciais inválidas.');
     } catch (err) {
       showAlert('Erro no Login', err.message);
     } finally {
@@ -131,10 +155,10 @@ export default function App() {
     }
   };
 
-  // ENVIAR CÓDIGO DE REGISTO ESCOLA
+  // ENVIAR CÓDIGO REGISTO ESCOLA
   const handleEnviarCodigoEscola = () => {
     if (!regNomeEscola.trim() || !regLicenca.trim() || !regEmail.trim() || !regSenha.trim()) {
-      showAlert('Atenção', 'Preencha todos os campos obrigatórios da escola.');
+      showAlert('Atenção', 'Preencha os campos obrigatórios.');
       return;
     }
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
@@ -151,10 +175,10 @@ export default function App() {
     setTela('validar_email');
   };
 
-  // ENVIAR CÓDIGO DE REGISTO PROFESSOR INDEPENDENTE
+  // ENVIAR CÓDIGO REGISTO PROFESSOR INDEPENDENTE
   const handleEnviarCodigoProfessor = () => {
     if (!regNomeProf.trim() || !regDiscProf.trim() || !regEmailProf.trim() || !regSenhaProf.trim()) {
-      showAlert('Atenção', 'Preencha todos os campos obrigatórios do professor.');
+      showAlert('Atenção', 'Preencha os campos obrigatórios.');
       return;
     }
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
@@ -164,6 +188,7 @@ export default function App() {
       nome: regNomeProf.trim(),
       disciplina: regDiscProf.trim(),
       telefone: regTelProf.trim(),
+      foto_url: regFotoProfUrl.trim() || null,
       email: regEmailProf.trim().toLowerCase(),
       senha_acesso: regSenhaProf.trim()
     });
@@ -171,10 +196,10 @@ export default function App() {
     setTela('validar_email');
   };
 
-  // FINALIZAR CÓDIGO E INSERIR NO SUPABASE
+  // CONFIRMAR CÓDIGO
   const handleConfirmarCodigo = async () => {
     if (codigoDigitado.trim() !== codigoGerado) {
-      showAlert('Erro', 'Código de verificação incorreto.');
+      showAlert('Erro', 'Código incorreto.');
       return;
     }
     setLoading(true);
@@ -199,7 +224,6 @@ export default function App() {
     }
   };
 
-  // CARREGAR DADOS DA ESCOLA
   const carregarDadosEscola = (escolaId) => {
     fetchEstudantes(escolaId);
     fetchProfessoresEscola(escolaId);
@@ -215,10 +239,10 @@ export default function App() {
     if (data) setProfessores(data);
   };
 
-  // CONSULTAR ALUNOS E ENCARREGADOS PUBLICAMENTE
+  // CONSULTA DE ALUNOS E ENCARREGADOS
   const handleConsultarAlunos = async () => {
     if (!termoBuscaAluno.trim()) {
-      showAlert('Atenção', 'Digite o nome do aluno ou número de processo para pesquisar.');
+      showAlert('Atenção', 'Digite o nome do aluno ou número de processo.');
       return;
     }
     setLoading(true);
@@ -231,7 +255,7 @@ export default function App() {
       if (error) throw error;
       setResultadosBusca(data || []);
       if (data.length === 0) {
-        showAlert('Resultado', 'Nenhum registo encontrado com estes parâmetros.');
+        showAlert('Resultado', 'Nenhum estudante encontrado com estes parâmetros.');
       }
     } catch (err) {
       showAlert('Erro na Consulta', err.message);
@@ -240,15 +264,15 @@ export default function App() {
     }
   };
 
-  // CADASTRAR ESTUDANTE (Pela Instituição ou Professor vinculado)
+  // CADASTRAR ESTUDANTE (COM FOTO TIPO PASSE)
   const handleCadastrarEstudante = async () => {
     if (!nomeEstudante.trim() || !numProcesso.trim() || !classeEstudante.trim()) {
-      showAlert('Atenção', 'Preencha todos os campos do aluno.');
+      showAlert('Atenção', 'Preencha Nome, Processo e Classe.');
       return;
     }
     const escolaIdAlocar = usuario.tipo_usuario === 'escola' ? usuario.id : usuario.escola_id;
     if (!escolaIdAlocar) {
-      showAlert('Erro', 'Este professor não está associado a nenhuma instituição.');
+      showAlert('Erro', 'Professor não associado a uma instituição.');
       return;
     }
 
@@ -259,7 +283,8 @@ export default function App() {
           escola_id: escolaIdAlocar,
           nome: nomeEstudante.trim(),
           numero_processo: numProcesso.trim(),
-          classe: classeEstudante.trim()
+          classe: classeEstudante.trim(),
+          foto_url: fotoEstudanteUrl.trim() || null
         }
       ]);
       if (error) throw error;
@@ -267,6 +292,7 @@ export default function App() {
       setNomeEstudante('');
       setNumProcesso('');
       setClasseEstudante('');
+      setFotoEstudanteUrl('');
       if (usuario.tipo_usuario === 'escola') fetchEstudantes(usuario.id);
     } catch (err) {
       showAlert('Erro', err.message);
@@ -275,7 +301,38 @@ export default function App() {
     }
   };
 
-  // --- COMPONENTE DE CABEÇALHO COM BOTÃO LOGIN ---
+  // CADASTRAR PROFESSOR PELA ESCOLA (COM FOTO TIPO PASSE)
+  const handleCadastrarProfEscola = async () => {
+    if (!novoNomeProf.trim() || !novoDiscProf.trim()) {
+      showAlert('Atenção', 'Preencha Nome e Disciplina.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('professores').insert([
+        {
+          escola_id: usuario.id,
+          nome: novoNomeProf.trim(),
+          disciplina: novoDiscProf.trim(),
+          telefone: novoTelProf.trim(),
+          foto_url: novoFotoProfUrl.trim() || null
+        }
+      ]);
+      if (error) throw error;
+      showAlert('Sucesso', 'Professor associado com sucesso!');
+      setNovoNomeProf('');
+      setNovoDiscProf('');
+      setNovoTelProf('');
+      setNovoFotoProfUrl('');
+      fetchProfessoresEscola(usuario.id);
+    } catch (err) {
+      showAlert('Erro', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // CABEÇALHO PÚBLICO
   const HeaderComLogin = () => (
     <View style={styles.topHeaderPublic}>
       <Text style={styles.topHeaderLogo}>Portal Escolar 🎓</Text>
@@ -287,18 +344,19 @@ export default function App() {
 
   // 1. MENU PRINCIPAL
   if (tela === 'menu_principal') {
-    const banner = bannersPublicidade[bannerAtual];
+    const banner = bannersPublicidade[bannerAtual] || bannersPublicidade[0];
     return (
       <SafeAreaView style={styles.containerApp}>
         <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
         <HeaderComLogin />
 
         <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
-          {/* QUADRO DE PUBLICIDADE (Material Escolar) */}
-          <View style={[styles.bannerPublicidade, { backgroundColor: banner.cor }]}>
+          {/* QUADRO DE PUBLICIDADE DINÂMICO */}
+          <View style={[styles.bannerPublicidade, { backgroundColor: banner.cor_fundo || '#1E3A8A' }]}>
             <View style={styles.badgePublicidade}><Text style={styles.badgePubText}>📢 Publicidade Patrocinada</Text></View>
             <Text style={styles.bannerPubTitle}>{banner.titulo}</Text>
-            <Text style={styles.bannerPubDesc}>{banner.desc}</Text>
+            <Text style={styles.bannerPubDesc}>{banner.descricao}</Text>
+            {banner.contacto ? <Text style={styles.bannerPubContacto}>{banner.contacto}</Text> : null}
           </View>
 
           <Text style={styles.sectionHeading}>Menu Principal do Sistema</Text>
@@ -308,12 +366,12 @@ export default function App() {
             <TouchableOpacity style={styles.menuCard} onPress={() => setTela('reg_escola')}>
               <Text style={styles.menuIcon}>🏫</Text>
               <Text style={styles.menuCardTitle}>Cadastramento de Instituições</Text>
-              <Text style={styles.menuCardDesc}>Registe a sua escola para gerir turmas, alunos e notas.</Text>
+              <Text style={styles.menuCardDesc}>Registe a sua escola para gerir turmas, alunos e professores.</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuCard} onPress={() => setTela('consulta_alunos')}>
               <Text style={styles.menuIcon}>🔍</Text>
-              <Text style={styles.menuCardTitle}>Consulta de Alunos</Text>
+              <Text style={styles.menuCardTitle}>Consulta de Alunos e Encarregados</Text>
               <Text style={styles.menuCardDesc}>Consulte o estado de matrícula e dados de estudantes.</Text>
             </TouchableOpacity>
 
@@ -334,7 +392,7 @@ export default function App() {
     );
   }
 
-  // 2. TELA DE LOGIN
+  // 2. LOGIN
   if (tela === 'login') {
     return (
       <SafeAreaView style={styles.containerAuth}>
@@ -344,7 +402,7 @@ export default function App() {
             <Text style={{ color: '#60A5FA', fontSize: 13 }}>← Voltar ao Menu</Text>
           </TouchableOpacity>
           <Text style={styles.authTitle}>Entrar na Conta</Text>
-          <Text style={styles.authSubtitle}>Insira as credenciais da sua Instituição ou Professor</Text>
+          <Text style={styles.authSubtitle}>Insira as credenciais da Instituição ou Professor</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>E-mail ou Nº Licença</Text>
@@ -364,7 +422,7 @@ export default function App() {
     );
   }
 
-  // 3. CADASTRAMENTO DE INSTITUIÇÃO
+  // 3. REGISTO ESCOLA
   if (tela === 'reg_escola') {
     return (
       <SafeAreaView style={styles.containerApp}>
@@ -386,7 +444,7 @@ export default function App() {
             <Text style={styles.label}>E-mail Institucional *</Text>
             <TextInput style={styles.inputForm} placeholder="escola@dominio.com" placeholderTextColor="#94A3B8" keyboardType="email-address" autoCapitalize="none" value={regEmail} onChangeText={setRegEmail} />
 
-            <Text style={styles.label}>URL do Logótipo (Opcional)</Text>
+            <Text style={styles.label}>URL da Foto / Logótipo da Escola</Text>
             <TextInput style={styles.inputForm} placeholder="https://..." placeholderTextColor="#94A3B8" value={regFotoUrl} onChangeText={setRegFotoUrl} />
 
             <Text style={styles.label}>Criar Senha de Acesso *</Text>
@@ -401,7 +459,7 @@ export default function App() {
     );
   }
 
-  // 4. CADASTRAMENTO DE PROFESSORES INDEPENDENTES
+  // 4. REGISTO PROFESSOR INDEPENDENTE (COM FOTO TIPO PASSE)
   if (tela === 'reg_professor') {
     return (
       <SafeAreaView style={styles.containerApp}>
@@ -413,7 +471,7 @@ export default function App() {
           </TouchableOpacity>
           <View style={styles.cardForm}>
             <Text style={styles.sectionTitle}>👨‍🏫 Registo de Professor Independente</Text>
-            <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 16 }}>Para professores sem vínculo fixo a uma instituição ou que desejam registo individual.</Text>
+            <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 16 }}>Para docentes sem vínculo fixo a uma instituição.</Text>
             
             <Text style={styles.label}>Nome Completo *</Text>
             <TextInput style={styles.inputForm} placeholder="Nome do Professor" placeholderTextColor="#94A3B8" value={regNomeProf} onChangeText={setRegNomeProf} />
@@ -423,6 +481,9 @@ export default function App() {
 
             <Text style={styles.label}>Contacto Telefónico</Text>
             <TextInput style={styles.inputForm} placeholder="ex: 923000000" placeholderTextColor="#94A3B8" value={regTelProf} onChangeText={setRegTelProf} />
+
+            <Text style={styles.label}>📸 URL da Foto Tipo Passe (Link da foto)</Text>
+            <TextInput style={styles.inputForm} placeholder="https://..." placeholderTextColor="#94A3B8" value={regFotoProfUrl} onChangeText={setRegFotoProfUrl} />
 
             <Text style={styles.label}>E-mail de Acesso *</Text>
             <TextInput style={styles.inputForm} placeholder="professor@email.com" placeholderTextColor="#94A3B8" keyboardType="email-address" autoCapitalize="none" value={regEmailProf} onChangeText={setRegEmailProf} />
@@ -439,7 +500,7 @@ export default function App() {
     );
   }
 
-  // 5. CONSULTA DE ALUNOS E ENCARREGADOS
+  // 5. CONSULTA DE ALUNOS E ENCARREGADOS (COM FOTO TIPO PASSE)
   if (tela === 'consulta_alunos') {
     return (
       <SafeAreaView style={styles.containerApp}>
@@ -470,11 +531,15 @@ export default function App() {
               <Text style={styles.sectionHeading}>Resultados Encontrados</Text>
               {resultadosBusca.map((aluno) => (
                 <View key={aluno.id} style={styles.listItem}>
-                  <View style={styles.listAvatar}><Text>🎓</Text></View>
+                  {aluno.foto_url ? (
+                    <Image source={{ uri: aluno.foto_url }} style={styles.avatarFotoPasse} />
+                  ) : (
+                    <View style={styles.listAvatar}><Text>🎓</Text></View>
+                  )}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>{aluno.nome}</Text>
                     <Text style={styles.itemSub}>Processo: {aluno.numero_processo} • Classe: {aluno.classe}</Text>
-                    <Text style={{ fontSize: 11, color: '#2563EB', marginTop: 2 }}>Instituição: {aluno.escolas?.nome || 'Escola Associada'}</Text>
+                    <Text style={{ fontSize: 11, color: '#2563EB', marginTop: 2 }}>Instituição: {aluno.escolas?.nome || 'Escola Registada'}</Text>
                   </View>
                 </View>
               ))}
@@ -498,12 +563,7 @@ export default function App() {
           <View style={styles.cardForm}>
             <Text style={styles.sectionTitle}>ℹ️ Sobre o Portal Escolar</Text>
             <Text style={{ fontSize: 14, color: '#475569', lineHeight: 22, marginBottom: 12 }}>
-              Este aplicativo é uma solução digital avançada desenvolvida para otimizar a gestão administrativa de instituições de ensino, permitindo o controlo unificado de matrículas de alunos, docentes e secretaria virtual.
-            </Text>
-            <Text style={{ fontSize: 14, color: '#475569', lineHeight: 22, marginBottom: 12 }}>
-              • **Para Instituições:** Gestão completa de turmas, registo oficial de estudantes e professores associados.{'\n'}
-              • **Para Professores:** Acesso para auxiliar na gestão escolar e inserção de alunos.{'\n'}
-              • **Para Encarregados:** Transparência na consulta de dados académicos.
+              Este aplicativo é uma solução digital avançada desenvolvida para otimizar a gestão administrativa de instituições de ensino, permitindo o controlo unificado de matrículas de alunos, docentes e fotos tipo passe.
             </Text>
           </View>
         </ScrollView>
@@ -518,7 +578,7 @@ export default function App() {
         <StatusBar barStyle="light-content" backgroundColor="#090D16" />
         <View style={styles.authCard}>
           <Text style={styles.authTitle}>Validação de Segurança</Text>
-          <Text style={styles.authSubtitle}>Insira o código de 6 dígitos enviado para o seu e-mail.</Text>
+          <Text style={styles.authSubtitle}>Insira o código enviado para o seu e-mail.</Text>
 
           <TextInput
             style={[styles.input, { textAlign: 'center', fontSize: 24, letterSpacing: 8 }]}
@@ -538,14 +598,18 @@ export default function App() {
     );
   }
 
-  // 8. DASHBOARD LOGADO (Instituição ou Professor)
+  // 8. DASHBOARD LOGADO (COM ABAS E FOTOS TIPO PASSE)
   return (
     <SafeAreaView style={styles.containerApp}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       <View style={styles.topbar}>
         <View style={styles.topbarLeft}>
-          <View style={styles.fotoPlaceholder}><Text style={styles.fotoPlaceholderText}>🏫</Text></View>
+          {usuario?.foto_url ? (
+            <Image source={{ uri: usuario.foto_url }} style={styles.avatarFotoPasse} />
+          ) : (
+            <View style={styles.fotoPlaceholder}><Text style={styles.fotoPlaceholderText}>🏫</Text></View>
+          )}
           <View>
             <Text style={styles.topbarTitle} numberOfLines={1}>{usuario?.nome}</Text>
             <Text style={styles.topbarRole}>Perfil: {usuario?.tipo_usuario === 'escola' ? 'Instituição' : 'Professor'}</Text>
@@ -556,25 +620,35 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.welcomeBanner}>
-          <Text style={styles.welcomeBannerTitle}>Painel de Gestão Académica</Text>
-          <Text style={styles.welcomeBannerText}>Bem-vindo ao seu espaço de trabalho operativo.</Text>
+      {/* NAVEGAÇÃO INTERNA DA INSTITUIÇÃO */}
+      {usuario?.tipo_usuario === 'escola' && (
+        <View style={styles.navMenu}>
+          <TouchableOpacity style={[styles.navItem, subAbaSecretaria === 'estudantes' && styles.navItemActive]} onPress={() => setSubAbaSecretaria('estudantes')}>
+            <Text style={[styles.navText, subAbaSecretaria === 'estudantes' && styles.navTextActive]}>🎓 Estudantes</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.navItem, subAbaSecretaria === 'professores' && styles.navItemActive]} onPress={() => setSubAbaSecretaria('professores')}>
+            <Text style={[styles.navText, subAbaSecretaria === 'professores' && styles.navTextActive]}>👨‍🏫 Professores</Text>
+          </TouchableOpacity>
         </View>
+      )}
 
-        {usuario?.tipo_usuario === 'escola' && (
+      <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
+        {usuario?.tipo_usuario === 'escola' && subAbaSecretaria === 'estudantes' && (
           <View>
             <View style={styles.cardForm}>
-              <Text style={styles.sectionTitle}>Matricular Novo Aluno</Text>
+              <Text style={styles.sectionTitle}>🎓 Matricular Novo Estudante</Text>
               
-              <Text style={styles.label}>Nome Completo do Aluno</Text>
+              <Text style={styles.label}>Nome Completo do Aluno *</Text>
               <TextInput style={styles.inputForm} placeholder="Nome do estudante" placeholderTextColor="#94A3B8" value={nomeEstudante} onChangeText={setNomeEstudante} />
 
-              <Text style={styles.label}>Nº de Processo</Text>
+              <Text style={styles.label}>Nº de Processo *</Text>
               <TextInput style={styles.inputForm} placeholder="ex: 2026/05" placeholderTextColor="#94A3B8" value={numProcesso} onChangeText={setNumProcesso} />
 
-              <Text style={styles.label}>Classe</Text>
+              <Text style={styles.label}>Classe *</Text>
               <TextInput style={styles.inputForm} placeholder="ex: 10ª Classe" placeholderTextColor="#94A3B8" value={classeEstudante} onChangeText={setClasseEstudante} />
+
+              <Text style={styles.label}>📸 URL da Foto Tipo Passe (Link da Foto)</Text>
+              <TextInput style={styles.inputForm} placeholder="https://..." placeholderTextColor="#94A3B8" value={fotoEstudanteUrl} onChangeText={setFotoEstudanteUrl} />
 
               <TouchableOpacity style={styles.btnSuccess} onPress={handleCadastrarEstudante} disabled={loading}>
                 {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnSuccessText}>Registar Aluno na Escola</Text>}
@@ -584,7 +658,11 @@ export default function App() {
             <Text style={[styles.sectionHeading, { marginTop: 24 }]}>Estudantes Matriculados ({estudantes.length})</Text>
             {estudantes.map((est) => (
               <View key={est.id} style={styles.listItem}>
-                <View style={styles.listAvatar}><Text>🎓</Text></View>
+                {est.foto_url ? (
+                  <Image source={{ uri: est.foto_url }} style={styles.avatarFotoPasse} />
+                ) : (
+                  <View style={styles.listAvatar}><Text>🎓</Text></View>
+                )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemTitle}>{est.nome}</Text>
                   <Text style={styles.itemSub}>Processo: {est.numero_processo} • Classe: {est.classe}</Text>
@@ -594,16 +672,60 @@ export default function App() {
           </View>
         )}
 
+        {usuario?.tipo_usuario === 'escola' && subAbaSecretaria === 'professores' && (
+          <View>
+            <View style={styles.cardForm}>
+              <Text style={styles.sectionTitle}>👨‍🏫 Cadastrar Professor no Quadro Docente</Text>
+              
+              <Text style={styles.label}>Nome Completo *</Text>
+              <TextInput style={styles.inputForm} placeholder="Nome do Professor" placeholderTextColor="#94A3B8" value={novoNomeProf} onChangeText={setNovoNomeProf} />
+
+              <Text style={styles.label}>Disciplina Principal *</Text>
+              <TextInput style={styles.inputForm} placeholder="ex: Matemática" placeholderTextColor="#94A3B8" value={novoDiscProf} onChangeText={setNovoDiscProf} />
+
+              <Text style={styles.label}>Contacto Telefónico</Text>
+              <TextInput style={styles.inputForm} placeholder="ex: 923000000" placeholderTextColor="#94A3B8" value={novoTelProf} onChangeText={setNovoTelProf} />
+
+              <Text style={styles.label}>📸 URL da Foto Tipo Passe (Link da Foto)</Text>
+              <TextInput style={styles.inputForm} placeholder="https://..." placeholderTextColor="#94A3B8" value={novoFotoProfUrl} onChangeText={setNovoFotoProfUrl} />
+
+              <TouchableOpacity style={styles.btnSuccess} onPress={handleCadastrarProfEscola} disabled={loading}>
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnSuccessText}>Registar Professor</Text>}
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.sectionHeading, { marginTop: 24 }]}>Corpo Docente ({professores.length})</Text>
+            {professores.map((prof) => (
+              <View key={prof.id} style={styles.listItem}>
+                {prof.foto_url ? (
+                  <Image source={{ uri: prof.foto_url }} style={styles.avatarFotoPasse} />
+                ) : (
+                  <View style={styles.listAvatar}><Text>👨‍🏫</Text></View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemTitle}>{prof.nome}</Text>
+                  <Text style={styles.itemSub}>Disciplina: {prof.disciplina} • Tel: {prof.telefone || 'N/A'}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {usuario?.tipo_usuario === 'professor' && (
           <View style={styles.cardForm}>
             <Text style={styles.sectionTitle}>Área do Professor Independente</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              {usuario.foto_url ? (
+                <Image source={{ uri: usuario.foto_url }} style={{ width: 60, height: 60, borderRadius: 30 }} />
+              ) : null}
+              <View>
+                <Text style={{ fontSize: 15, fontWeight: 'bold' }}>{usuario.nome}</Text>
+                <Text style={{ fontSize: 13, color: '#475569' }}>{usuario.disciplina}</Text>
+              </View>
+            </View>
             <Text style={{ fontSize: 13, color: '#475569', lineHeight: 20 }}>
-              Disciplina: <Text style={{ fontWeight: 'bold' }}>{usuario.disciplina}</Text>{'\n'}
               Contacto: <Text style={{ fontWeight: 'bold' }}>{usuario.telefone || 'N/A'}</Text>{'\n'}
               E-mail: <Text style={{ fontWeight: 'bold' }}>{usuario.email}</Text>
-            </Text>
-            <Text style={{ fontSize: 12, color: '#64748B', marginTop: 12 }}>
-              Funcionalidades de lecionação e turmas disponíveis em breve.
             </Text>
           </View>
         )}
@@ -632,12 +754,12 @@ const styles = StyleSheet.create({
 
   contentScroll: { padding: 20, maxWidth: 840, width: '100%', alignSelf: 'center' },
 
-  // BANNER DE PUBLICIDADE
   bannerPublicidade: { borderRadius: 14, padding: 18, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   badgePublicidade: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 8 },
   badgePubText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
   bannerPubTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
-  bannerPubDesc: { color: '#E2E8F0', fontSize: 13 },
+  bannerPubDesc: { color: '#E2E8F0', fontSize: 13, marginBottom: 4 },
+  bannerPubContacto: { color: '#FCD34D', fontSize: 12, fontWeight: '600' },
 
   sectionHeading: { fontSize: 18, fontWeight: '700', color: '#0F172A', marginBottom: 4 },
   sectionSub: { fontSize: 13, color: '#64748B', marginBottom: 16 },
@@ -665,12 +787,15 @@ const styles = StyleSheet.create({
   btnLogout: { backgroundColor: '#FEF2F2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#FEE2E2' },
   btnLogoutText: { color: '#DC2626', fontWeight: '600', fontSize: 13 },
 
-  listItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0', gap: 12 },
-  listAvatar: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  itemTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  itemSub: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  navMenu: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0', paddingHorizontal: 16 },
+  navItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  navItemActive: { borderBottomColor: '#2563EB' },
+  navText: { color: '#64748B', fontWeight: '500', fontSize: 14 },
+  navTextActive: { color: '#2563EB', fontWeight: '700' },
 
-  welcomeBanner: { backgroundColor: '#1E293B', borderRadius: 12, padding: 20, marginBottom: 20 },
-  welcomeBannerTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginBottom: 4 },
-  welcomeBannerText: { color: '#94A3B8', fontSize: 13, lineHeight: 18 }
+  avatarFotoPasse: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: '#CBD5E1' },
+  listItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0', gap: 12 },
+  listAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
+  itemTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  itemSub: { fontSize: 12, color: '#64748B', marginTop: 2 }
 });
