@@ -10,7 +10,8 @@ import {
   TextInput,
   Image,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,7 +19,6 @@ import * as ImagePicker from 'expo-image-picker';
 // ==========================================
 // 1. CONFIGURAÇÃO DO SUPABASE
 // ==========================================
-// Substitua pelas suas credenciais caso não estejam no .env
 const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co';
 const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLIC';
 
@@ -27,25 +27,27 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const INSTITUICAO_ID = 1;
 
 // ==========================================
-// 2. COMPONENTE: CADASTRO DE PESSOAS (ALUNOS / PROFESSORES)
+// 2. COMPONENTE: CADASTRO / EDIÇÃO DE PESSOAS
 // ==========================================
-function CadastroPessoas({ instituicaoId, onSucesso }) {
-  const [tipo, setTipo] = useState('estudante');
+function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancelar }) {
+  const isEdicao = !!membroParaEditar;
+  const [tipo, setTipo] = useState(membroParaEditar?.tipo || 'estudante');
   const [loading, setLoading] = useState(false);
 
-  const [nome, setNome] = useState('');
-  const [dataNascimento, setDataNascimento] = useState('');
-  const [bilhete, setBilhete] = useState('');
+  const [nome, setNome] = useState(membroParaEditar?.nome_completo || '');
+  const [dataNascimento, setDataNascimento] = useState(membroParaEditar?.data_nascimento || '');
+  const [bilhete, setBilhete] = useState(membroParaEditar?.num_bilhete || '');
   const [foto, setFoto] = useState(null);
+  const [fotoUrlExistente, setFotoUrlExistente] = useState(membroParaEditar?.foto_url || null);
 
   // Campos específicos de Estudante
-  const [turma, setTurma] = useState('');
-  const [classe, setClasse] = useState('');
-  const [curso, setCurso] = useState('');
+  const [turma, setTurma] = useState(membroParaEditar?.turma || '');
+  const [classe, setClasse] = useState(membroParaEditar?.classe_ou_ano || '');
+  const [curso, setCurso] = useState(membroParaEditar?.curso || '');
 
   // Campos específicos de Professor
-  const [formacao, setFormacao] = useState('');
-  const [disciplina, setDisciplina] = useState('');
+  const [formacao, setFormacao] = useState(membroParaEditar?.formacao_academica || '');
+  const [disciplina, setDisciplina] = useState(membroParaEditar?.disciplina || '');
 
   const escolherFoto = async () => {
     const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -99,7 +101,7 @@ function CadastroPessoas({ instituicaoId, onSucesso }) {
     }
 
     setLoading(true);
-    let fotoUrl = null;
+    let fotoUrl = fotoUrlExistente;
 
     if (foto) {
       fotoUrl = await uploadFotoSupabase(foto.uri);
@@ -107,45 +109,54 @@ function CadastroPessoas({ instituicaoId, onSucesso }) {
 
     try {
       if (tipo === 'estudante') {
-        const { error } = await supabase.from('estudantes').insert([
-          {
-            instituicao_id: instituicaoId,
-            nome_completo: nome,
-            data_nascimento: dataNascimento || null,
-            num_bilhete: bilhete,
-            turma,
-            classe_ou_ano: classe,
-            curso,
-            foto_url: fotoUrl
-          }
-        ]);
-        if (error) throw error;
+        const dadosEstudante = {
+          instituicao_id: instituicaoId,
+          nome_completo: nome,
+          data_nascimento: dataNascimento || null,
+          num_bilhete: bilhete,
+          turma,
+          classe_ou_ano: classe,
+          curso,
+          foto_url: fotoUrl
+        };
+
+        if (isEdicao) {
+          const { error } = await supabase
+            .from('estudantes')
+            .update(dadosEstudante)
+            .eq('id', membroParaEditar.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('estudantes').insert([dadosEstudante]);
+          if (error) throw error;
+        }
       } else {
-        const { error } = await supabase.from('professores').insert([
-          {
-            instituicao_id: instituicaoId,
-            nome_completo: nome,
-            data_nascimento: dataNascimento || null,
-            num_bilhete: bilhete,
-            formacao_academica: formacao,
-            disciplina,
-            foto_url: fotoUrl
-          }
-        ]);
-        if (error) throw error;
+        const dadosProfessor = {
+          instituicao_id: instituicaoId,
+          nome_completo: nome,
+          data_nascimento: dataNascimento || null,
+          num_bilhete: bilhete,
+          formacao_academica: formacao,
+          disciplina,
+          foto_url: fotoUrl
+        };
+
+        if (isEdicao) {
+          const { error } = await supabase
+            .from('professores')
+            .update(dadosProfessor)
+            .eq('id', membroParaEditar.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('professores').insert([dadosProfessor]);
+          if (error) throw error;
+        }
       }
 
-      Alert.alert('Sucesso', `${tipo === 'estudante' ? 'Estudante' : 'Professor'} cadastrado com sucesso!`);
-      setNome('');
-      setBilhete('');
-      setDataNascimento('');
-      setTurma('');
-      setClasse('');
-      setCurso('');
-      setFormacao('');
-      setDisciplina('');
-      setFoto(null);
-
+      Alert.alert(
+        'Sucesso',
+        `${tipo === 'estudante' ? 'Estudante' : 'Professor'} ${isEdicao ? 'atualizado' : 'cadastrado'} com sucesso!`
+      );
       if (onSucesso) onSucesso();
     } catch (err) {
       Alert.alert('Erro ao Salvar', err.message);
@@ -156,28 +167,34 @@ function CadastroPessoas({ instituicaoId, onSucesso }) {
 
   return (
     <ScrollView style={styles.formContainer}>
-      <Text style={styles.formTitle}>Cadastrar Novo Membro</Text>
+      <Text style={styles.formTitle}>
+        {isEdicao ? `Editar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}` : 'Cadastrar Novo Membro'}
+      </Text>
 
-      <View style={styles.abaTipo}>
-        <TouchableOpacity 
-          style={[styles.btnTipo, tipo === 'estudante' && styles.btnTipoAtivo]}
-          onPress={() => setTipo('estudante')}
-        >
-          <Text style={[styles.txtTipo, tipo === 'estudante' && styles.txtTipoAtivo]}>+ Estudante</Text>
-        </TouchableOpacity>
+      {!isEdicao && (
+        <View style={styles.abaTipo}>
+          <TouchableOpacity 
+            style={[styles.btnTipo, tipo === 'estudante' && styles.btnTipoAtivo]}
+            onPress={() => setTipo('estudante')}
+          >
+            <Text style={[styles.txtTipo, tipo === 'estudante' && styles.txtTipoAtivo]}>+ Estudante</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.btnTipo, tipo === 'professor' && styles.btnTipoAtivo]}
-          onPress={() => setTipo('professor')}
-        >
-          <Text style={[styles.txtTipo, tipo === 'professor' && styles.txtTipoAtivo]}>+ Professor</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity 
+            style={[styles.btnTipo, tipo === 'professor' && styles.btnTipoAtivo]}
+            onPress={() => setTipo('professor')}
+          >
+            <Text style={[styles.txtTipo, tipo === 'professor' && styles.txtTipoAtivo]}>+ Professor</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.fotoSection}>
         <TouchableOpacity onPress={escolherFoto} style={styles.fotoContainer}>
           {foto ? (
             <Image source={{ uri: foto.uri }} style={styles.fotoPreview} />
+          ) : fotoUrlExistente ? (
+            <Image source={{ uri: fotoUrlExistente }} style={styles.fotoPreview} />
           ) : (
             <View style={styles.fotoPlaceholder}>
               <Text style={styles.fotoTxt}>📷 Selecionar Foto</Text>
@@ -223,17 +240,25 @@ function CadastroPessoas({ instituicaoId, onSucesso }) {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.txtSalvar}>Guardar {tipo === 'estudante' ? 'Estudante' : 'Professor'}</Text>
+          <Text style={styles.txtSalvar}>
+            {isEdicao ? 'Atualizar Dados' : `Guardar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}`}
+          </Text>
         )}
       </TouchableOpacity>
+
+      {isEdicao && (
+        <TouchableOpacity style={styles.btnCancelar} onPress={onCancelar}>
+          <Text style={styles.txtCancelar}>Cancelar Edição</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
 
 // ==========================================
-// 3. COMPONENTE: PERFIL DA INSTITUIÇÃO (ESTILO FACEBOOK)
+// 3. COMPONENTE: PERFIL DA INSTITUIÇÃO (COM EDITAR E APAGAR)
 // ==========================================
-function PerfilInstituicao({ instituicaoId, onNavegarCadastro }) {
+function PerfilInstituicao({ instituicaoId, onNavegarCadastro, onEditarMembro }) {
   const [instituicao, setInstituicao] = useState(null);
   const [estudantes, setEstudantes] = useState([]);
   const [professores, setProfessores] = useState([]);
@@ -284,6 +309,35 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro }) {
       setLoading(false);
     }
   }
+
+  const handleEliminar = (id, nome, tabela) => {
+    Alert.alert(
+      'Confirmar Eliminação',
+      `Tem a certeza de que deseja eliminar "${nome}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from(tabela)
+                .delete()
+                .eq('id', id);
+
+              if (error) throw error;
+
+              Alert.alert('Sucesso', 'Registo eliminado com sucesso.');
+              carregarDadosPerfil();
+            } catch (err) {
+              Alert.alert('Erro ao eliminar', err.message);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -351,7 +405,7 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro }) {
         {abaAtiva === 'geral' && (
           <View style={styles.card}>
             <Text style={styles.tituloCard}>Corpo Diretivo</Text>
-            <Text style={styles.textoItem}>• Diretor General: {instituicao?.director || 'Não informado'}</Text>
+            <Text style={styles.textoItem}>• Diretor Geral: {instituicao?.director || 'Não informado'}</Text>
             <Text style={styles.textoItem}>• Vice-Diretor: {instituicao?.vice_director || 'Não informado'}</Text>
             <Text style={styles.textoItem}>• Secretário(a): {instituicao?.secretario || 'Não informado'}</Text>
 
@@ -377,6 +431,20 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro }) {
                     <Text style={styles.listDetalhe}>Curso: {est.curso || 'Geral'}</Text>
                     <Text style={styles.listDetalhe}>Classe: {est.classe_ou_ano || 'N/A'} | Turma: {est.turma || 'N/A'}</Text>
                   </View>
+                  <View style={styles.acoesContainer}>
+                    <TouchableOpacity
+                      style={styles.btnAcaoEditar}
+                      onPress={() => onEditarMembro({ ...est, tipo: 'estudante' })}
+                    >
+                      <Text style={styles.txtAcaoEditar}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.btnAcaoEliminar}
+                      onPress={() => handleEliminar(est.id, est.nome_completo, 'estudantes')}
+                    >
+                      <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))
             )}
@@ -400,6 +468,20 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro }) {
                     <Text style={styles.listDetalhe}>Disciplina: {prof.disciplina || 'Geral'}</Text>
                     <Text style={styles.listDetalhe}>Formação: {prof.formacao_academica || 'Não especificada'}</Text>
                   </View>
+                  <View style={styles.acoesContainer}>
+                    <TouchableOpacity
+                      style={styles.btnAcaoEditar}
+                      onPress={() => onEditarMembro({ ...prof, tipo: 'professor' })}
+                    >
+                      <Text style={styles.txtAcaoEditar}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.btnAcaoEliminar}
+                      onPress={() => handleEliminar(prof.id, prof.nome_completo, 'professores')}
+                    >
+                      <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))
             )}
@@ -411,10 +493,26 @@ function PerfilInstituicao({ instituicaoId, onNavegarCadastro }) {
 }
 
 // ==========================================
-// 4. COMPONENTE PRINCIPAL (Navegação & Layout Root)
+// 4. COMPONENTE PRINCIPAL (Navegação Root)
 // ==========================================
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('perfil');
+  const [membroParaEditar, setMembroParaEditar] = useState(null);
+
+  const iniciarCadastro = () => {
+    setMembroParaEditar(null);
+    setTelaAtual('cadastro');
+  };
+
+  const iniciarEdicao = (membro) => {
+    setMembroParaEditar(membro);
+    setTelaAtual('cadastro');
+  };
+
+  const concluirAcao = () => {
+    setMembroParaEditar(null);
+    setTelaAtual('perfil');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -425,7 +523,13 @@ export default function App() {
         <Text style={styles.topBarTitle}>Portal Escola</Text>
         <TouchableOpacity 
           style={styles.btnNavegar} 
-          onPress={() => setTelaAtual(telaAtual === 'perfil' ? 'cadastro' : 'perfil')}
+          onPress={() => {
+            if (telaAtual === 'perfil') {
+              iniciarCadastro();
+            } else {
+              concluirAcao();
+            }
+          }}
         >
           <Text style={styles.btnNavegarTexto}>
             {telaAtual === 'perfil' ? '+ Cadastrar Membro' : 'Ver Perfil FB'}
@@ -437,12 +541,15 @@ export default function App() {
       {telaAtual === 'perfil' ? (
         <PerfilInstituicao 
           instituicaoId={INSTITUICAO_ID} 
-          onNavegarCadastro={() => setTelaAtual('cadastro')} 
+          onNavegarCadastro={iniciarCadastro}
+          onEditarMembro={iniciarEdicao}
         />
       ) : (
         <CadastroPessoas 
-          instituicaoId={INSTITUICAO_ID} 
-          onSucesso={() => setTelaAtual('perfil')} 
+          instituicaoId={INSTITUICAO_ID}
+          membroParaEditar={membroParaEditar}
+          onSucesso={concluirAcao}
+          onCancelar={concluirAcao}
         />
       )}
     </SafeAreaView>
@@ -505,6 +612,11 @@ const styles = StyleSheet.create({
   listNome: { fontSize: 14, fontWeight: 'bold', color: '#050505' },
   listDetalhe: { fontSize: 12, color: '#65676b', marginTop: 2 },
   vazio: { textAlign: 'center', color: '#65676b', marginTop: 20 },
+  acoesContainer: { flexDirection: 'row', gap: 6 },
+  btnAcaoEditar: { padding: 6, backgroundColor: '#e4e6eb', borderRadius: 6 },
+  txtAcaoEditar: { fontSize: 14 },
+  btnAcaoEliminar: { padding: 6, backgroundColor: '#ffebe9', borderRadius: 6 },
+  txtAcaoEliminar: { fontSize: 14 },
 
   // Formulario
   formContainer: { flex: 1, padding: 20, backgroundColor: '#fff' },
@@ -521,6 +633,8 @@ const styles = StyleSheet.create({
   fotoTxt: { fontSize: 11, color: '#65676b', textAlign: 'center' },
   label: { fontSize: 12, fontWeight: 'bold', color: '#050505', marginBottom: 4, marginTop: 8 },
   input: { height: 42, borderWidth: 1, borderColor: '#cccccc', borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f9f9f9', fontSize: 14 },
-  btnSalvar: { backgroundColor: '#1877f2', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 40 },
-  txtSalvar: { color: '#fff', fontWeight: 'bold', fontSize: 15 }
+  btnSalvar: { backgroundColor: '#1877f2', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 10 },
+  txtSalvar: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 40 },
+  txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 }
 });
