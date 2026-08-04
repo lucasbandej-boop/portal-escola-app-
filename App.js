@@ -292,13 +292,13 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   );
 }
 
-function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancelar }) {
+function CadastroPessoas({ instituicaoId, tipoInicial, membroParaEditar, onSucesso, onCancelar }) {
   const isEdicao = !!membroParaEditar;
-  const [tipo, setTipo] = useState(membroParaEditar?.tipo || 'estudante');
+  const [tipo, setTipo] = useState(membroParaEditar?.tipo || tipoInicial || 'estudante');
   const [loading, setLoading] = useState(false);
 
   const [nome, setNome] = useState(membroParaEditar?.nome_completo || '');
-  const [dataNascimento, setDataNascimento] = useState(membroParaEditar?.data_nascimento || '');
+  const [dataNascimento, setDataNascimento] = useState(membroParaEditar?.data_nascimento || membroParaEditar?.nascimento || '');
   const [bilhete, setBilhete] = useState(membroParaEditar?.num_bilhete || '');
   const [foto, setFoto] = useState(null);
   const [fotoUrlExistente, setFotoUrlExistente] = useState(membroParaEditar?.foto_url || null);
@@ -348,6 +348,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
           instituicao_id: instituicaoId,
           nome_completo: nome,
           data_nascimento: dataNascimento || null,
+          nascimento: dataNascimento || null,
           num_bilhete: bilhete,
           turma: turma || null,
           classe_ou_ano: classe || null,
@@ -366,7 +367,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
         }
 
         if (res.error) {
-          alert('Erro no Supabase (Estudante): ' + res.error.message + '\nCódigo: ' + res.error.code);
+          alert('Erro no Supabase (Estudante): ' + res.error.message);
           return;
         }
       } else {
@@ -374,6 +375,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
           instituicao_id: instituicaoId,
           nome_completo: nome,
           data_nascimento: dataNascimento || null,
+          nascimento: dataNascimento || null,
           num_bilhete: bilhete,
           formacao_academica: formacao || null,
           disciplina: disciplina || null,
@@ -391,7 +393,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
         }
 
         if (res.error) {
-          alert('Erro no Supabase (Professor): ' + res.error.message + '\nCódigo: ' + res.error.code);
+          alert('Erro no Supabase (Professor): ' + res.error.message);
           return;
         }
       }
@@ -409,10 +411,10 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
     <ScrollView style={styles.formContainer}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
-          <Text style={styles.txtVoltarHeader}>← Voltar à Página Principal</Text>
+          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
         </TouchableOpacity>
         <Text style={styles.formTitle}>
-          {isEdicao ? `Editar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}` : 'Cadastrar Novo Membro'}
+          {isEdicao ? `Editar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}` : `Cadastrar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}`}
         </Text>
       </View>
 
@@ -498,7 +500,7 @@ function CadastroPessoas({ instituicaoId, membroParaEditar, onSucesso, onCancela
   );
 }
 
-function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEditarMembro }) {
+function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarCadastro, onEditarMembro }) {
   const [instituicao, setInstituicao] = useState(null);
   const [estudantes, setEstudantes] = useState([]);
   const [professores, setProfessores] = useState([]);
@@ -602,14 +604,38 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
         onClose={() => setEstudanteNota(null)}
       />
 
+      {/* Topo exatamente como na imagem do usuário */}
+      <View style={styles.topBar}>
+        <Text style={styles.topBarTitle}>Portal Escola</Text>
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity 
+            style={styles.btnAdminState}
+            onPress={onToggleAdmin}
+          >
+            <Text style={styles.btnAdminStateText}>
+              👑 {modoAdmin ? 'Admin ON' : 'Modo Leitor'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.btnCadastrarTop}
+            onPress={onNavegarCadastro}
+          >
+            <Text style={styles.btnCadastrarTopText}>+ Cadastrar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Capa e Perfil */}
       <View style={styles.capaContainer}>
         <Image
-          source={{ uri: instituicao?.foto_capa_url || 'https://via.placeholder.com/800x300/1877f2/ffffff?text=Capa+da+Instituicao' }}
+          source={{ uri: instituicao?.foto_capa_url || 'https://via.placeholder.com/800x300/e0e0e0/ffffff' }}
           style={styles.capa}
         />
         <View style={styles.logoContainer}>
           <Image
-            source={{ uri: instituicao?.logo_url || 'https://via.placeholder.com/150/ffffff/1877f2?text=Logo' }}
+            source={{ uri: instituicao?.logo_url || 'https://via.placeholder.com/150/ffffff/ffffff' }}
             style={styles.logo}
           />
         </View>
@@ -618,16 +644,15 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
       <View style={styles.headerInfo}>
         <Text style={styles.nomeInstituicao}>{instituicao?.nome}</Text>
         <Text style={styles.categoria}>
-          {instituicao?.categoria_primaria} • {instituicao?.localizacao || 'Luanda, Angola'}
+          {instituicao?.categoria_primaria} • {instituicao?.localizacao || 'Viana, Luanda'}
         </Text>
 
-        {modoAdmin && (
-          <TouchableOpacity style={styles.btnAdicionar} onPress={onNavegarCadastro}>
-            <Text style={styles.txtBtnAdicionar}>+ Ir para Cadastramento</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={styles.btnIrCadastramento} onPress={onNavegarCadastro}>
+          <Text style={styles.txtIrCadastramento}>+ Ir para Cadastramento</Text>
+        </TouchableOpacity>
       </View>
 
+      {/* Barra de Busca */}
       <View style={styles.searchBarContainer}>
         <TextInput
           style={styles.inputSearch}
@@ -637,6 +662,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
         />
       </View>
 
+      {/* Abas */}
       <View style={styles.abasContainer}>
         <TouchableOpacity
           style={[styles.aba, abaAtiva === 'geral' && styles.abaAtiva]}
@@ -664,14 +690,15 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onNavegarCadastro, onEdit
         </TouchableOpacity>
       </View>
 
+      {/* Conteúdo das Abas */}
       <View style={styles.conteudo}>
         {abaAtiva === 'geral' && (
           <View style={styles.card}>
             <Text style={styles.tituloCard}>Corpo Diretivo</Text>
-            <Text style={styles.textoItem}>• Diretor Geral: {instituicao?.director || 'Não informado'}</Text>
+            <Text style={styles.textoItem}>• Diretor Geral: {instituicao?.director || 'Prof. Manuel'}</Text>
 
             <Text style={[styles.tituloCard, { marginTop: 15 }]}>Contacto Institucional</Text>
-            <Text style={styles.textoItem}>📧 Email: {instituicao?.email}</Text>
+            <Text style={styles.textoItem}>📧 Email: {instituicao?.email || 'contacto@escola.ao'}</Text>
           </View>
         )}
 
@@ -782,59 +809,27 @@ export default function App() {
     setTelaAtual('cadastro');
   };
 
-  const voltarParaPerfil = () => {
-    setMembroParaEditar(null);
-    setTelaAtual('perfil');
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={voltarParaPerfil}>
-          <Text style={styles.topBarTitle}>Portal Escola</Text>
-        </TouchableOpacity>
-
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <TouchableOpacity
-            style={[styles.btnNavegar, { backgroundColor: modoAdmin ? '#28a745' : '#6c757d' }]}
-            onPress={() => setModoAdmin(!modoAdmin)}
-          >
-            <Text style={styles.btnNavegarTexto}>
-              {modoAdmin ? '👑 Admin ON' : '👁️ Leitura'}
-            </Text>
-          </TouchableOpacity>
-
-          {modoAdmin && (
-            <TouchableOpacity 
-              style={styles.btnNavegar} 
-              onPress={() => {
-                if (telaAtual === 'perfil') irParaCadastro();
-                else voltarParaPerfil();
-              }}
-            >
-              <Text style={styles.btnNavegarTexto}>
-                {telaAtual === 'perfil' ? '+ Cadastrar' : 'Ver Perfil'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {telaAtual === 'perfil' ? (
+      {telaAtual === 'perfil' && (
         <PerfilInstituicao 
           instituicaoId={INSTITUICAO_ID} 
           modoAdmin={modoAdmin}
+          onToggleAdmin={() => setModoAdmin(!modoAdmin)}
           onNavegarCadastro={irParaCadastro}
           onEditarMembro={irParaEdicao}
         />
-      ) : (
+      )}
+
+      {telaAtual === 'cadastro' && (
         <CadastroPessoas 
           instituicaoId={INSTITUICAO_ID}
+          tipoInicial="estudante"
           membroParaEditar={membroParaEditar}
-          onSucesso={voltarParaPerfil}
-          onCancelar={voltarParaPerfil}
+          onSucesso={() => setTelaAtual('perfil')}
+          onCancelar={() => setTelaAtual('perfil')}
         />
       )}
     </SafeAreaView>
@@ -842,7 +837,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#f0f2f5' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   topBar: {
     height: 56,
@@ -850,61 +845,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e4e6eb',
-    elevation: 2,
+    borderBottomColor: '#e0e0e0',
   },
-  topBarTitle: { fontSize: 17, fontWeight: 'bold', color: '#1877f2' },
-  btnNavegar: { backgroundColor: '#1877f2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
-  btnNavegarTexto: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
-  
-  searchBarContainer: { paddingHorizontal: 15, paddingTop: 10, backgroundColor: '#fff' },
-  inputSearch: { backgroundColor: '#f0f2f5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, fontSize: 13 },
+  topBarTitle: { fontSize: 18, fontWeight: 'bold', color: '#1877f2' },
+  btnAdminState: { backgroundColor: '#28a745', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
+  btnAdminStateText: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
+  btnCadastrarTop: { backgroundColor: '#1877f2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  btnCadastrarTopText: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
 
   profileContainer: { flex: 1, backgroundColor: '#f0f2f5' },
-  capaContainer: { height: 160, backgroundColor: '#ddd', position: 'relative', marginBottom: 45 },
+  capaContainer: { height: 140, backgroundColor: '#e0e0e0', position: 'relative', marginBottom: 40 },
   capa: { width: '100%', height: '100%' },
   logoContainer: {
     position: 'absolute',
-    bottom: -40,
+    bottom: -35,
     left: 20,
-    borderRadius: 50,
+    borderRadius: 45,
     borderWidth: 3,
     borderColor: '#ffffff',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     overflow: 'hidden'
   },
-  logo: { width: 90, height: 90 },
-  headerInfo: { backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 15 },
-  nomeInstituicao: { fontSize: 20, fontWeight: 'bold', color: '#050505' },
+  logo: { width: 80, height: 80 },
+  headerInfo: { backgroundColor: '#ffffff', paddingHorizontal: 20, paddingBottom: 15 },
+  nomeInstituicao: { fontSize: 20, fontWeight: 'bold', color: '#000000' },
   categoria: { fontSize: 13, color: '#65676b', marginTop: 2 },
-  btnAdicionar: { backgroundColor: '#e4e6eb', marginTop: 12, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
-  txtBtnAdicionar: { fontWeight: 'bold', color: '#050505' },
-  abasContainer: { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e4e6eb', marginTop: 8 },
+  btnIrCadastramento: { backgroundColor: '#e4e6eb', marginTop: 12, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  txtIrCadastramento: { fontWeight: 'bold', color: '#050505', fontSize: 14 },
+
+  searchBarContainer: { paddingHorizontal: 15, paddingTop: 10, backgroundColor: '#ffffff' },
+  inputSearch: { backgroundColor: '#f0f2f5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, fontSize: 13 },
+
+  abasContainer: { flexDirection: 'row', backgroundColor: '#ffffff', borderTopWidth: 1, borderColor: '#e4e6eb', marginTop: 10 },
   aba: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   abaAtiva: { borderBottomWidth: 3, borderBottomColor: '#1877f2' },
   txtAba: { fontWeight: '600', color: '#65676b', fontSize: 13 },
   txtAbaAtiva: { color: '#1877f2', fontWeight: 'bold' },
+
   conteudo: { padding: 15 },
-  card: { backgroundColor: '#fff', padding: 15, borderRadius: 8 },
+  card: { backgroundColor: '#ffffff', padding: 15, borderRadius: 8 },
   tituloCard: { fontSize: 15, fontWeight: 'bold', color: '#050505', marginBottom: 6 },
   textoItem: { fontSize: 13, color: '#333', marginBottom: 4 },
-  subTituloSecao: { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  listItem: { flexDirection: 'row', backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 8, alignItems: 'center', elevation: 1 },
+  listItem: { flexDirection: 'row', backgroundColor: '#ffffff', padding: 12, borderRadius: 8, marginBottom: 8, alignItems: 'center', elevation: 1 },
   avatarList: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#eee' },
   listNome: { fontSize: 14, fontWeight: 'bold', color: '#050505' },
   listDetalhe: { fontSize: 12, color: '#65676b', marginTop: 2 },
   btnVerBoletim: { marginTop: 6, backgroundColor: '#e7f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
   txtVerBoletim: { color: '#1877f2', fontSize: 11, fontWeight: 'bold' },
-  vazio: { textAlign: 'center', color: '#65676b', marginTop: 20 },
+  vazio: { textAlign: 'center', color: '#65676b', marginTop: 30, fontSize: 14 },
   acoesContainer: { flexDirection: 'row', gap: 6 },
   btnAcaoEditar: { padding: 6, backgroundColor: '#e4e6eb', borderRadius: 6 },
   txtAcaoEditar: { fontSize: 14 },
   btnAcaoEliminar: { padding: 6, backgroundColor: '#ffebe9', borderRadius: 6 },
   txtAcaoEliminar: { fontSize: 14 },
 
-  formContainer: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  formContainer: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
   formHeader: { marginBottom: 15 },
   btnVoltarHeader: { paddingVertical: 6, marginBottom: 8 },
   txtVoltarHeader: { color: '#1877f2', fontWeight: 'bold', fontSize: 13 },
@@ -913,7 +910,7 @@ const styles = StyleSheet.create({
   btnTipo: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#1877f2', alignItems: 'center' },
   btnTipoAtivo: { backgroundColor: '#1877f2' },
   txtTipo: { color: '#1877f2', fontWeight: 'bold' },
-  txtTipoAtivo: { color: '#fff' },
+  txtTipoAtivo: { color: '#ffffff' },
   fotoSection: { alignItems: 'center', marginBottom: 15 },
   fotoContainer: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden' },
   fotoPreview: { width: '100%', height: '100%' },
@@ -922,7 +919,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: 'bold', color: '#050505', marginBottom: 4, marginTop: 8 },
   input: { height: 42, borderWidth: 1, borderColor: '#cccccc', borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f9f9f9', fontSize: 14 },
   btnSalvar: { backgroundColor: '#1877f2', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 10 },
-  txtSalvar: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
   btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 40 },
   txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 },
 
@@ -938,6 +935,7 @@ const styles = StyleSheet.create({
   indicadorTitulo: { fontSize: 11, color: '#65676b', fontWeight: 'bold' },
   indicadorValor: { fontSize: 15, fontWeight: 'bold', marginTop: 2 },
   cardFormNota: { backgroundColor: '#f7f8fa', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e4e6eb' },
+  subTituloSecao: { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#333' },
   btnSalvarNota: { backgroundColor: '#28a745', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
   btnCancelarMini: { backgroundColor: '#e4e6eb', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 6, justifyContent: 'center' },
   txtCancelarMini: { color: '#333', fontWeight: 'bold', fontSize: 12 },
