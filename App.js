@@ -22,171 +22,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const INSTITUICAO_ID_PADRAO = 1;
+const INSTITUICAO_ID = 1;
 
-// --- MODAL DE LOGIN ---
-function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async () => {
-    if (!email || !senha) {
-      alert('Preencha o e-mail e a palavra-passe.');
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: senha,
-      });
-
-      if (error) throw error;
-      alert('Login efetuado com sucesso!');
-      onLoginSucesso(data.user);
-      onClose();
-    } catch (err) {
-      alert('Erro no Login: ' + (err.message || 'Credenciais inválidas.'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal visible={visivel} animationType="fade" transparent={true}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalHeaderTitle}>🔑 Entrar no Sistema</Text>
-          <Text style={styles.modalSubtitle}>Aceda com as suas credenciais de Administrador/Gestor</Text>
-
-          <Text style={styles.label}>E-mail</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="seu.email@escola.ao"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-
-          <Text style={styles.label}>Palavra-passe</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="••••••••"
-            secureTextEntry
-            value={senha}
-            onChangeText={setSenha}
-          />
-
-          <TouchableOpacity style={styles.btnSalvar} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Entrar</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.btnCancelar} onPress={onClose}>
-            <Text style={styles.txtCancelar}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// --- MODAL / TELA DE CADASTRO DE INSTITUIÇÃO ---
-function FormInstituicao({ instituicaoExistente, onSucesso, onCancelar }) {
-  const [nome, setNome] = useState(instituicaoExistente?.nome || '');
-  const [categoria, setCategoria] = useState(instituicaoExistente?.categoria_primaria || 'Ensino Técnico');
-  const [localizacao, setLocalizacao] = useState(instituicaoExistente?.localizacao || 'Viana, Luanda');
-  const [email, setEmail] = useState(instituicaoExistente?.email || '');
-  const [director, setDirector] = useState(instituicaoExistente?.director || '');
-  const [loading, setLoading] = useState(false);
-
-  const handleSalvar = async () => {
-    if (!nome.trim()) {
-      alert('Digite o nome da instituição.');
-      return;
-    }
-    setLoading(true);
-    try {
-      const dados = {
-        nome: nome.trim(),
-        categoria_primaria: categoria.trim(),
-        localizacao: localizacao.trim(),
-        email: email.trim(),
-        director: director.trim(),
-      };
-
-      if (instituicaoExistente?.id) {
-        const { error } = await supabase.from('instituicoes').update(dados).eq('id', instituicaoExistente.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('instituicoes').insert([dados]);
-        if (error) throw error;
-      }
-
-      alert('Instituição gravada com sucesso!');
-      onSucesso();
-    } catch (err) {
-      alert('Erro ao guardar instituição: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <ScrollView style={styles.formContainer}>
-      <View style={styles.formHeader}>
-        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
-          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={styles.formTitle}>🏫 Cadastramento de Instituição</Text>
-      </View>
-
-      <Text style={styles.label}>Nome da Escola / Instituto *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Instituto Politécnico de Viana" />
-
-      <Text style={styles.label}>Categoria / Nível</Text>
-      <TextInput style={styles.input} value={categoria} onChangeText={setCategoria} placeholder="Ex: Ensino Técnico / Secundário" />
-
-      <Text style={styles.label}>Localização / Endereço</Text>
-      <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Viana, Luanda" />
-
-      <Text style={styles.label}>E-mail de Contacto</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" keyboardType="email-address" />
-
-      <Text style={styles.label}>Diretor Geral / Responsável</Text>
-      <TextInput style={styles.input} value={director} onChangeText={setDirector} placeholder="Ex: Prof. Manuel dos Santos" />
-
-      <TouchableOpacity style={styles.btnSalvar} onPress={handleSalvar} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Guardar Instituição</Text>}
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.btnCancelar} onPress={onCancelar}>
-        <Text style={styles.txtCancelar}>Cancelar</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
-// --- TELA PRINCIPAL (HOME) ---
-function MenuPrincipalHome({ onNavegar, onAbrirLogin, usuarioLogado }) {
-  const LIGAR_PUBLICIDADE = () => {
+// --- TELA PRINCIPAL (HOME DE ENTRADA CONFORME A IMAGEM) ---
+function MenuPrincipalHome({ onNavegar }) {
+  const ligarPublicidade = () => {
     Linking.openURL('tel:929500600');
   };
 
   return (
     <ScrollView style={styles.homeContainer}>
+      {/* Topo da Home */}
       <View style={styles.homeHeader}>
         <Text style={styles.homeHeaderTitle}>Portal Escolar 🎓</Text>
-        <TouchableOpacity style={styles.btnLoginTop} onPress={onAbrirLogin}>
-          <Text style={styles.txtLoginTop}>
-            {usuarioLogado ? `👤 ${usuarioLogado.email.split('@')[0]}` : '🔑 Entrar / Login'}
-          </Text>
+        <TouchableOpacity style={styles.btnLoginTop}>
+          <Text style={styles.txtLoginTop}>🔑 Entrar / Login</Text>
         </TouchableOpacity>
       </View>
 
       <View style={{ padding: 16 }}>
-        {/* QUADRO DE PUBLICIDADE PATROCINADA */}
+        {/* Card Publicidade Patrocinada COM BOTÃO DE LIGAR */}
         <View style={styles.cardPublicidade}>
           <View style={styles.badgePatrocinado}>
             <Text style={styles.txtBadgePatrocinado}>📢 Publicidade Patrocinada</Text>
@@ -199,7 +54,7 @@ function MenuPrincipalHome({ onNavegar, onAbrirLogin, usuarioLogado }) {
             Folha 4{'\n'}
             Lápis
           </Text>
-          <TouchableOpacity onPress={LIGAR_PUBLICIDADE} style={styles.btnLigarPub}>
+          <TouchableOpacity style={styles.btnLigarPub} onPress={ligarPublicidade}>
             <Text style={styles.rodapePublicidade}>
               Para mais informações ligue no número abaixo:{'\n'}
               <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
@@ -207,12 +62,12 @@ function MenuPrincipalHome({ onNavegar, onAbrirLogin, usuarioLogado }) {
           </TouchableOpacity>
         </View>
 
-        {/* MENU PRINCIPAL */}
+        {/* Seção Menu Principal */}
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
-        {/* OPÇÃO 1: Cadastramento de Instituições */}
-        <TouchableOpacity style={styles.cardMenu} onPress={() => onNavegar('cadastro_inst')}>
+        {/* Card 1: Cadastramento de Instituições */}
+        <TouchableOpacity style={styles.cardMenu} onPress={() => onNavegar('perfil', 'geral')}>
           <Text style={styles.emojiCard}>🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
           <Text style={styles.cardMenuDesc}>
@@ -220,21 +75,21 @@ function MenuPrincipalHome({ onNavegar, onAbrirLogin, usuarioLogado }) {
           </Text>
         </TouchableOpacity>
 
-        {/* OPÇÃO 2: Consulta de Alunos e Encarregados */}
+        {/* Card 2: Consulta de Alunos e Encarregados */}
         <TouchableOpacity style={styles.cardMenu} onPress={() => onNavegar('perfil', 'estudantes')}>
           <Text style={styles.emojiCard}>🔍</Text>
           <Text style={styles.cardMenuTitulo}>Consulta de Alunos e Encarregados</Text>
           <Text style={styles.cardMenuDesc}>
-            Consulte o estado de matrícula, encarregados e dados de estudantes.
+            Consulte o estado de matrícula e dados de estudantes.
           </Text>
         </TouchableOpacity>
 
-        {/* OPÇÃO 3: Cadastramento de Professores */}
+        {/* Card 3: Cadastramento de Professores */}
         <TouchableOpacity style={styles.cardMenu} onPress={() => onNavegar('cadastro_prof')}>
           <Text style={styles.emojiCard}>👨‍🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Professores</Text>
           <Text style={styles.cardMenuDesc}>
-            Registe-se como docente ou adicione professores à plataforma.
+            Registe-se como docente independente na plataforma.
           </Text>
         </TouchableOpacity>
       </View>
@@ -242,7 +97,7 @@ function MenuPrincipalHome({ onNavegar, onAbrirLogin, usuarioLogado }) {
   );
 }
 
-// --- MODAL BOLETIM ---
+// --- MODAL DE NOTAS E BOLETIM ---
 function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   const [disciplina, setDisciplina] = useState('');
   const [trimestre, setTrimestre] = useState('1º Trimestre');
@@ -250,9 +105,12 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   const [faltas, setFaltas] = useState('0');
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notaEmEdicaoId, setNotaEmEdicaoId] = useState(null);
 
   useEffect(() => {
-    if (estudante && visivel) carregarNotas();
+    if (estudante && visivel) {
+      carregarNotas();
+    }
   }, [estudante, visivel]);
 
   const carregarNotas = async () => {
@@ -261,12 +119,13 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
       const { data, error } = await supabase
         .from('avaliacoes')
         .select('*')
-        .eq('estudante_id', estudante.id);
+        .eq('estudante_id', estudante.id)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setHistorico(data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao carregar notas:', err.message);
     } finally {
       setLoading(false);
     }
@@ -274,69 +133,231 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
 
   const handleSalvarNota = async () => {
     if (!disciplina.trim() || !nota.trim()) {
-      alert('Preencha a disciplina e a nota.');
+      Alert.alert('Atenção', 'Preencha a disciplina e a nota.');
       return;
     }
+
     const numNota = parseFloat(nota.replace(',', '.'));
+    if (isNaN(numNota) || numNota < 0 || numNota > 20) {
+      Alert.alert('Nota inválida', 'A nota deve ser um número entre 0 e 20.');
+      return;
+    }
+
     try {
-      const { error } = await supabase.from('avaliacoes').insert([
-        {
-          estudante_id: estudante.id,
-          disciplina: disciplina.trim(),
-          trimestre,
-          nota: numNota,
-          faltas: parseInt(faltas) || 0,
-        },
-      ]);
-      if (error) throw error;
-      setDisciplina('');
-      setNota('');
+      if (notaEmEdicaoId) {
+        const { error } = await supabase
+          .from('avaliacoes')
+          .update({
+            disciplina: disciplina.trim(),
+            trimestre,
+            nota: numNota,
+            faltas: parseInt(faltas) || 0,
+          })
+          .eq('id', notaEmEdicaoId);
+
+        if (error) throw error;
+        Alert.alert('Sucesso', 'Nota atualizada!');
+      } else {
+        const { error } = await supabase.from('avaliacoes').insert([
+          {
+            estudante_id: estudante.id,
+            disciplina: disciplina.trim(),
+            trimestre,
+            nota: numNota,
+            faltas: parseInt(faltas) || 0,
+          },
+        ]);
+
+        if (error) throw error;
+        Alert.alert('Sucesso', 'Nota registada!');
+      }
+
+      limparFormularioNota();
       carregarNotas();
     } catch (err) {
-      alert('Erro: ' + err.message);
+      Alert.alert('Erro no Supabase', err.message || JSON.stringify(err));
     }
   };
+
+  const limparFormularioNota = () => {
+    setDisciplina('');
+    setNota('');
+    setFaltas('0');
+    setNotaEmEdicaoId(null);
+  };
+
+  const handleEditarNota = (item) => {
+    setNotaEmEdicaoId(item.id);
+    setDisciplina(item.disciplina);
+    setTrimestre(item.trimestre);
+    setNota(item.nota.toString());
+    setFaltas(item.faltas.toString());
+  };
+
+  const handleEliminarNota = (id) => {
+    Alert.alert('Eliminar Nota', 'Deseja apagar esta nota?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const { error } = await supabase.from('avaliacoes').delete().eq('id', id);
+            if (error) throw error;
+            carregarNotas();
+          } catch (err) {
+            Alert.alert('Erro ao eliminar', err.message);
+          }
+        },
+      },
+    ]);
+  };
+
+  const totalNotas = historico.reduce((acc, curr) => acc + Number(curr.nota || 0), 0);
+  const totalFaltas = historico.reduce((acc, curr) => acc + Number(curr.faltas || 0), 0);
+  const mediaGeral = historico.length > 0 ? (totalNotas / historico.length).toFixed(2) : 'N/A';
+
+  let estadoAluno = 'Sem Notas';
+  let corEstado = '#65676b';
+  if (historico.length > 0) {
+    if (mediaGeral >= 10) {
+      estadoAluno = 'Aprovado';
+      corEstado = '#28a745';
+    } else if (mediaGeral >= 7) {
+      estadoAluno = 'Em Recurso';
+      corEstado = '#ffc107';
+    } else {
+      estadoAluno = 'Reprovado';
+      corEstado = '#dc3545';
+    }
+  }
 
   if (!estudante) return null;
 
   return (
-    <Modal visible={visivel} animationType="slide">
+    <Modal visible={visivel} animationType="slide" transparent={false}>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Boletim Escolar</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={{ color: 'red', fontWeight: 'bold' }}>✕ Fechar</Text>
+          <TouchableOpacity onPress={onClose} style={styles.btnFecharModal}>
+            <Text style={styles.txtFecharModal}>✕ Fechar</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={{ padding: 15 }}>
           <View style={styles.fichaResumo}>
             <Text style={styles.nomeEstudanteBoletim}>{estudante.nome_completo}</Text>
-            <Text style={styles.subFicha}>BI: {estudante.num_bilhete} | Encarregado: {estudante.encarregado_nome || 'Não registado'}</Text>
+            <Text style={styles.subFicha}>Curso: {estudante.curso || 'Geral'} | Turma: {estudante.turma || 'N/A'}</Text>
+            <Text style={styles.subFicha}>BI: {estudante.num_bilhete}</Text>
+
+            <View style={styles.caixaIndicadores}>
+              <View style={styles.indicadorItem}>
+                <Text style={styles.indicadorTitulo}>Média Geral</Text>
+                <Text style={[styles.indicadorValor, { color: corEstado }]}>{mediaGeral}</Text>
+              </View>
+              <View style={styles.indicadorItem}>
+                <Text style={styles.indicadorTitulo}>Estado</Text>
+                <Text style={[styles.indicadorValor, { color: corEstado }]}>{estadoAluno}</Text>
+              </View>
+              <View style={styles.indicadorItem}>
+                <Text style={styles.indicadorTitulo}>Total Faltas</Text>
+                <Text style={styles.indicadorValor}>{totalFaltas}</Text>
+              </View>
+            </View>
           </View>
 
           {modoAdmin && (
             <View style={styles.cardFormNota}>
-              <Text style={styles.subTituloSecao}>➕ Lançar Nota</Text>
-              <TextInput style={styles.input} placeholder="Disciplina" value={disciplina} onChangeText={setDisciplina} />
+              <Text style={styles.subTituloSecao}>
+                {notaEmEdicaoId ? '✏️ Alterar Nota' : '➕ Lançar Nova Nota'}
+              </Text>
+
+              <Text style={styles.label}>Disciplina</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: Matemática"
+                value={disciplina}
+                onChangeText={setDisciplina}
+              />
+
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Nota (0-20)" keyboardType="numeric" value={nota} onChangeText={setNota} />
-                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Faltas" keyboardType="numeric" value={faltas} onChangeText={setFaltas} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Trimestre</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={trimestre}
+                    onChangeText={setTrimestre}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Nota (0-20)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="14"
+                    keyboardType="numeric"
+                    value={nota}
+                    onChangeText={setNota}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Faltas</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={faltas}
+                    onChangeText={setFaltas}
+                  />
+                </View>
               </View>
-              <TouchableOpacity style={styles.btnSalvarNota} onPress={handleSalvarNota}>
-                <Text style={styles.txtSalvar}>Guardar Nota</Text>
-              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                <TouchableOpacity style={[styles.btnSalvarNota, { flex: 1 }]} onPress={handleSalvarNota}>
+                  <Text style={styles.txtSalvar}>
+                    {notaEmEdicaoId ? 'Atualizar Nota' : '+ Lançar Nota'}
+                  </Text>
+                </TouchableOpacity>
+
+                {notaEmEdicaoId && (
+                  <TouchableOpacity style={styles.btnCancelarMini} onPress={limparFormularioNota}>
+                    <Text style={styles.txtCancelarMini}>Cancelar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
 
-          <Text style={[styles.subTituloSecao, { marginTop: 15 }]}>Notas Registadas</Text>
+          <Text style={[styles.subTituloSecao, { marginTop: 20 }]}>Histórico de Avaliações</Text>
           {loading ? (
-            <ActivityIndicator />
+            <ActivityIndicator size="small" color="#1877f2" />
+          ) : historico.length === 0 ? (
+            <Text style={styles.vazio}>Nenhuma nota registada.</Text>
           ) : (
             historico.map((item) => (
               <View key={item.id} style={styles.itemNota}>
-                <Text style={{ fontWeight: 'bold' }}>{item.disciplina} ({item.trimestre})</Text>
-                <Text style={{ color: item.nota >= 10 ? 'green' : 'red', fontWeight: 'bold' }}>Nota: {item.nota}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14 }}>{item.disciplina}</Text>
+                  <Text style={{ fontSize: 12, color: '#65676b' }}>{item.trimestre}</Text>
+                </View>
+
+                <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
+                  <Text style={[styles.badgeNota, item.nota >= 10 ? styles.notaAprovado : styles.notaReprovado]}>
+                    Nota: {item.nota}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#65676b', marginTop: 2 }}>
+                    Faltas: {item.faltas}
+                  </Text>
+                </View>
+
+                {modoAdmin && (
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    <TouchableOpacity style={styles.btnAcaoEditar} onPress={() => handleEditarNota(item)}>
+                      <Text style={styles.txtAcaoEditar}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.btnAcaoEliminar} onPress={() => handleEliminarNota(item.id)}>
+                      <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ))
           )}
@@ -346,55 +367,117 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   );
 }
 
-// --- CADASTRO DE ALUNOS & PROFESSORES ---
-function CadastroPessoas({ tipoInicial, onSucesso, onCancelar }) {
-  const [tipo, setTipo] = useState(tipoInicial || 'estudante');
+// --- TELA DE CADASTRO DE ESTUDANTES E PROFESSORES ---
+function CadastroPessoas({ instituicaoId, tipoInicial, membroParaEditar, onSucesso, onCancelar }) {
+  const isEdicao = !!membroParaEditar;
+  const [tipo, setTipo] = useState(membroParaEditar?.tipo || tipoInicial || 'estudante');
   const [loading, setLoading] = useState(false);
-  const [nome, setNome] = useState('');
-  const [bilhete, setBilhete] = useState('');
-  const [encarregado, setEncarregado] = useState('');
-  const [telefoneEncarregado, setTelefoneEncarregado] = useState('');
-  const [turma, setTurma] = useState('');
-  const [curso, setCurso] = useState('');
-  const [disciplina, setDisciplina] = useState('');
+
+  const [nome, setNome] = useState(membroParaEditar?.nome_completo || '');
+  const [dataNascimento, setDataNascimento] = useState(membroParaEditar?.data_nascimento || membroParaEditar?.nascimento || '');
+  const [bilhete, setBilhete] = useState(membroParaEditar?.num_bilhete || '');
+  const [foto, setFoto] = useState(null);
+  const [fotoUrlExistente, setFotoUrlExistente] = useState(membroParaEditar?.foto_url || null);
+
+  const [turma, setTurma] = useState(membroParaEditar?.turma || '');
+  const [classe, setClasse] = useState(membroParaEditar?.classe_ou_ano || '');
+  const [curso, setCurso] = useState(membroParaEditar?.curso || '');
+
+  const [formacao, setFormacao] = useState(membroParaEditar?.formacao_academica || '');
+  const [disciplina, setDisciplina] = useState(membroParaEditar?.disciplina || '');
+
+  const escolherFoto = async () => {
+    try {
+      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissao.granted) {
+        alert('Acesso à galeria é necessário para escolher foto.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setFoto(result.assets[0]);
+      }
+    } catch (e) {
+      console.log('Erro imagem:', e);
+    }
+  };
 
   const handleSalvar = async () => {
     if (!nome.trim() || !bilhete.trim()) {
-      alert('Preencha o nome e o BI.');
+      alert('Atenção: Preencha o nome completo e o número do BI.');
       return;
     }
 
     setLoading(true);
+    let fotoUrl = foto ? foto.uri : fotoUrlExistente;
+
     try {
       if (tipo === 'estudante') {
-        const { error } = await supabase.from('estudantes').insert([
-          {
-            instituicao_id: INSTITUICAO_ID_PADRAO,
-            nome_completo: nome,
-            num_bilhete: bilhete,
-            encarregado_nome: encarregado,
-            encarregado_telefone: telefoneEncarregado,
-            turma,
-            curso,
-          },
-        ]);
-        if (error) throw error;
+        const dadosEstudante = {
+          instituicao_id: instituicaoId,
+          nome_completo: nome,
+          data_nascimento: dataNascimento || null,
+          nascimento: dataNascimento || null,
+          num_bilhete: bilhete,
+          turma: turma || null,
+          classe_ou_ano: classe || null,
+          curso: curso || null,
+          foto_url: fotoUrl || null
+        };
+
+        let res;
+        if (isEdicao) {
+          res = await supabase
+            .from('estudantes')
+            .update(dadosEstudante)
+            .eq('id', membroParaEditar.id);
+        } else {
+          res = await supabase.from('estudantes').insert([dadosEstudante]);
+        }
+
+        if (res.error) {
+          alert('Erro no Supabase (Estudante): ' + res.error.message);
+          return;
+        }
       } else {
-        const { error } = await supabase.from('professores').insert([
-          {
-            instituicao_id: INSTITUICAO_ID_PADRAO,
-            nome_completo: nome,
-            num_bilhete: bilhete,
-            disciplina,
-          },
-        ]);
-        if (error) throw error;
+        const dadosProfessor = {
+          instituicao_id: instituicaoId,
+          nome_completo: nome,
+          data_nascimento: dataNascimento || null,
+          nascimento: dataNascimento || null,
+          num_bilhete: bilhete,
+          formacao_academica: formacao || null,
+          disciplina: disciplina || null,
+          foto_url: fotoUrl || null
+        };
+
+        let res;
+        if (isEdicao) {
+          res = await supabase
+            .from('professores')
+            .update(dadosProfessor)
+            .eq('id', membroParaEditar.id);
+        } else {
+          res = await supabase.from('professores').insert([dadosProfessor]);
+        }
+
+        if (res.error) {
+          alert('Erro no Supabase (Professor): ' + res.error.message);
+          return;
+        }
       }
 
-      alert(`${tipo === 'estudante' ? 'Aluno' : 'Professor'} registado com sucesso!`);
-      onSucesso();
+      alert(`Sucesso! ${tipo === 'estudante' ? 'Estudante' : 'Professor'} ${isEdicao ? 'atualizado' : 'cadastrado'}.`);
+      if (onSucesso) onSucesso();
     } catch (err) {
-      alert('Erro: ' + err.message);
+      alert('Erro inesperado: ' + (err.message || JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
@@ -404,259 +487,608 @@ function CadastroPessoas({ tipoInicial, onSucesso, onCancelar }) {
     <ScrollView style={styles.formContainer}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
-          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
+          <Text style={styles.txtVoltarHeader}>← Voltar para o Menu</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>Registar {tipo === 'estudante' ? 'Aluno / Encarregado' : 'Professor'}</Text>
+        <Text style={styles.formTitle}>
+          {isEdicao ? `Editar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}` : `Cadastrar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}`}
+        </Text>
       </View>
 
-      <View style={styles.abaTipo}>
-        <TouchableOpacity style={[styles.btnTipo, tipo === 'estudante' && styles.btnTipoAtivo]} onPress={() => setTipo('estudante')}>
-          <Text style={[styles.txtTipo, tipo === 'estudante' && styles.txtTipoAtivo]}>Aluno</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.btnTipo, tipo === 'professor' && styles.btnTipoAtivo]} onPress={() => setTipo('professor')}>
-          <Text style={[styles.txtTipo, tipo === 'professor' && styles.txtTipoAtivo]}>Professor</Text>
+      {!isEdicao && (
+        <View style={styles.abaTipo}>
+          <TouchableOpacity 
+            style={[styles.btnTipo, tipo === 'estudante' && styles.btnTipoAtivo]}
+            onPress={() => setTipo('estudante')}
+          >
+            <Text style={[styles.txtTipo, tipo === 'estudante' && styles.txtTipoAtivo]}>+ Estudante</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.btnTipo, tipo === 'professor' && styles.btnTipoAtivo]}
+            onPress={() => setTipo('professor')}
+          >
+            <Text style={[styles.txtTipo, tipo === 'professor' && styles.txtTipoAtivo]}>+ Professor</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.fotoSection}>
+        <TouchableOpacity onPress={escolherFoto} style={styles.fotoContainer}>
+          {foto ? (
+            <Image source={{ uri: foto.uri }} style={styles.fotoPreview} />
+          ) : fotoUrlExistente ? (
+            <Image source={{ uri: fotoUrlExistente }} style={styles.fotoPreview} />
+          ) : (
+            <View style={styles.fotoPlaceholder}>
+              <Text style={styles.fotoTxt}>📷 Selecionar Foto</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
       <Text style={styles.label}>Nome Completo *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Nome do registado" />
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Manuel dos Santos" />
 
       <Text style={styles.label}>Número do BI *</Text>
       <TextInput style={styles.input} value={bilhete} onChangeText={setBilhete} placeholder="000000000LA000" />
 
+      <Text style={styles.label}>Data de Nascimento</Text>
+      <TextInput style={styles.input} value={dataNascimento} onChangeText={setDataNascimento} placeholder="AAAA-MM-DD" />
+
       {tipo === 'estudante' ? (
         <>
-          <Text style={styles.label}>Nome do Encarregado de Educação</Text>
-          <TextInput style={styles.input} value={encarregado} onChangeText={setEncarregado} placeholder="Nome do Pai/Mãe/Tutor" />
-
-          <Text style={styles.label}>Telefone do Encarregado</Text>
-          <TextInput style={styles.input} value={telefoneEncarregado} onChangeText={setTelefoneEncarregado} placeholder="9XX XXX XXX" keyboardType="phone-pad" />
-
           <Text style={styles.label}>Curso</Text>
           <TextInput style={styles.input} value={curso} onChangeText={setCurso} placeholder="Ex: Informática" />
-
-          <Text style={styles.label}>Turma</Text>
-          <TextInput style={styles.input} value={turma} onChangeText={setTurma} placeholder="Ex: A" />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Classe / Ano</Text>
+              <TextInput style={styles.input} value={classe} onChangeText={setClasse} placeholder="Ex: 10ª Classe" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Turma</Text>
+              <TextInput style={styles.input} value={turma} onChangeText={setTurma} placeholder="Ex: A" />
+            </View>
+          </View>
         </>
       ) : (
         <>
+          <Text style={styles.label}>Formação Académica</Text>
+          <TextInput style={styles.input} value={formacao} onChangeText={setFormacao} placeholder="Ex: Licenciado em Engenharia" />
           <Text style={styles.label}>Disciplina que Leciona</Text>
           <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática" />
         </>
       )}
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleSalvar} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Guardar Registo</Text>}
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.txtSalvar}>
+            {isEdicao ? 'Atualizar Dados' : `Guardar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}`}
+          </Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.btnCancelar} onPress={onCancelar}>
-        <Text style={styles.txtCancelar}>Cancelar</Text>
+        <Text style={styles.txtCancelar}>Cancelar e Voltar</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// --- PERFIL DA INSTITUIÇÃO E LISTAS ---
-function PerfilInstituicao({ abaInicial, onVoltarHome, onNavegarCadastro }) {
+// --- TELA DE PERFIL / LISTAGEM ESTILO FACEBOOK ---
+function PerfilInstituicao({ instituicaoId, modoAdmin, abaInicial, onVoltarHome, onToggleAdmin, onNavegarCadastro, onEditarMembro }) {
+  const [instituicao, setInstituicao] = useState(null);
   const [estudantes, setEstudantes] = useState([]);
   const [professores, setProfessores] = useState([]);
-  const [abaAtiva, setAbaAtiva] = useState(abaInicial || 'estudantes');
+  const [abaAtiva, setAbaAtiva] = useState(abaInicial || 'geral');
   const [loading, setLoading] = useState(true);
+  const [termoBusca, setTermoBusca] = useState('');
   const [estudanteNota, setEstudanteNota] = useState(null);
 
   useEffect(() => {
-    carregarDados();
-  }, []);
+    carregarDadosPerfil();
+  }, [instituicaoId]);
 
-  async function carregarDados() {
+  async function carregarDadosPerfil() {
     setLoading(true);
     try {
-      const { data: est } = await supabase.from('estudantes').select('*');
-      const { data: prof } = await supabase.from('professores').select('*');
-      setEstudantes(est || []);
-      setProfessores(prof || []);
-    } catch (e) {
-      console.error(e);
+      const { data: dadosInst } = await supabase
+        .from('instituicoes')
+        .select('*')
+        .eq('id', instituicaoId)
+        .single();
+      
+      setInstituicao(dadosInst || {
+        nome: 'Instituto Politécnico Exemplo',
+        categoria_primaria: 'Ensino Técnico',
+        localizacao: 'Viana, Luanda',
+        email: 'contacto@escola.ao',
+        director: 'Prof. Manuel',
+      });
+
+      const { data: dadosEst } = await supabase
+        .from('estudantes')
+        .select('*')
+        .eq('instituicao_id', instituicaoId)
+        .order('nome_completo', { ascending: true });
+      setEstudantes(dadosEst || []);
+
+      const { data: dadosProf } = await supabase
+        .from('professores')
+        .select('*')
+        .eq('instituicao_id', instituicaoId)
+        .order('nome_completo', { ascending: true });
+      setProfessores(dadosProf || []);
+
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error.message);
     } finally {
       setLoading(false);
     }
   }
 
+  const handleEliminar = (id, nome, tabela) => {
+    Alert.alert(
+      'Confirmar Eliminação',
+      `Tem a certeza de que deseja eliminar "${nome}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase.from(tabela).delete().eq('id', id);
+              if (error) throw error;
+              alert('Registo eliminado.');
+              carregarDadosPerfil();
+            } catch (err) {
+              alert('Erro ao eliminar: ' + err.message);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const estudantesFiltrados = estudantes.filter((est) =>
+    est.nome_completo.toLowerCase().includes(termoBusca.toLowerCase()) ||
+    (est.curso && est.curso.toLowerCase().includes(termoBusca.toLowerCase())) ||
+    (est.turma && est.turma.toLowerCase().includes(termoBusca.toLowerCase()))
+  );
+
+  const professoresFiltrados = professores.filter((prof) =>
+    prof.nome_completo.toLowerCase().includes(termoBusca.toLowerCase()) ||
+    (prof.disciplina && prof.disciplina.toLowerCase().includes(termoBusca.toLowerCase()))
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#1877f2" />
+        <Text style={{ marginTop: 10 }}>A carregar dados...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.profileContainer}>
-      <ModalNotasFaltas visivel={!!estudanteNota} estudante={estudanteNota} modoAdmin={true} onClose={() => setEstudanteNota(null)} />
+      <ModalNotasFaltas
+        visivel={!!estudanteNota}
+        estudante={estudanteNota}
+        modoAdmin={modoAdmin}
+        onClose={() => setEstudanteNota(null)}
+      />
 
       <View style={styles.topBar}>
         <TouchableOpacity onPress={onVoltarHome}>
-          <Text style={{ color: '#1877f2', fontWeight: 'bold' }}>← Menu Principal</Text>
+          <Text style={{ fontSize: 13, color: '#1877f2', fontWeight: 'bold' }}>← Menu Principal</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.btnCadastrarTop} onPress={onNavegarCadastro}>
-          <Text style={styles.btnCadastrarTopText}>+ Cadastrar</Text>
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity 
+            style={styles.btnAdminState}
+            onPress={onToggleAdmin}
+          >
+            <Text style={styles.btnAdminStateText}>
+              👑 {modoAdmin ? 'Admin ON' : 'Leitor'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.btnCadastrarTop}
+            onPress={onNavegarCadastro}
+          >
+            <Text style={styles.btnCadastrarTopText}>+ Cadastrar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.capaContainer}>
+        <Image
+          source={{ uri: instituicao?.foto_capa_url || 'https://via.placeholder.com/800x300/e0e0e0/ffffff' }}
+          style={styles.capa}
+        />
+        <View style={styles.logoContainer}>
+          <Image
+            source={{ uri: instituicao?.logo_url || 'https://via.placeholder.com/150/ffffff/ffffff' }}
+            style={styles.logo}
+          />
+        </View>
+      </View>
+
+      <View style={styles.headerInfo}>
+        <Text style={styles.nomeInstituicao}>{instituicao?.nome}</Text>
+        <Text style={styles.categoria}>
+          {instituicao?.categoria_primaria} • {instituicao?.localizacao || 'Viana, Luanda'}
+        </Text>
+
+        <TouchableOpacity style={styles.btnIrCadastramento} onPress={onNavegarCadastro}>
+          <Text style={styles.txtIrCadastramento}>+ Cadastrar Aluno ou Professor</Text>
         </TouchableOpacity>
       </View>
 
+      <View style={styles.searchBarContainer}>
+        <TextInput
+          style={styles.inputSearch}
+          placeholder="🔍 Pesquisar por nome, curso, turma ou disciplina..."
+          value={termoBusca}
+          onChangeText={setTermoBusca}
+        />
+      </View>
+
       <View style={styles.abasContainer}>
-        <TouchableOpacity style={[styles.aba, abaAtiva === 'estudantes' && styles.abaAtiva]} onPress={() => setAbaAtiva('estudantes')}>
-          <Text style={[styles.txtAba, abaAtiva === 'estudantes' && styles.txtAbaAtiva]}>Estudantes & Encarregados ({estudantes.length})</Text>
+        <TouchableOpacity
+          style={[styles.aba, abaAtiva === 'geral' && styles.abaAtiva]}
+          onPress={() => setAbaAtiva('geral')}
+        >
+          <Text style={[styles.txtAba, abaAtiva === 'geral' && styles.txtAbaAtiva]}>Geral</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.aba, abaAtiva === 'professores' && styles.abaAtiva]} onPress={() => setAbaAtiva('professores')}>
-          <Text style={[styles.txtAba, abaAtiva === 'professores' && styles.txtAbaAtiva]}>Professores ({professores.length})</Text>
+
+        <TouchableOpacity
+          style={[styles.aba, abaAtiva === 'estudantes' && styles.abaAtiva]}
+          onPress={() => setAbaAtiva('estudantes')}
+        >
+          <Text style={[styles.txtAba, abaAtiva === 'estudantes' && styles.txtAbaAtiva]}>
+            Estudantes ({estudantesFiltrados.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.aba, abaAtiva === 'professores' && styles.abaAtiva]}
+          onPress={() => setAbaAtiva('professores')}
+        >
+          <Text style={[styles.txtAba, abaAtiva === 'professores' && styles.txtAbaAtiva]}>
+            Professores ({professoresFiltrados.length})
+          </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.conteudo}>
-        {loading ? (
-          <ActivityIndicator color="#1877f2" />
-        ) : abaAtiva === 'estudantes' ? (
-          estudantes.map((est) => (
-            <View key={est.id} style={styles.listItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.listNome}>{est.nome_completo}</Text>
-                <Text style={styles.listDetalhe}>Curso: {est.curso || 'Geral'} | Turma: {est.turma || 'N/A'}</Text>
-                <Text style={styles.listDetalhe}>👨‍👦 Encarregado: {est.encarregado_nome || 'Não informado'} ({est.encarregado_telefone || 'S/Tel'})</Text>
-                <TouchableOpacity style={styles.btnVerBoletim} onPress={() => setEstudanteNota(est)}>
-                  <Text style={styles.txtVerBoletim}>📊 Abrir Boletim</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        ) : (
-          professores.map((prof) => (
-            <View key={prof.id} style={styles.listItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.listNome}>{prof.nome_completo}</Text>
-                <Text style={styles.listDetalhe}>Disciplina: {prof.disciplina || 'Geral'}</Text>
-              </View>
-            </View>
-          ))
+        {abaAtiva === 'geral' && (
+          <View style={styles.card}>
+            <Text style={styles.tituloCard}>Corpo Diretivo</Text>
+            <Text style={styles.textoItem}>• Diretor Geral: {instituicao?.director || 'Prof. Manuel'}</Text>
+
+            <Text style={[styles.tituloCard, { marginTop: 15 }]}>Contacto Institucional</Text>
+            <Text style={styles.textoItem}>📧 Email: {instituicao?.email || 'contacto@escola.ao'}</Text>
+          </View>
+        )}
+
+        {abaAtiva === 'estudantes' && (
+          <View>
+            {estudantesFiltrados.length === 0 ? (
+              <Text style={styles.vazio}>Nenhum estudante encontrado.</Text>
+            ) : (
+              estudantesFiltrados.map((est) => (
+                <View key={est.id} style={styles.listItem}>
+                  <Image
+                    source={{ uri: est.foto_url || 'https://via.placeholder.com/50' }}
+                    style={styles.avatarList}
+                  />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.listNome}>{est.nome_completo}</Text>
+                    <Text style={styles.listDetalhe}>Curso: {est.curso || 'Geral'}</Text>
+                    <Text style={styles.listDetalhe}>
+                      Classe: {est.classe_ou_ano || 'N/A'} | Turma: {est.turma || 'N/A'}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.btnVerBoletim}
+                      onPress={() => setEstudanteNota(est)}
+                    >
+                      <Text style={styles.txtVerBoletim}>📊 Abrir Boletim Académico</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {modoAdmin && (
+                    <View style={styles.acoesContainer}>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEditar}
+                        onPress={() => onEditarMembro({ ...est, tipo: 'estudante' })}
+                      >
+                        <Text style={styles.txtAcaoEditar}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEliminar}
+                        onPress={() => handleEliminar(est.id, est.nome_completo, 'estudantes')}
+                      >
+                        <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
+        {abaAtiva === 'professores' && (
+          <View>
+            {professoresFiltrados.length === 0 ? (
+              <Text style={styles.vazio}>Nenhum professor encontrado.</Text>
+            ) : (
+              professoresFiltrados.map((prof) => (
+                <View key={prof.id} style={styles.listItem}>
+                  <Image
+                    source={{ uri: prof.foto_url || 'https://via.placeholder.com/50' }}
+                    style={styles.avatarList}
+                  />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.listNome}>{prof.nome_completo}</Text>
+                    <Text style={styles.listDetalhe}>Disciplina: {prof.disciplina || 'Geral'}</Text>
+                    <Text style={styles.listDetalhe}>
+                      Formação: {prof.formacao_academica || 'Não especificada'}
+                    </Text>
+                  </View>
+
+                  {modoAdmin && (
+                    <View style={styles.acoesContainer}>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEditar}
+                        onPress={() => onEditarMembro({ ...prof, tipo: 'professor' })}
+                      >
+                        <Text style={styles.txtAcaoEditar}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.btnAcaoEliminar}
+                        onPress={() => handleEliminar(prof.id, prof.nome_completo, 'professores')}
+                      >
+                        <Text style={styles.txtAcaoEliminar}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
         )}
       </View>
     </ScrollView>
   );
 }
 
-// --- APP PRINCIPAL ---
+// --- COMPONENTE PRINCIPAL ---
 export default function App() {
-  const [tela, setTela] = useState('home');
-  const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
-  const [usuarioLogado, setUsuarioLogado] = useState(null);
+  const [telaAtual, setTelaAtual] = useState('home');
+  const [abaPerfil, setAbaPerfil] = useState('geral');
   const [tipoCadastro, setTipoCadastro] = useState('estudante');
+  const [membroParaEditar, setMembroParaEditar] = useState(null);
+  const [modoAdmin, setModoAdmin] = useState(true);
 
-  const navegar = (destino, subAba = 'estudantes') => {
-    if (destino === 'cadastro_inst') setTela('cadastro_inst');
-    else if (destino === 'cadastro_prof') {
+  const irParaNavegacao = (opcao, abaDesejada = 'geral') => {
+    if (opcao === 'perfil') {
+      setAbaPerfil(abaDesejada);
+      setTelaAtual('perfil');
+    } else if (opcao === 'cadastro_prof') {
       setTipoCadastro('professor');
-      setTela('cadastro_pessoas');
-    } else if (destino === 'perfil') setTela('perfil');
+      setMembroParaEditar(null);
+      setTelaAtual('cadastro');
+    }
+  };
+
+  const irParaCadastro = () => {
+    setMembroParaEditar(null);
+    setTelaAtual('cadastro');
+  };
+
+  const irParaEdicao = (membro) => {
+    setMembroParaEditar(membro);
+    setTelaAtual('cadastro');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      <ModalLogin
-        visivel={modalLoginVisivel}
-        onClose={() => setModalLoginVisivel(false)}
-        onLoginSucesso={(user) => setUsuarioLogado(user)}
-      />
+      {telaAtual === 'home' && (
+        <MenuPrincipalHome onNavegar={irParaNavegacao} />
+      )}
 
-      {tela === 'home' && (
-        <MenuPrincipalHome
-          onNavegar={navegar}
-          onAbrirLogin={() => setModalLoginVisivel(true)}
-          usuarioLogado={usuarioLogado}
+      {telaAtual === 'perfil' && (
+        <PerfilInstituicao 
+          instituicaoId={INSTITUICAO_ID} 
+          modoAdmin={modoAdmin}
+          abaInicial={abaPerfil}
+          onVoltarHome={() => setTelaAtual('home')}
+          onToggleAdmin={() => setModoAdmin(!modoAdmin)}
+          onNavegarCadastro={irParaCadastro}
+          onEditarMembro={irParaEdicao}
         />
       )}
 
-      {tela === 'cadastro_inst' && (
-        <FormInstituicao
-          onSucesso={() => setTela('home')}
-          onCancelar={() => setTela('home')}
-        />
-      )}
-
-      {tela === 'cadastro_pessoas' && (
-        <CadastroPessoas
+      {telaAtual === 'cadastro' && (
+        <CadastroPessoas 
+          instituicaoId={INSTITUICAO_ID}
           tipoInicial={tipoCadastro}
-          onSucesso={() => setTela('perfil')}
-          onCancelar={() => setTela('home')}
-        />
-      )}
-
-      {tela === 'perfil' && (
-        <PerfilInstituicao
-          onVoltarHome={() => setTela('home')}
-          onNavegarCadastro={() => setTela('cadastro_pessoas')}
+          membroParaEditar={membroParaEditar}
+          onSucesso={() => setTelaAtual('perfil')}
+          onCancelar={() => setTelaAtual('home')}
         />
       )}
     </SafeAreaView>
   );
 }
 
-// --- ESTILOS ---
+// --- ESTILOS COMPLETO ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f7f9fc' },
-  homeContainer: { flex: 1 },
-  homeHeader: { height: 60, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1, borderColor: '#edf2f7' },
-  homeHeaderTitle: { fontSize: 18, fontWeight: 'bold' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+
+  homeContainer: { flex: 1, backgroundColor: '#f7f9fc' },
+  homeHeader: {
+    height: 60,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#edf2f7',
+  },
+  homeHeaderTitle: { fontSize: 18, fontWeight: 'bold', color: '#1a202c' },
   btnLoginTop: { backgroundColor: '#ebf8ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
   txtLoginTop: { color: '#2b6cb0', fontWeight: 'bold', fontSize: 12 },
-  cardPublicidade: { backgroundColor: '#1d4ed8', borderRadius: 16, padding: 16, marginBottom: 20 },
-  badgePatrocinado: { backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 10 },
-  txtBadgePatrocinado: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 6 },
+
+  cardPublicidade: {
+    backgroundColor: '#1d4ed8',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    elevation: 3,
+  },
+  badgePatrocinado: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
+  tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
   corpoPublicidade: { fontSize: 13, color: '#e0e7ff', lineHeight: 18, marginBottom: 12 },
   btnLigarPub: { backgroundColor: 'rgba(255,255,255,0.15)', padding: 10, borderRadius: 8 },
   rodapePublicidade: { fontSize: 12, color: '#c7d2fe' },
   telefonePublicidade: { fontSize: 14, fontWeight: 'bold', color: '#fbbf24' },
-  secaoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+
+  secaoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginTop: 4 },
   secaoSubtitulo: { fontSize: 13, color: '#64748b', marginBottom: 14 },
-  cardMenu: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+
+  cardMenu: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    elevation: 1,
+  },
   emojiCard: { fontSize: 28, marginBottom: 8 },
-  cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
-  cardMenuDesc: { fontSize: 12, color: '#64748b', marginTop: 4 },
-  formContainer: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
+  cardMenuDesc: { fontSize: 12, color: '#64748b', lineHeight: 16 },
+
+  topBar: {
+    height: 56,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  btnAdminState: { backgroundColor: '#28a745', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
+  btnAdminStateText: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
+  btnCadastrarTop: { backgroundColor: '#1877f2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  btnCadastrarTopText: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
+
+  profileContainer: { flex: 1, backgroundColor: '#f0f2f5' },
+  capaContainer: { height: 140, backgroundColor: '#e0e0e0', position: 'relative', marginBottom: 40 },
+  capa: { width: '100%', height: '100%' },
+  logoContainer: {
+    position: 'absolute',
+    bottom: -35,
+    left: 20,
+    borderRadius: 45,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    backgroundColor: '#ffffff',
+    overflow: 'hidden'
+  },
+  logo: { width: 80, height: 80 },
+  headerInfo: { backgroundColor: '#ffffff', paddingHorizontal: 20, paddingBottom: 15 },
+  nomeInstituicao: { fontSize: 20, fontWeight: 'bold', color: '#000000' },
+  categoria: { fontSize: 13, color: '#65676b', marginTop: 2 },
+  btnIrCadastramento: { backgroundColor: '#e4e6eb', marginTop: 12, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  txtIrCadastramento: { fontWeight: 'bold', color: '#050505', fontSize: 14 },
+
+  searchBarContainer: { paddingHorizontal: 15, paddingTop: 10, backgroundColor: '#ffffff' },
+  inputSearch: { backgroundColor: '#f0f2f5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, fontSize: 13 },
+
+  abasContainer: { flexDirection: 'row', backgroundColor: '#ffffff', borderTopWidth: 1, borderColor: '#e4e6eb', marginTop: 10 },
+  aba: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+  abaAtiva: { borderBottomWidth: 3, borderBottomColor: '#1877f2' },
+  txtAba: { fontWeight: '600', color: '#65676b', fontSize: 13 },
+  txtAbaAtiva: { color: '#1877f2', fontWeight: 'bold' },
+
+  conteudo: { padding: 15 },
+  card: { backgroundColor: '#ffffff', padding: 15, borderRadius: 8 },
+  tituloCard: { fontSize: 15, fontWeight: 'bold', color: '#050505', marginBottom: 6 },
+  textoItem: { fontSize: 13, color: '#333', marginBottom: 4 },
+  listItem: { flexDirection: 'row', backgroundColor: '#ffffff', padding: 12, borderRadius: 8, marginBottom: 8, alignItems: 'center', elevation: 1 },
+  avatarList: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#eee' },
+  listNome: { fontSize: 14, fontWeight: 'bold', color: '#050505' },
+  listDetalhe: { fontSize: 12, color: '#65676b', marginTop: 2 },
+  btnVerBoletim: { marginTop: 6, backgroundColor: '#e7f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
+  txtVerBoletim: { color: '#1877f2', fontSize: 11, fontWeight: 'bold' },
+  vazio: { textAlign: 'center', color: '#65676b', marginTop: 30, fontSize: 14 },
+  acoesContainer: { flexDirection: 'row', gap: 6 },
+  btnAcaoEditar: { padding: 6, backgroundColor: '#e4e6eb', borderRadius: 6 },
+  txtAcaoEditar: { fontSize: 14 },
+  btnAcaoEliminar: { padding: 6, backgroundColor: '#ffebe9', borderRadius: 6 },
+  txtAcaoEliminar: { fontSize: 14 },
+
+  formContainer: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
   formHeader: { marginBottom: 15 },
-  btnVoltarHeader: { paddingVertical: 6 },
-  txtVoltarHeader: { color: '#1877f2', fontWeight: 'bold' },
-  formTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 4 },
-  label: { fontSize: 12, fontWeight: 'bold', color: '#050505', marginTop: 10, marginBottom: 4 },
-  input: { height: 42, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f9f9f9' },
-  btnSalvar: { backgroundColor: '#1877f2', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 20 },
-  txtSalvar: { color: '#fff', fontWeight: 'bold' },
-  btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  txtCancelar: { color: '#050505', fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-  modalHeaderTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
-  modalSubtitle: { fontSize: 12, color: '#666', marginBottom: 15 },
+  btnVoltarHeader: { paddingVertical: 6, marginBottom: 8 },
+  txtVoltarHeader: { color: '#1877f2', fontWeight: 'bold', fontSize: 13 },
+  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#050505' },
   abaTipo: { flexDirection: 'row', gap: 10, marginBottom: 15 },
   btnTipo: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#1877f2', alignItems: 'center' },
   btnTipoAtivo: { backgroundColor: '#1877f2' },
   txtTipo: { color: '#1877f2', fontWeight: 'bold' },
-  txtTipoAtivo: { color: '#fff' },
-  profileContainer: { flex: 1, backgroundColor: '#f0f2f5' },
-  topBar: { height: 50, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: '#ddd' },
-  btnCadastrarTop: { backgroundColor: '#1877f2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
-  btnCadastrarTopText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-  abasContainer: { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee' },
-  aba: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  abaAtiva: { borderBottomWidth: 3, borderBottomColor: '#1877f2' },
-  txtAba: { fontWeight: '600', color: '#666', fontSize: 12 },
-  txtAbaAtiva: { color: '#1877f2', fontWeight: 'bold' },
-  conteudo: { padding: 15 },
-  listItem: { backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 },
-  listNome: { fontSize: 14, fontWeight: 'bold' },
-  listDetalhe: { fontSize: 12, color: '#666', marginTop: 2 },
-  btnVerBoletim: { marginTop: 6, backgroundColor: '#e7f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
-  txtVerBoletim: { color: '#1877f2', fontSize: 11, fontWeight: 'bold' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
-  modalTitle: { fontSize: 16, fontWeight: 'bold' },
-  fichaResumo: { backgroundColor: '#e7f3ff', padding: 12, borderRadius: 8, marginBottom: 10 },
-  nomeEstudanteBoletim: { fontSize: 15, fontWeight: 'bold' },
-  subFicha: { fontSize: 12, color: '#444' },
-  cardFormNota: { backgroundColor: '#f7f8fa', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#eee' },
-  subTituloSecao: { fontSize: 14, fontWeight: 'bold', marginBottom: 6 },
-  btnSalvarNota: { backgroundColor: '#28a745', paddingVertical: 8, borderRadius: 6, alignItems: 'center', marginTop: 8 },
-  itemNota: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fff', padding: 10, borderRadius: 6, marginBottom: 4, borderBottomWidth: 1, borderColor: '#eee' }
+  txtTipoAtivo: { color: '#ffffff' },
+  fotoSection: { alignItems: 'center', marginBottom: 15 },
+  fotoContainer: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden' },
+  fotoPreview: { width: '100%', height: '100%' },
+  fotoPlaceholder: { width: '100%', height: '100%', backgroundColor: '#e4e6eb', justifyContent: 'center', alignItems: 'center' },
+  fotoTxt: { fontSize: 11, color: '#65676b', textAlign: 'center' },
+  label: { fontSize: 12, fontWeight: 'bold', color: '#050505', marginBottom: 4, marginTop: 8 },
+  input: { height: 42, borderWidth: 1, borderColor: '#cccccc', borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f9f9f9', fontSize: 14 },
+  btnSalvar: { backgroundColor: '#1877f2', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 10 },
+  txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
+  btnCancelar: { backgroundColor: '#e4e6eb', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 40 },
+  txtCancelar: { color: '#050505', fontWeight: 'bold', fontSize: 15 },
+
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
+  modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#050505' },
+  btnFecharModal: { padding: 5 },
+  txtFecharModal: { color: '#e41e3f', fontWeight: 'bold' },
+  fichaResumo: { backgroundColor: '#e7f3ff', padding: 14, borderRadius: 8, marginBottom: 12 },
+  nomeEstudanteBoletim: { fontSize: 16, fontWeight: 'bold', color: '#050505' },
+  subFicha: { fontSize: 12, color: '#444', marginTop: 2 },
+  caixaIndicadores: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#cce5ff' },
+  indicadorItem: { alignItems: 'center', flex: 1 },
+  indicadorTitulo: { fontSize: 11, color: '#65676b', fontWeight: 'bold' },
+  indicadorValor: { fontSize: 15, fontWeight: 'bold', marginTop: 2 },
+  cardFormNota: { backgroundColor: '#f7f8fa', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e4e6eb' },
+  subTituloSecao: { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+  btnSalvarNota: { backgroundColor: '#28a745', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
+  btnCancelarMini: { backgroundColor: '#e4e6eb', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 6, justifyContent: 'center' },
+  txtCancelarMini: { color: '#333', fontWeight: 'bold', fontSize: 12 },
+  itemNota: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderBottomWidth: 1, borderColor: '#eee', marginBottom: 6 },
+  badgeNota: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, fontWeight: 'bold', fontSize: 12 },
+  notaAprovado: { backgroundColor: '#d4edda', color: '#155724' },
+  notaReprovado: { backgroundColor: '#f8d7da', color: '#721c24' }
 });
