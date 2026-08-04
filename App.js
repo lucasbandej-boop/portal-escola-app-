@@ -23,6 +23,74 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const INSTITUICAO_ID = 1;
 
+// --- TELA PRINCIPAL (HOME DE ENTRADA CONFORME A IMAGEM) ---
+function MenuPrincipalHome({ onNavegar }) {
+  return (
+    <ScrollView style={styles.homeContainer}>
+      {/* Topo da Home */}
+      <View style={styles.homeHeader}>
+        <Text style={styles.homeHeaderTitle}>Portal Escolar 🎓</Text>
+        <TouchableOpacity style={styles.btnLoginTop}>
+          <Text style={styles.txtLoginTop}>🔑 Entrar / Login</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ padding: 16 }}>
+        {/* Card Publicidade Patrocinada */}
+        <View style={styles.cardPublicidade}>
+          <View style={styles.badgePatrocinado}>
+            <Text style={styles.txtBadgePatrocinado}>📢 Publicidade Patrocinada</Text>
+          </View>
+          <Text style={styles.tituloPublicidade}>Matérias a bom preço</Text>
+          <Text style={styles.corpoPublicidade}>
+            🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.{'\n'}
+            Livros 📕{'\n'}
+            Caderno 📓{'\n'}
+            Folha 4{'\n'}
+            Lápis
+          </Text>
+          <Text style={styles.rodapePublicidade}>
+            Para mais informações ligue no número abaixo{'\n'}
+            <Text style={styles.telefonePublicidade}>929500600</Text>
+          </Text>
+        </View>
+
+        {/* Seção Menu Principal */}
+        <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
+        <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
+
+        {/* Card 1: Cadastramento de Instituições */}
+        <TouchableOpacity style={styles.cardMenu} onPress={() => onNavegar('perfil', 'geral')}>
+          <Text style={styles.emojiCard}>🏫</Text>
+          <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
+          <Text style={styles.cardMenuDesc}>
+            Registe a sua escola para gerir turmas, alunos e professores.
+          </Text>
+        </TouchableOpacity>
+
+        {/* Card 2: Consulta de Alunos e Encarregados */}
+        <TouchableOpacity style={styles.cardMenu} onPress={() => onNavegar('perfil', 'estudantes')}>
+          <Text style={styles.emojiCard}>🔍</Text>
+          <Text style={styles.cardMenuTitulo}>Consulta de Alunos e Encarregados</Text>
+          <Text style={styles.cardMenuDesc}>
+            Consulte o estado de matrícula e dados de estudantes.
+          </Text>
+        </TouchableOpacity>
+
+        {/* Card 3: Cadastramento de Professores */}
+        <TouchableOpacity style={styles.cardMenu} onPress={() => onNavegar('cadastro_prof')}>
+          <Text style={styles.emojiCard}>👨‍🏫</Text>
+          <Text style={styles.cardMenuTitulo}>Cadastramento de Professores</Text>
+          <Text style={styles.cardMenuDesc}>
+            Registe-se como docente independente na plataforma.
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+
+// --- MODAL DE NOTAS E BOLETIM ---
 function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   const [disciplina, setDisciplina] = useState('');
   const [trimestre, setTrimestre] = useState('1º Trimestre');
@@ -292,6 +360,7 @@ function ModalNotasFaltas({ visivel, estudante, modoAdmin, onClose }) {
   );
 }
 
+// --- TELA DE CADASTRO DE ESTUDANTES E PROFESSORES ---
 function CadastroPessoas({ instituicaoId, tipoInicial, membroParaEditar, onSucesso, onCancelar }) {
   const isEdicao = !!membroParaEditar;
   const [tipo, setTipo] = useState(membroParaEditar?.tipo || tipoInicial || 'estudante');
@@ -411,7 +480,7 @@ function CadastroPessoas({ instituicaoId, tipoInicial, membroParaEditar, onSuces
     <ScrollView style={styles.formContainer}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
-          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
+          <Text style={styles.txtVoltarHeader}>← Voltar para o Menu</Text>
         </TouchableOpacity>
         <Text style={styles.formTitle}>
           {isEdicao ? `Editar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}` : `Cadastrar ${tipo === 'estudante' ? 'Estudante' : 'Professor'}`}
@@ -500,11 +569,12 @@ function CadastroPessoas({ instituicaoId, tipoInicial, membroParaEditar, onSuces
   );
 }
 
-function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarCadastro, onEditarMembro }) {
+// --- TELA DE PERFIL / LISTAGEM ESTILO FACEBOOK ---
+function PerfilInstituicao({ instituicaoId, modoAdmin, abaInicial, onVoltarHome, onToggleAdmin, onNavegarCadastro, onEditarMembro }) {
   const [instituicao, setInstituicao] = useState(null);
   const [estudantes, setEstudantes] = useState([]);
   const [professores, setProfessores] = useState([]);
-  const [abaAtiva, setAbaAtiva] = useState('geral');
+  const [abaAtiva, setAbaAtiva] = useState(abaInicial || 'geral');
   const [loading, setLoading] = useState(true);
   const [termoBusca, setTermoBusca] = useState('');
   const [estudanteNota, setEstudanteNota] = useState(null);
@@ -604,9 +674,10 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarC
         onClose={() => setEstudanteNota(null)}
       />
 
-      {/* Topo exatamente como na imagem do usuário */}
       <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>Portal Escola</Text>
+        <TouchableOpacity onPress={onVoltarHome}>
+          <Text style={{ fontSize: 13, color: '#1877f2', fontWeight: 'bold' }}>← Menu Principal</Text>
+        </TouchableOpacity>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity 
@@ -614,7 +685,7 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarC
             onPress={onToggleAdmin}
           >
             <Text style={styles.btnAdminStateText}>
-              👑 {modoAdmin ? 'Admin ON' : 'Modo Leitor'}
+              👑 {modoAdmin ? 'Admin ON' : 'Leitor'}
             </Text>
           </TouchableOpacity>
 
@@ -627,7 +698,6 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarC
         </View>
       </View>
 
-      {/* Capa e Perfil */}
       <View style={styles.capaContainer}>
         <Image
           source={{ uri: instituicao?.foto_capa_url || 'https://via.placeholder.com/800x300/e0e0e0/ffffff' }}
@@ -648,11 +718,10 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarC
         </Text>
 
         <TouchableOpacity style={styles.btnIrCadastramento} onPress={onNavegarCadastro}>
-          <Text style={styles.txtIrCadastramento}>+ Ir para Cadastramento</Text>
+          <Text style={styles.txtIrCadastramento}>+ Cadastrar Aluno ou Professor</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Barra de Busca */}
       <View style={styles.searchBarContainer}>
         <TextInput
           style={styles.inputSearch}
@@ -662,7 +731,6 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarC
         />
       </View>
 
-      {/* Abas */}
       <View style={styles.abasContainer}>
         <TouchableOpacity
           style={[styles.aba, abaAtiva === 'geral' && styles.abaAtiva]}
@@ -690,7 +758,6 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarC
         </TouchableOpacity>
       </View>
 
-      {/* Conteúdo das Abas */}
       <View style={styles.conteudo}>
         {abaAtiva === 'geral' && (
           <View style={styles.card}>
@@ -794,10 +861,24 @@ function PerfilInstituicao({ instituicaoId, modoAdmin, onToggleAdmin, onNavegarC
   );
 }
 
+// --- COMPONENTE PRINCIPAL ---
 export default function App() {
-  const [telaAtual, setTelaAtual] = useState('perfil');
+  const [telaAtual, setTelaAtual] = useState('home');
+  const [abaPerfil, setAbaPerfil] = useState('geral');
+  const [tipoCadastro, setTipoCadastro] = useState('estudante');
   const [membroParaEditar, setMembroParaEditar] = useState(null);
   const [modoAdmin, setModoAdmin] = useState(true);
+
+  const irParaNavegacao = (opcao, abaDesejada = 'geral') => {
+    if (opcao === 'perfil') {
+      setAbaPerfil(abaDesejada);
+      setTelaAtual('perfil');
+    } else if (opcao === 'cadastro_prof') {
+      setTipoCadastro('professor');
+      setMembroParaEditar(null);
+      setTelaAtual('cadastro');
+    }
+  };
 
   const irParaCadastro = () => {
     setMembroParaEditar(null);
@@ -813,10 +894,16 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
+      {telaAtual === 'home' && (
+        <MenuPrincipalHome onNavegar={irParaNavegacao} />
+      )}
+
       {telaAtual === 'perfil' && (
         <PerfilInstituicao 
           instituicaoId={INSTITUICAO_ID} 
           modoAdmin={modoAdmin}
+          abaInicial={abaPerfil}
+          onVoltarHome={() => setTelaAtual('home')}
           onToggleAdmin={() => setModoAdmin(!modoAdmin)}
           onNavegarCadastro={irParaCadastro}
           onEditarMembro={irParaEdicao}
@@ -826,19 +913,73 @@ export default function App() {
       {telaAtual === 'cadastro' && (
         <CadastroPessoas 
           instituicaoId={INSTITUICAO_ID}
-          tipoInicial="estudante"
+          tipoInicial={tipoCadastro}
           membroParaEditar={membroParaEditar}
           onSucesso={() => setTelaAtual('perfil')}
-          onCancelar={() => setTelaAtual('perfil')}
+          onCancelar={() => setTelaAtual('home')}
         />
       )}
     </SafeAreaView>
   );
 }
 
+// --- ESTILOS COMPLETO ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f5' },
+  container: { flex: 1, backgroundColor: '#f7f9fc' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+
+  homeContainer: { flex: 1, backgroundColor: '#f7f9fc' },
+  homeHeader: {
+    height: 60,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#edf2f7',
+  },
+  homeHeaderTitle: { fontSize: 18, fontWeight: 'bold', color: '#1a202c' },
+  btnLoginTop: { backgroundColor: '#ebf8ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
+  txtLoginTop: { color: '#2b6cb0', fontWeight: 'bold', fontSize: 12 },
+
+  cardPublicidade: {
+    backgroundColor: '#1d4ed8',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    elevation: 3,
+  },
+  badgePatrocinado: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
+  tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
+  corpoPublicidade: { fontSize: 13, color: '#e0e7ff', lineHeight: 18, marginBottom: 12 },
+  rodapePublicidade: { fontSize: 12, color: '#c7d2fe' },
+  telefonePublicidade: { fontSize: 14, fontWeight: 'bold', color: '#fbbf24' },
+
+  secaoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginTop: 4 },
+  secaoSubtitulo: { fontSize: 13, color: '#64748b', marginBottom: 14 },
+
+  cardMenu: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    elevation: 1,
+  },
+  emojiCard: { fontSize: 28, marginBottom: 8 },
+  cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
+  cardMenuDesc: { fontSize: 12, color: '#64748b', lineHeight: 16 },
+
   topBar: {
     height: 56,
     backgroundColor: '#ffffff',
@@ -849,7 +990,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  topBarTitle: { fontSize: 18, fontWeight: 'bold', color: '#1877f2' },
   btnAdminState: { backgroundColor: '#28a745', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
   btnAdminStateText: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
   btnCadastrarTop: { backgroundColor: '#1877f2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
