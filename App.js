@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -24,7 +24,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // --- MODAL DE LOGIN E CONFIRMAÇÃO DE CÓDIGO (OTP) ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [modo, setModo] = useState('login'); // 'login', 'registro', 'verificar_codigo'
+  const [modo, setModo] = useState('login');
   const [emailOuLicenca, setEmailOuLicenca] = useState('');
   const [senha, setSenha] = useState('');
   const [codigoOtp, setCodigoOtp] = useState('');
@@ -184,6 +184,66 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         </View>
       </View>
     </Modal>
+  );
+}
+
+// --- TELA DEDICADA: QUADRO DE PUBLICIDADES ---
+function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onVoltarHome}>
+          <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Quadro de Publicidades</Text>
+        <View style={{ width: 50 }} />
+      </View>
+
+      <ScrollView style={{ flex: 1, padding: 16 }}>
+        <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 16 }}>
+          Confira abaixo todos os anúncios e ofertas patrocinadas ativas na plataforma:
+        </Text>
+
+        {/* Anúncio 1: Materiais Escolares */}
+        <View style={styles.cardPublicidade}>
+          <View style={styles.badgePatrocinado}>
+            <Text style={styles.txtBadgePatrocinado}>📢 Publicidade Patrocinada</Text>
+          </View>
+          <Text style={styles.tituloPublicidade}>Matérias a bom preço</Text>
+          <Text style={styles.corpoPublicidade}>
+            🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.{'\n'}
+            Livros 📕{'\n'}
+            Caderno 📓{'\n'}
+            Folha 4{'\n'}
+            Lápis
+          </Text>
+          <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
+            <Text style={styles.rodapePublicidade}>
+              Para mais informações ligue no número abaixo:{'\n'}
+              <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Anúncio 2: Uniformes Escolares */}
+        <View style={[styles.cardPublicidade, { backgroundColor: '#0f766e' }]}>
+          <View style={styles.badgePatrocinado}>
+            <Text style={styles.txtBadgePatrocinado}>👔 Confecção de Uniformes</Text>
+          </View>
+          <Text style={styles.tituloPublicidade}>Uniformes & Fardamentos</Text>
+          <Text style={styles.corpoPublicidade}>
+            Produção de fardas escolares para colégios e institutos.{'\n'}
+            Batas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.
+          </Text>
+          <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
+            <Text style={styles.rodapePublicidade}>
+              Encomendas e orçamentos pelo contacto abaixo:{'\n'}
+              <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -510,23 +570,17 @@ function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
 }
 
 // --- MENU PRINCIPAL (HOME) ---
-function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarConsultaAlunos, publicidadeLigar }) {
-  const scrollRef = useRef(null);
-
-  const irParaPublicidade = () => {
-    scrollRef.current?.scrollToEnd({ animated: true });
-  };
-
+function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarConsultaAlunos, onNavegarQuadroPub }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
         <Text style={styles.homeTitleHeader}>Portal Escola</Text>
-        <TouchableOpacity style={styles.btnHeaderPub} onPress={irParaPublicidade}>
+        <TouchableOpacity style={styles.btnHeaderPub} onPress={onNavegarQuadroPub}>
           <Text style={styles.txtHeaderPub}>📢 Publicidade</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView ref={scrollRef} style={styles.homeContainer} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16 }}>
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
@@ -553,26 +607,6 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoP
             Registe-se como docente independente na plataforma.
           </Text>
         </TouchableOpacity>
-
-        <View style={styles.cardPublicidade}>
-          <View style={styles.badgePatrocinado}>
-            <Text style={styles.txtBadgePatrocinado}>📢 Publicidade Patrocinada</Text>
-          </View>
-          <Text style={styles.tituloPublicidade}>Matérias a bom preço</Text>
-          <Text style={styles.corpoPublicidade}>
-            🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.{'\n'}
-            Livros 📕{'\n'}
-            Caderno 📓{'\n'}
-            Folha 4{'\n'}
-            Lápis
-          </Text>
-          <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
-            <Text style={styles.rodapePublicidade}>
-              Para mais informações ligue no número abaixo:{'\n'}
-              <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -607,6 +641,13 @@ export default function App() {
           onNavegarCadastramentoInst={() => iniciarFluxo('formulario_inst')}
           onNavegarCadastramentoProf={() => iniciarFluxo('formulario_prof')}
           onNavegarConsultaAlunos={() => setTela('consulta_alunos')}
+          onNavegarQuadroPub={() => setTela('quadro_publicidades')}
+        />
+      )}
+
+      {tela === 'quadro_publicidades' && (
+        <TelaQuadroPublicidades
+          onVoltarHome={() => setTela('home')}
           publicidadeLigar={() => Linking.openURL('tel:929500600')}
         />
       )}
@@ -672,7 +713,7 @@ const styles = StyleSheet.create({
   btnFecharDark: { marginTop: 12, paddingVertical: 6 },
   txtFecharDark: { color: '#64748b', fontSize: 12 },
 
-  cardPublicidade: { backgroundColor: '#1d4ed8', borderRadius: 20, padding: 18, marginTop: 10, marginBottom: 30, elevation: 4 },
+  cardPublicidade: { backgroundColor: '#1d4ed8', borderRadius: 20, padding: 18, marginBottom: 16, elevation: 3 },
   badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.25)', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, marginBottom: 12 },
   txtBadgePatrocinado: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
   tituloPublicidade: { fontSize: 20, fontWeight: 'bold', color: '#ffffff', marginBottom: 8 },
