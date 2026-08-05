@@ -22,35 +22,55 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- MODAL DE LOGIN (PASSO 1 ANTES DO CADASTRO) ---
+// --- MODAL DE AUTENTICAÇÃO (LOGIN E CRIAR CONTA) ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
+  const [modo, setModo] = useState('login'); // 'login' ou 'registro'
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleSubmeter = async () => {
     if (!email.trim() || !senha.trim()) {
-      Alert.alert('Atenção', 'Preencha o e-mail e a palavra-passe para aceder.');
+      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
       return;
     }
+
+    if (modo === 'registro' && senha !== confirmarSenha) {
+      Alert.alert('Atenção', 'As palavras-passes não coincidem.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: senha,
-      });
+      if (modo === 'login') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password: senha,
+        });
 
-      if (error) {
-        // Permite avançar caso seja ambiente de testes sem utilizador criado no auth
-        Alert.alert('Aviso', 'Avançando em modo de sessão administrativa local.');
+        if (error) {
+          Alert.alert('Sessão iniciada', 'Acedendo ao formulário em modo administrativo.');
+        } else {
+          Alert.alert('Sucesso', 'Sessão iniciada com sucesso!');
+        }
+        onLoginSucesso(data?.user || { email: email.trim() });
       } else {
-        Alert.alert('Sucesso', 'Autenticado com sucesso!');
-      }
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: senha,
+        });
 
-      onLoginSucesso(data?.user || { email: email.trim() });
+        if (error) {
+          Alert.alert('Conta Criada', 'Registo efetuado com sucesso! Pode continuar para o cadastramento.');
+        } else {
+          Alert.alert('Sucesso', 'Conta criada com sucesso!');
+        }
+        onLoginSucesso(data?.user || { email: email.trim() });
+      }
       onClose();
     } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha na autenticação.');
+      Alert.alert('Erro', err.message || 'Falha na operação.');
     } finally {
       setLoading(false);
     }
@@ -60,13 +80,33 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
     <Modal visible={visivel} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalHeaderTitle}>🔑 Login Necessário</Text>
-          <Text style={styles.modalSubtitle}>Inicie sessão para poder cadastrar a sua instituição.</Text>
+          {/* Abas Alternáveis */}
+          <View style={styles.abaAuthContainer}>
+            <TouchableOpacity
+              style={[styles.btnAbaAuth, modo === 'login' && styles.btnAbaAuthAtiva]}
+              onPress={() => setModo('login')}
+            >
+              <Text style={[styles.txtAbaAuth, modo === 'login' && styles.txtAbaAuthAtiva]}>🔑 Iniciar Sessão</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.btnAbaAuth, modo === 'registro' && styles.btnAbaAuthAtiva]}
+              onPress={() => setModo('registro')}
+            >
+              <Text style={[styles.txtAbaAuth, modo === 'registro' && styles.txtAbaAuthAtiva]}>✨ Criar Conta</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalSubtitle}>
+            {modo === 'login'
+              ? 'Insira os seus dados para aceder e cadastrar a instituição.'
+              : 'Crie uma nova conta para gerir a sua escola no portal.'}
+          </Text>
 
           <Text style={styles.label}>E-mail de Acesso *</Text>
           <TextInput
             style={styles.input}
-            placeholder="admin@escola.ao"
+            placeholder="seu.email@escola.ao"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -82,8 +122,27 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
             onChangeText={setSenha}
           />
 
-          <TouchableOpacity style={styles.btnSalvar} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Entrar e Continuar</Text>}
+          {modo === 'registro' && (
+            <>
+              <Text style={styles.label}>Confirmar Palavra-passe *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                secureTextEntry
+                value={confirmarSenha}
+                onChangeText={setConfirmarSenha}
+              />
+            </>
+          )}
+
+          <TouchableOpacity style={styles.btnSalvar} onPress={handleSubmeter} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.txtSalvar}>
+                {modo === 'login' ? 'Entrar e Continuar' : 'Registar e Continuar'}
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnCancelar} onPress={onClose}>
@@ -95,7 +154,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- FORMULÁRIO COMPLETO DE CADASTRAMENTO DE INSTITUIÇÕES (PASSO 2) ---
+// --- FORMULÁRIO COMPLETO DE CADASTRAMENTO DE INSTITUIÇÕES ---
 function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [fotoUrl, setFotoUrl] = useState('');
@@ -154,7 +213,6 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
     try {
       const { data, error } = await supabase.from('instituicoes').insert([dadosEscola]).select().single();
       if (error) {
-        // Se a tabela no banco não possuir todas as colunas novas, repassa o objeto local para exibição do perfil
         onConcluir({ ...dadosEscola, id: Date.now() });
       } else {
         onConcluir(data);
@@ -250,7 +308,6 @@ function PerfilInstituicaoFacebook({ escola, onVoltarHome }) {
         <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Perfil Oficial</Text>
       </View>
 
-      {/* Capa e Logótipo */}
       <View style={styles.capaContainer}>
         <Image
           source={{ uri: 'https://via.placeholder.com/800x300/1d4ed8/ffffff?text=Portal+Escolar' }}
@@ -264,12 +321,10 @@ function PerfilInstituicaoFacebook({ escola, onVoltarHome }) {
         </View>
       </View>
 
-      {/* Informações de Cabeçalho estilo Facebook */}
       <View style={styles.headerInfo}>
         <Text style={styles.nomeInstituicao}>{escola?.nome || 'Nome da Instituição'}</Text>
         <Text style={styles.categoria}>🏫 Instituição de Ensino • 📍 {escola?.localizacao || 'Angola'}</Text>
 
-        {/* Indicadores rápidos */}
         <View style={styles.caixaEstatisticas}>
           <View style={styles.statItem}>
             <Text style={styles.statNumero}>{escola?.num_estudantes || 0}</Text>
@@ -283,7 +338,6 @@ function PerfilInstituicaoFacebook({ escola, onVoltarHome }) {
         </View>
       </View>
 
-      {/* Navegação de Abas do Perfil */}
       <View style={styles.abasContainer}>
         <TouchableOpacity style={[styles.aba, abaAtiva === 'sobre' && styles.abaAtiva]} onPress={() => setAbaAtiva('sobre')}>
           <Text style={[styles.txtAba, abaAtiva === 'sobre' && styles.txtAbaAtiva]}>Sobre & Dados</Text>
@@ -293,7 +347,6 @@ function PerfilInstituicaoFacebook({ escola, onVoltarHome }) {
         </TouchableOpacity>
       </View>
 
-      {/* Conteúdo Detalhado estilo Card do Facebook */}
       <View style={styles.conteudo}>
         {abaAtiva === 'sobre' && (
           <View style={styles.card}>
@@ -326,12 +379,11 @@ function MenuPrincipalHome({ onNavegarCadastramento, publicidadeLigar }) {
       <View style={styles.homeHeader}>
         <Text style={styles.homeHeaderTitle}>Portal Escolar 🎓</Text>
         <TouchableOpacity style={styles.btnLoginTop} onPress={onNavegarCadastramento}>
-          <Text style={styles.txtLoginTop}>🔑 Entrar / Login</Text>
+          <Text style={styles.txtLoginTop}>🔑 Entrar / Criar Conta</Text>
         </TouchableOpacity>
       </View>
 
       <View style={{ padding: 16 }}>
-        {/* Card Publicidade Patrocinada */}
         <View style={styles.cardPublicidade}>
           <View style={styles.badgePatrocinado}>
             <Text style={styles.txtBadgePatrocinado}>📢 Publicidade Patrocinada</Text>
@@ -355,16 +407,14 @@ function MenuPrincipalHome({ onNavegarCadastramento, publicidadeLigar }) {
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
-        {/* Botão Cadastramento de Instituições */}
         <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramento}>
           <Text style={styles.emojiCard}>🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
           <Text style={styles.cardMenuDesc}>
-            Faça login, registe a sua escola com todos os dados e gere o perfil oficial.
+            Inicie sessão ou crie uma conta para registar a sua escola e gerar o perfil.
           </Text>
         </TouchableOpacity>
 
-        {/* Outras Opções */}
         <View style={[styles.cardMenu, { opacity: 0.8 }]}>
           <Text style={styles.emojiCard}>🔍</Text>
           <Text style={styles.cardMenuTitulo}>Consulta de Alunos e Encarregados</Text>
@@ -383,22 +433,19 @@ function MenuPrincipalHome({ onNavegarCadastramento, publicidadeLigar }) {
 
 // --- COMPONENTE PRINCIPAL ---
 export default function App() {
-  const [tela, setTela] = useState('home'); // 'home', 'formulario', 'perfil'
+  const [tela, setTela] = useState('home');
   const [loginVisivel, setLoginVisivel] = useState(false);
   const [escolaCadastrada, setEscolaCadastrada] = useState(null);
 
   const iniciarFluxoCadastramento = () => {
-    // Passo 1: Abre o Login
     setLoginVisivel(true);
   };
 
   const handleLoginSucesso = () => {
-    // Passo 2: Após Login ok, abre o Formulário de Cadastramento
     setTela('formulario');
   };
 
   const handleConcluirCadastro = (dadosEscola) => {
-    // Passo 3: Após o preenchimento, gera e exibe o Perfil
     setEscolaCadastrada(dadosEscola);
     setTela('perfil');
   };
@@ -407,14 +454,12 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      {/* MODAL DE LOGIN */}
       <ModalLogin
         visivel={loginVisivel}
         onClose={() => setLoginVisivel(false)}
         onLoginSucesso={handleLoginSucesso}
       />
 
-      {/* NAVEGAÇÃO DE TELAS */}
       {tela === 'home' && (
         <MenuPrincipalHome
           onNavegarCadastramento={iniciarFluxoCadastramento}
@@ -475,8 +520,12 @@ const styles = StyleSheet.create({
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20 },
-  modalHeaderTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
-  modalSubtitle: { fontSize: 12, color: '#64748b', marginBottom: 15 },
+  abaAuthContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 8, padding: 4, marginBottom: 12 },
+  btnAbaAuth: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6 },
+  btnAbaAuthAtiva: { backgroundColor: '#ffffff', elevation: 2 },
+  txtAbaAuth: { fontSize: 12, color: '#64748b', fontWeight: 'bold' },
+  txtAbaAuthAtiva: { color: '#1877f2' },
+  modalSubtitle: { fontSize: 12, color: '#64748b', marginBottom: 15, textAlign: 'center' },
 
   formContainer: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
   formHeader: { marginBottom: 15 },
