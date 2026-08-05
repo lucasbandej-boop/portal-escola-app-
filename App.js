@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -21,49 +21,6 @@ const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// --- DADOS FICTÍCIOS DE EXEMPLO PARA CONSULTA DE ALUNOS ---
-const ALUNOS_EXEMPLO = [
-  {
-    id: '1',
-    nome_aluno: 'António Manuel Neto',
-    bi_aluno: '008945211LA042',
-    classe: '10ª Classe',
-    turma: 'A',
-    curso: 'Informática de Gestão',
-    nome_encarregado: 'Manuel NETO',
-    contacto_encarregado: '+244 923 112 334',
-    parentesco: 'Pai',
-    foto_url: 'https://via.placeholder.com/150/1e293b/ffffff?text=Neto',
-    status: 'Matriculado'
-  },
-  {
-    id: '2',
-    nome_aluno: 'Beatriz da Silva',
-    bi_aluno: '007812993LA038',
-    classe: '11ª Classe',
-    turma: 'B',
-    curso: 'Contabilidade',
-    nome_encarregado: 'Teresa da Silva',
-    contacto_encarregado: '+244 912 445 667',
-    parentesco: 'Mãe',
-    foto_url: 'https://via.placeholder.com/150/1e293b/ffffff?text=Beatriz',
-    status: 'Matriculado'
-  },
-  {
-    id: '3',
-    nome_aluno: 'Cláudio José Santos',
-    bi_aluno: '009123884LA011',
-    classe: '12ª Classe',
-    turma: 'C',
-    curso: 'Eletricidade',
-    nome_encarregado: 'João Francisco Santos',
-    contacto_encarregado: '+244 945 889 001',
-    parentesco: 'Tio / Encarregado',
-    foto_url: 'https://via.placeholder.com/150/1e293b/ffffff?text=Claudio',
-    status: 'Pendente'
-  }
-];
 
 // --- MODAL DE AUTENTICAÇÃO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
@@ -120,7 +77,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   };
 
   return (
-    <Modal visible={visivel} animationType="slide" transparent={true}>
+    <Modal visible={visivel} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.abaAuthContainer}>
@@ -128,7 +85,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
               style={[styles.btnAbaAuth, modo === 'login' && styles.btnAbaAuthAtiva]}
               onPress={() => setModo('login')}
             >
-              <Text style={[styles.txtAbaAuth, modo === 'login' && styles.txtAbaAuthAtiva]}>Entrar</Text>
+              <Text style={[styles.txtAbaAuth, modo === 'login' && styles.txtAbaAuthAtiva]}>Já tenho conta</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -199,12 +156,35 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 // --- TELA DE CONSULTA DE ALUNOS E ENCARREGADOS ---
 function TelaConsultaAlunos({ onVoltarHome }) {
   const [busca, setBusca] = useState('');
+  const [alunos, setAlunos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
 
-  const alunosFiltrados = ALUNOS_EXEMPLO.filter(item =>
-    item.nome_aluno.toLowerCase().includes(busca.toLowerCase()) ||
-    item.bi_aluno.toLowerCase().includes(busca.toLowerCase()) ||
-    item.nome_encarregado.toLowerCase().includes(busca.toLowerCase())
+  useEffect(() => {
+    carregarEstudantes();
+  }, []);
+
+  const carregarEstudantes = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('estudantes')
+        .select('*')
+        .order('nome_completo', { ascending: true });
+
+      if (error) throw error;
+      setAlunos(data || []);
+    } catch (err) {
+      console.log('Erro ao carregar estudantes:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const alunosFiltrados = alunos.filter(item =>
+    (item.nome_completo && item.nome_completo.toLowerCase().includes(busca.toLowerCase())) ||
+    (item.num_bilhete && item.num_bilhete.toLowerCase().includes(busca.toLowerCase())) ||
+    (item.encarregado_nome && item.encarregado_nome.toLowerCase().includes(busca.toLowerCase()))
   );
 
   return (
@@ -228,46 +208,48 @@ function TelaConsultaAlunos({ onVoltarHome }) {
       </View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
-        {alunosFiltrados.map((aluno) => (
-          <TouchableOpacity
-            key={aluno.id}
-            style={styles.cardConsulta}
-            onPress={() => setAlunoSelecionado(aluno)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.nomeAlunoConsulta}>{aluno.nome_aluno}</Text>
-              <View style={styles.badgeClasse}>
-                <Text style={styles.txtBadgeClasse}>{aluno.classe}</Text>
+        {loading ? (
+          <ActivityIndicator size="small" color="#0f172a" style={{ marginTop: 20 }} />
+        ) : alunosFiltrados.length > 0 ? (
+          alunosFiltrados.map((aluno) => (
+            <TouchableOpacity
+              key={aluno.id}
+              style={styles.cardConsulta}
+              onPress={() => setAlunoSelecionado(aluno)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardHeaderRow}>
+                <Text style={styles.nomeAlunoConsulta}>{aluno.nome_completo}</Text>
+                <View style={styles.badgeClasse}>
+                  <Text style={styles.txtBadgeClasse}>{aluno.classe_ou_ano || 'Geral'}</Text>
+                </View>
               </View>
-            </View>
 
-            <Text style={styles.detalheCurso}>
-              Turma: {aluno.turma} • {aluno.curso}
-            </Text>
+              <Text style={styles.detalheCurso}>
+                Turma: {aluno.turma || 'N/A'} • {aluno.curso || 'Ensino Geral'}
+              </Text>
 
-            <View style={styles.divisorCard} />
+              <View style={styles.divisorCard} />
 
-            <View style={styles.linhaInfo}>
-              <Text style={styles.rotuloInfo}>Nº do BI:</Text>
-              <Text style={styles.valorInfo}>{aluno.bi_aluno}</Text>
-            </View>
+              <View style={styles.linhaInfo}>
+                <Text style={styles.rotuloInfo}>Nº do BI:</Text>
+                <Text style={styles.valorInfo}>{aluno.num_bilhete || 'Não informado'}</Text>
+              </View>
 
-            <View style={styles.linhaInfo}>
-              <Text style={styles.rotuloInfo}>Encarregado:</Text>
-              <Text style={styles.valorInfoHighlight}>{aluno.nome_encarregado} ({aluno.parentesco})</Text>
-            </View>
+              <View style={styles.linhaInfo}>
+                <Text style={styles.rotuloInfo}>Encarregado:</Text>
+                <Text style={styles.valorInfoHighlight}>{aluno.encarregado_nome || 'Não informado'}</Text>
+              </View>
 
-            <View style={styles.linhaInfo}>
-              <Text style={styles.rotuloInfo}>Contacto:</Text>
-              <Text style={styles.valorContacto}>{aluno.contacto_encarregado}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        {alunosFiltrados.length === 0 && (
+              <View style={styles.linhaInfo}>
+                <Text style={styles.rotuloInfo}>Contacto:</Text>
+                <Text style={styles.valorContacto}>{aluno.encarregado_telefone || 'Não informado'}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        ) : (
           <View style={{ alignItems: 'center', marginTop: 40 }}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>Nenhum registo encontrado.</Text>
+            <Text style={{ color: '#64748b', fontSize: 14 }}>Nenhum estudante registado na base de dados.</Text>
           </View>
         )}
       </ScrollView>
@@ -283,23 +265,21 @@ function TelaConsultaAlunos({ onVoltarHome }) {
             {alunoSelecionado && (
               <ScrollView style={{ paddingVertical: 5 }}>
                 <View style={{ alignItems: 'center', marginBottom: 15 }}>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0f172a' }}>{alunoSelecionado.nome_aluno}</Text>
-                  <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginTop: 2 }}>Situação: {alunoSelecionado.status}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0f172a' }}>{alunoSelecionado.nome_completo}</Text>
                 </View>
 
                 <View style={styles.cardInfoModal}>
                   <Text style={styles.tituloSecaoModal}>Dados Académicos</Text>
-                  <Text style={styles.itemModal}>Classe: {alunoSelecionado.classe}</Text>
-                  <Text style={styles.itemModal}>Turma: {alunoSelecionado.turma}</Text>
-                  <Text style={styles.itemModal}>Curso: {alunoSelecionado.curso}</Text>
-                  <Text style={styles.itemModal}>Nº BI: {alunoSelecionado.bi_aluno}</Text>
+                  <Text style={styles.itemModal}>Classe: {alunoSelecionado.classe_ou_ano || 'N/A'}</Text>
+                  <Text style={styles.itemModal}>Turma: {alunoSelecionado.turma || 'N/A'}</Text>
+                  <Text style={styles.itemModal}>Curso: {alunoSelecionado.curso || 'Geral'}</Text>
+                  <Text style={styles.itemModal}>Nº BI: {alunoSelecionado.num_bilhete || 'N/A'}</Text>
                 </View>
 
                 <View style={[styles.cardInfoModal, { marginTop: 12 }]}>
                   <Text style={styles.tituloSecaoModal}>Encarregado de Educação</Text>
-                  <Text style={styles.itemModal}>Nome: {alunoSelecionado.nome_encarregado}</Text>
-                  <Text style={styles.itemModal}>Parentesco: {alunoSelecionado.parentesco}</Text>
-                  <Text style={styles.itemModal}>Contacto: {alunoSelecionado.contacto_encarregado}</Text>
+                  <Text style={styles.itemModal}>Nome: {alunoSelecionado.encarregado_nome || 'N/A'}</Text>
+                  <Text style={styles.itemModal}>Contacto: {alunoSelecionado.encarregado_telefone || 'N/A'}</Text>
                 </View>
               </ScrollView>
             )}
@@ -497,20 +477,42 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoP
       </View>
 
       <View style={{ padding: 16 }}>
+        {/* QUADRO DE PUBLICIDADE PATROCINADA */}
+        <View style={styles.cardPublicidade}>
+          <View style={styles.badgePatrocinado}>
+            <Text style={styles.txtBadgePatrocinado}>📢 Publicidade Patrocinada</Text>
+          </View>
+          <Text style={styles.tituloPublicidade}>Matérias a bom preço</Text>
+          <Text style={styles.corpoPublicidade}>
+            🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.{'\n'}
+            Livros 📕{'\n'}
+            Caderno 📓{'\n'}
+            Folha 4{'\n'}
+            Lápis
+          </Text>
+          <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
+            <Text style={styles.rodapePublicidade}>
+              Para mais informações ligue no número abaixo:{'\n'}
+              <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* MENU PRINCIPAL CORPORATIVO */}
         <Text style={styles.secaoTitulo}>Painel Geral</Text>
         <Text style={styles.secaoSubtitulo}>Selecione o serviço pretendido:</Text>
 
-        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarConsultaAlunos}>
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarConsultaAlunos} activeOpacity={0.8}>
           <Text style={styles.cardMenuTitulo}>Consulta de Alunos e Encarregados</Text>
           <Text style={styles.cardMenuDesc}>Consulte matrículas, turmas e contactos dos encarregados.</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoInst}>
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoInst} activeOpacity={0.8}>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
           <Text style={styles.cardMenuDesc}>Registo e gestão de instituições de ensino.</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoProf}>
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoProf} activeOpacity={0.8}>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Professores</Text>
           <Text style={styles.cardMenuDesc}>Registo do corpo docente e áreas de lecionação.</Text>
         </TouchableOpacity>
@@ -576,7 +578,7 @@ export default function App() {
   );
 }
 
-// --- ESTILOS LIMPOS E PROFISSIONAIS ---
+// --- ESTILOS LIMPOS E DESIGN CORPORATIVO ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   homeContainer: { flex: 1, backgroundColor: '#f8fafc' },
@@ -594,15 +596,50 @@ const styles = StyleSheet.create({
   btnLoginTop: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   txtLoginTop: { color: '#334155', fontWeight: '600', fontSize: 13 },
 
-  secaoTitulo: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginTop: 8 },
+  cardPublicidade: {
+    backgroundColor: '#1d4ed8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    elevation: 2,
+  },
+  badgePatrocinado: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
+  tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
+  corpoPublicidade: { fontSize: 13, color: '#e0e7ff', lineHeight: 18, marginBottom: 12 },
+  btnLigarPub: { backgroundColor: 'rgba(255,255,255,0.15)', padding: 10, borderRadius: 8 },
+  rodapePublicidade: { fontSize: 12, color: '#c7d2fe' },
+  telefonePublicidade: { fontSize: 14, fontWeight: 'bold', color: '#fbbf24' },
+
+  secaoTitulo: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginTop: 4 },
   secaoSubtitulo: { fontSize: 13, color: '#64748b', marginBottom: 16 },
-  cardMenu: { backgroundColor: '#ffffff', borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  
+  // Menu em estilo Card Profissional (Bordas suaves)
+  cardMenu: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 18,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
   cardMenuTitulo: { fontSize: 15, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
   cardMenuDesc: { fontSize: 13, color: '#64748b', lineHeight: 18 },
 
   inputBusca: { height: 44, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 14, backgroundColor: '#ffffff', fontSize: 14, color: '#0f172a' },
   
-  // Cartão Profissional de Consulta
   cardConsulta: {
     backgroundColor: '#ffffff',
     borderRadius: 8,
@@ -610,10 +647,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
     elevation: 1
   },
   cardHeaderRow: {
