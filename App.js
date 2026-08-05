@@ -48,7 +48,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         });
 
         if (error) {
-          Alert.alert('Acesso Concedido', 'Sessão iniciada.');
+          Alert.alert('Aviso', error.message || 'Falha ao autenticar.');
         } else {
           Alert.alert('Sucesso', 'Sessão iniciada com sucesso!');
         }
@@ -317,26 +317,30 @@ function FormCadastramentoEstudante({ onConcluir, onCancelar }) {
     }
 
     setLoading(true);
-    const dadosEstudante = {
-      nome_completo: nome.trim(),
-      num_bilhete: bilhete.trim(),
-      classe_ou_ano: classe.trim(),
-      turma: turma.trim() || 'A',
-      curso: curso.trim() || 'Ensino Geral',
-      encarregado_nome: encarregadoNome.trim() || 'Não informado',
-      encarregado_telefone: encarregadoTel.trim() || 'Não informado',
-      parentesco: parentesco.trim() || 'Encarregado',
-      status: 'Matriculado'
-    };
 
     try {
-      const { error } = await supabase.from('estudantes').insert([dadosEstudante]);
-      if (error) throw error;
+      const { data, error } = await supabase.from('estudantes').insert([
+        {
+          nome_completo: nome.trim(),
+          num_bilhete: bilhete.trim(),
+          classe_ou_ano: classe.trim(),
+          turma: turma.trim() || 'A',
+          curso: curso.trim() || 'Ensino Geral',
+          encarregado_nome: encarregadoNome.trim() || 'Não informado',
+          encarregado_telefone: encarregadoTel.trim() || 'Não informado',
+          parentesco: parentesco.trim() || 'Encarregado',
+          status: 'Matriculado'
+        }
+      ]);
 
-      Alert.alert('Sucesso', 'Estudante cadastrado com sucesso na base de dados!');
-      onConcluir();
+      if (error) {
+        Alert.alert('Erro no Supabase', error.message || 'Erro desconhecido ao salvar');
+      } else {
+        Alert.alert('Sucesso', 'Estudante cadastrado com sucesso!');
+        onConcluir();
+      }
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message || 'Falha ao ligar com o banco de dados.');
+      Alert.alert('Erro ao Salvar', err.message || 'Falha na requisição.');
     } finally {
       setLoading(false);
     }
@@ -403,23 +407,27 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
     }
 
     setLoading(true);
-    const dadosEscola = {
-      nome: nome.trim(),
-      director: diretor.trim(),
-      vice_director: viceDiretor.trim(),
-      nif: nif.trim(),
-      email: contacto.trim(),
-      localizacao: localizacao.trim() || 'Angola',
-    };
 
     try {
-      const { error } = await supabase.from('instituicoes').insert([dadosEscola]);
-      if (error) throw error;
+      const { data, error } = await supabase.from('instituicoes').insert([
+        {
+          nome: nome.trim(),
+          director: diretor.trim() || 'Direção Geral',
+          vice_director: viceDiretor.trim() || 'N/A',
+          nif: nif.trim(),
+          email: contacto.trim(),
+          localizacao: localizacao.trim() || 'Luanda, Angola',
+        }
+      ]);
 
-      Alert.alert('Sucesso', 'Instituição cadastrada com sucesso!');
-      onConcluir();
+      if (error) {
+        Alert.alert('Erro no Supabase', error.message || 'Erro ao salvar instituição');
+      } else {
+        Alert.alert('Sucesso', 'Instituição cadastrada com sucesso!');
+        onConcluir();
+      }
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message || 'Falha ao ligar com o banco de dados.');
+      Alert.alert('Erro ao Salvar', err.message || 'Falha na requisição.');
     } finally {
       setLoading(false);
     }
@@ -477,20 +485,24 @@ function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
     }
 
     setLoading(true);
-    const dadosProf = {
-      nome_completo: nome.trim(),
-      num_bilhete: bilhete.trim(),
-      area_formacao: areaFormacao.trim(),
-    };
 
     try {
-      const { error } = await supabase.from('professores').insert([dadosProf]);
-      if (error) throw error;
+      const { data, error } = await supabase.from('professores').insert([
+        {
+          nome_completo: nome.trim(),
+          num_bilhete: bilhete.trim(),
+          area_formacao: areaFormacao.trim(),
+        }
+      ]);
 
-      Alert.alert('Sucesso', 'Professor cadastrado com sucesso!');
-      onConcluir();
+      if (error) {
+        Alert.alert('Erro no Supabase', error.message || 'Erro ao salvar professor');
+      } else {
+        Alert.alert('Sucesso', 'Professor cadastrado com sucesso!');
+        onConcluir();
+      }
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message || 'Falha ao ligar com o banco de dados.');
+      Alert.alert('Erro ao Salvar', err.message || 'Falha na requisição.');
     } finally {
       setLoading(false);
     }
