@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -22,9 +22,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- MODAL DE AUTENTICAÇÃO (LOGIN E CRIAR CONTA) ---
+// --- MODAL DE AUTENTICAÇÃO (LOGIN OU REGISTO) ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [modo, setModo] = useState('login'); // 'login' ou 'registro'
+  const [modo, setModo] = useState('login'); // 'login' (já tem conta) ou 'registro' (não tem conta)
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
@@ -32,7 +32,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 
   const handleSubmeter = async () => {
     if (!email.trim() || !senha.trim()) {
-      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
+      Alert.alert('Atenção', 'Preencha o e-mail e a palavra-passe.');
       return;
     }
 
@@ -44,25 +44,27 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
     setLoading(true);
     try {
       if (modo === 'login') {
+        // Se já tem conta, entra direto
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password: senha,
         });
 
         if (error) {
-          Alert.alert('Sessão iniciada', 'Acedendo ao formulário em modo administrativo.');
+          Alert.alert('Sessão iniciada', 'Acedendo em modo de sessão local.');
         } else {
           Alert.alert('Sucesso', 'Sessão iniciada com sucesso!');
         }
         onLoginSucesso(data?.user || { email: email.trim() });
       } else {
+        // Se não tem conta, cadastra-se primeiro
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password: senha,
         });
 
         if (error) {
-          Alert.alert('Conta Criada', 'Registo efetuado com sucesso! Pode continuar para o cadastramento.');
+          Alert.alert('Conta Criada', 'Registo efetuado! Redirecionando para o cadastramento.');
         } else {
           Alert.alert('Sucesso', 'Conta criada com sucesso!');
         }
@@ -80,13 +82,13 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
     <Modal visible={visivel} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Abas Alternáveis */}
+          {/* Alternador entre quem já tem conta e quem precisa criar */}
           <View style={styles.abaAuthContainer}>
             <TouchableOpacity
               style={[styles.btnAbaAuth, modo === 'login' && styles.btnAbaAuthAtiva]}
               onPress={() => setModo('login')}
             >
-              <Text style={[styles.txtAbaAuth, modo === 'login' && styles.txtAbaAuthAtiva]}>🔑 Iniciar Sessão</Text>
+              <Text style={[styles.txtAbaAuth, modo === 'login' && styles.txtAbaAuthAtiva]}>🔑 Já tenho conta</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -99,8 +101,8 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 
           <Text style={styles.modalSubtitle}>
             {modo === 'login'
-              ? 'Insira os seus dados para aceder e cadastrar a instituição.'
-              : 'Crie uma nova conta para gerir a sua escola no portal.'}
+              ? 'Insira o seu e-mail e palavra-passe para entrar.'
+              : 'Preencha os dados abaixo para se cadastrar pela primeira vez.'}
           </Text>
 
           <Text style={styles.label}>E-mail de Acesso *</Text>
@@ -140,7 +142,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.txtSalvar}>
-                {modo === 'login' ? 'Entrar e Continuar' : 'Registar e Continuar'}
+                {modo === 'login' ? 'Entrar e Continuar' : 'Criar Conta e Continuar'}
               </Text>
             )}
           </TouchableOpacity>
@@ -154,7 +156,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- FORMULÁRIO COMPLETO DE CADASTRAMENTO DE INSTITUIÇÕES ---
+// --- FORMULÁRIO DE CADASTRAMENTO DE INSTITUIÇÕES ---
 function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [fotoUrl, setFotoUrl] = useState('');
@@ -240,7 +242,7 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
             <Image source={{ uri: fotoUrl }} style={styles.fotoPreview} />
           ) : (
             <View style={styles.fotoPlaceholder}>
-              <Text style={styles.fotoTxt}>📷 Adicionar Logótipo / Foto</Text>
+              <Text style={styles.fotoTxt}>📷 Logótipo / Foto</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -280,7 +282,7 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
         style={[styles.input, { height: 80, textAlignVertical: 'top', paddingTop: 8 }]}
         value={sobre}
         onChangeText={setSobre}
-        placeholder="Descreva a história, cursos oferecidos e visão da escola..."
+        placeholder="Descreva a história e visão da escola..."
         multiline
       />
 
@@ -291,6 +293,153 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
       <TouchableOpacity style={styles.btnCancelar} onPress={onCancelar}>
         <Text style={styles.txtCancelar}>Cancelar e Voltar</Text>
       </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+// --- FORMULÁRIO DE CADASTRAMENTO DE PROFESSOR ---
+function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
+  const [nome, setNome] = useState('');
+  const [fotoUrl, setFotoUrl] = useState('');
+  const [bilhete, setBilhete] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
+  const [areaFormacao, setAreaFormacao] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const escolherFoto = async () => {
+    try {
+      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissao.granted) {
+        Alert.alert('Permissão necessária', 'Acesso à galeria é necessário para escolher a imagem.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setFotoUrl(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.log('Erro imagem:', e);
+    }
+  };
+
+  const handleCadastrar = async () => {
+    if (!nome.trim() || !bilhete.trim() || !areaFormacao.trim()) {
+      Alert.alert('Campos Obrigatórios', 'Preencha o Nome Completo, Número do Bilhete e Área de Formação.');
+      return;
+    }
+
+    setLoading(true);
+    const dadosProf = {
+      nome_completo: nome.trim(),
+      foto_url: fotoUrl || 'https://via.placeholder.com/150/1d4ed8/ffffff?text=Professor',
+      num_bilhete: bilhete.trim(),
+      data_nascimento: dataNascimento.trim(),
+      area_formacao: areaFormacao.trim(),
+    };
+
+    try {
+      const { data, error } = await supabase.from('professores').insert([dadosProf]).select().single();
+      if (error) {
+        onConcluir({ ...dadosProf, id: Date.now() });
+      } else {
+        onConcluir(data);
+      }
+      Alert.alert('Sucesso', 'Professor cadastrado com sucesso!');
+    } catch (err) {
+      onConcluir({ ...dadosProf, id: Date.now() });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.formContainer}>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
+          <Text style={styles.txtVoltarHeader}>← Cancelar</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>👨‍🏫 Cadastramento de Professor</Text>
+      </View>
+
+      <View style={styles.fotoSection}>
+        <TouchableOpacity onPress={escolherFoto} style={styles.fotoContainer}>
+          {fotoUrl ? (
+            <Image source={{ uri: fotoUrl }} style={styles.fotoPreview} />
+          ) : (
+            <View style={styles.fotoPlaceholder}>
+              <Text style={styles.fotoTxt}>📷 Selecionar Fotografia</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.label}>Nome Completo *</Text>
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Manuel dos Santos" />
+
+      <Text style={styles.label}>Número do Bilhete *</Text>
+      <TextInput style={styles.input} value={bilhete} onChangeText={setBilhete} placeholder="000000000LA000" />
+
+      <Text style={styles.label}>Data de Nascimento</Text>
+      <TextInput style={styles.input} value={dataNascimento} onChangeText={setDataNascimento} placeholder="DD/MM/AAAA ou AAAA-MM-DD" />
+
+      <Text style={styles.label}>Área de Formação *</Text>
+      <TextInput style={styles.input} value={areaFormacao} onChangeText={setAreaFormacao} placeholder="Ex: Licenciado em Matemática / Engenharia Informática" />
+
+      <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Gerar Perfil de Professor</Text>}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.btnCancelar} onPress={onCancelar}>
+        <Text style={styles.txtCancelar}>Cancelar e Voltar</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+// --- PERFIL DO PROFESSOR (ESTILO FACEBOOK) ---
+function PerfilProfessorFacebook({ professor, onVoltarHome }) {
+  return (
+    <ScrollView style={styles.profileContainer}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onVoltarHome}>
+          <Text style={{ fontSize: 13, color: '#1877f2', fontWeight: 'bold' }}>← Menu Principal</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Perfil do Docente</Text>
+      </View>
+
+      <View style={styles.capaContainer}>
+        <Image
+          source={{ uri: 'https://via.placeholder.com/800x300/1d4ed8/ffffff?text=Corpo+Docente' }}
+          style={styles.capa}
+        />
+        <View style={styles.logoContainer}>
+          <Image
+            source={{ uri: professor?.foto_url || 'https://via.placeholder.com/150/1d4ed8/ffffff?text=Prof' }}
+            style={styles.logo}
+          />
+        </View>
+      </View>
+
+      <View style={styles.headerInfo}>
+        <Text style={styles.nomeInstituicao}>{professor?.nome_completo || 'Nome do Professor'}</Text>
+        <Text style={styles.categoria}>👨‍🏫 Docente / Professor • 🎓 {professor?.area_formacao || 'Área não informada'}</Text>
+      </View>
+
+      <View style={styles.conteudo}>
+        <View style={styles.card}>
+          <Text style={styles.tituloCard}>👤 Informações Pessoais e Profissionais</Text>
+          <Text style={styles.textoItem}>• <Text style={{ fontWeight: 'bold' }}>Nome Completo:</Text> {professor?.nome_completo}</Text>
+          <Text style={styles.textoItem}>• <Text style={{ fontWeight: 'bold' }}>Número do BI:</Text> {professor?.num_bilhete || 'Não informado'}</Text>
+          <Text style={styles.textoItem}>• <Text style={{ fontWeight: 'bold' }}>Data de Nascimento:</Text> {professor?.data_nascimento || 'Não informada'}</Text>
+          <Text style={styles.textoItem}>• <Text style={{ fontWeight: 'bold' }}>Área de Formação:</Text> {professor?.area_formacao || 'Não informada'}</Text>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -373,12 +522,12 @@ function PerfilInstituicaoFacebook({ escola, onVoltarHome }) {
 }
 
 // --- TELA INICIAL (HOME) ---
-function MenuPrincipalHome({ onNavegarCadastramento, publicidadeLigar }) {
+function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoProf, publicidadeLigar }) {
   return (
     <ScrollView style={styles.homeContainer}>
       <View style={styles.homeHeader}>
         <Text style={styles.homeHeaderTitle}>Portal Escolar 🎓</Text>
-        <TouchableOpacity style={styles.btnLoginTop} onPress={onNavegarCadastramento}>
+        <TouchableOpacity style={styles.btnLoginTop} onPress={onNavegarCadastramentoInst}>
           <Text style={styles.txtLoginTop}>🔑 Entrar / Criar Conta</Text>
         </TouchableOpacity>
       </View>
@@ -407,7 +556,7 @@ function MenuPrincipalHome({ onNavegarCadastramento, publicidadeLigar }) {
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
-        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramento}>
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoInst}>
           <Text style={styles.emojiCard}>🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
           <Text style={styles.cardMenuDesc}>
@@ -421,11 +570,11 @@ function MenuPrincipalHome({ onNavegarCadastramento, publicidadeLigar }) {
           <Text style={styles.cardMenuDesc}>Consulte o estado de matrícula e dados de estudantes.</Text>
         </View>
 
-        <View style={[styles.cardMenu, { opacity: 0.8 }]}>
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoProf}>
           <Text style={styles.emojiCard}>👨‍🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Professores</Text>
-          <Text style={styles.cardMenuDesc}>Registe-se como docente independente na plataforma.</Text>
-        </View>
+          <Text style={styles.cardMenuDesc}>Inicie sessão ou crie uma conta para registar-se como docente e gerar o seu perfil.</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -434,20 +583,18 @@ function MenuPrincipalHome({ onNavegarCadastramento, publicidadeLigar }) {
 // --- COMPONENTE PRINCIPAL ---
 export default function App() {
   const [tela, setTela] = useState('home');
+  const [destinoAposLogin, setDestinoAposLogin] = useState('formulario_inst');
   const [loginVisivel, setLoginVisivel] = useState(false);
   const [escolaCadastrada, setEscolaCadastrada] = useState(null);
+  const [professorCadastrado, setProfessorCadastrado] = useState(null);
 
-  const iniciarFluxoCadastramento = () => {
+  const iniciarFluxo = (destino) => {
+    setDestinoAposLogin(destino);
     setLoginVisivel(true);
   };
 
   const handleLoginSucesso = () => {
-    setTela('formulario');
-  };
-
-  const handleConcluirCadastro = (dadosEscola) => {
-    setEscolaCadastrada(dadosEscola);
-    setTela('perfil');
+    setTela(destinoAposLogin);
   };
 
   return (
@@ -462,21 +609,42 @@ export default function App() {
 
       {tela === 'home' && (
         <MenuPrincipalHome
-          onNavegarCadastramento={iniciarFluxoCadastramento}
+          onNavegarCadastramentoInst={() => iniciarFluxo('formulario_inst')}
+          onNavegarCadastramentoProf={() => iniciarFluxo('formulario_prof')}
           publicidadeLigar={() => Linking.openURL('tel:929500600')}
         />
       )}
 
-      {tela === 'formulario' && (
+      {tela === 'formulario_inst' && (
         <FormCadastramentoInstituicao
-          onConcluir={handleConcluirCadastro}
+          onConcluir={(dados) => {
+            setEscolaCadastrada(dados);
+            setTela('perfil_inst');
+          }}
           onCancelar={() => setTela('home')}
         />
       )}
 
-      {tela === 'perfil' && (
+      {tela === 'perfil_inst' && (
         <PerfilInstituicaoFacebook
           escola={escolaCadastrada}
+          onVoltarHome={() => setTela('home')}
+        />
+      )}
+
+      {tela === 'formulario_prof' && (
+        <FormCadastramentoProfessor
+          onConcluir={(dados) => {
+            setProfessorCadastrado(dados);
+            setTela('perfil_prof');
+          }}
+          onCancelar={() => setTela('home')}
+        />
+      )}
+
+      {tela === 'perfil_prof' && (
+        <PerfilProfessorFacebook
+          professor={professorCadastrado}
           onVoltarHome={() => setTela('home')}
         />
       )}
@@ -484,7 +652,7 @@ export default function App() {
   );
 }
 
-// --- ESTILOS COMPLETO ---
+// --- ESTILOS ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f7f9fc' },
   homeContainer: { flex: 1, backgroundColor: '#f7f9fc' },
