@@ -12,7 +12,8 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
-  Linking
+  Linking,
+  FlatList
 } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,9 +23,52 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- MODAL DE AUTENTICAÇÃO (LOGIN OU REGISTO) ---
+// --- DADOS FICTÍCIOS DE EXEMPLO PARA CONSULTA DE ALUNOS ---
+const ALUNOS_EXEMPLO = [
+  {
+    id: '1',
+    nome_aluno: 'António Manuel Neto',
+    bi_aluno: '008945211LA042',
+    classe: '10ª Classe',
+    turma: 'A',
+    curso: 'Informática de Gestão',
+    nome_encarregado: 'Manuel NETO',
+    contacto_encarregado: '+244 923 112 334',
+    parentesco: 'Pai',
+    foto_url: 'https://via.placeholder.com/150/1d4ed8/ffffff?text=Aluno+1',
+    status: 'Matriculado'
+  },
+  {
+    id: '2',
+    nome_aluno: 'Beatriz da Silva',
+    bi_aluno: '007812993LA038',
+    classe: '11ª Classe',
+    turma: 'B',
+    curso: 'Contabilidade',
+    nome_encarregado: 'Teresa da Silva',
+    contacto_encarregado: '+244 912 445 667',
+    parentesco: 'Mãe',
+    foto_url: 'https://via.placeholder.com/150/1d4ed8/ffffff?text=Aluno+2',
+    status: 'Matriculado'
+  },
+  {
+    id: '3',
+    nome_aluno: 'Cláudio José Santos',
+    bi_aluno: '009123884LA011',
+    classe: '12ª Classe',
+    turma: 'C',
+    curso: 'Eletricidade',
+    nome_encarregado: 'João Francisco Santos',
+    contacto_encarregado: '+244 945 889 001',
+    parentesco: 'Tio / Encarregado',
+    foto_url: 'https://via.placeholder.com/150/1d4ed8/ffffff?text=Aluno+3',
+    status: 'Pendente'
+  }
+];
+
+// --- MODAL DE AUTENTICAÇÃO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [modo, setModo] = useState('login'); // 'login' (já tem conta) ou 'registro' (não tem conta)
+  const [modo, setModo] = useState('login');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
@@ -44,7 +88,6 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
     setLoading(true);
     try {
       if (modo === 'login') {
-        // Se já tem conta, entra direto
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password: senha,
@@ -57,14 +100,13 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         }
         onLoginSucesso(data?.user || { email: email.trim() });
       } else {
-        // Se não tem conta, cadastra-se primeiro
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password: senha,
         });
 
         if (error) {
-          Alert.alert('Conta Criada', 'Registo efetuado! Redirecionando para o cadastramento.');
+          Alert.alert('Conta Criada', 'Registo efetuado! Redirecionando.');
         } else {
           Alert.alert('Sucesso', 'Conta criada com sucesso!');
         }
@@ -82,7 +124,6 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
     <Modal visible={visivel} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Alternador entre quem já tem conta e quem precisa criar */}
           <View style={styles.abaAuthContainer}>
             <TouchableOpacity
               style={[styles.btnAbaAuth, modo === 'login' && styles.btnAbaAuthAtiva]}
@@ -153,6 +194,113 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         </View>
       </View>
     </Modal>
+  );
+}
+
+// --- TELA DE CONSULTA DE ALUNOS E ENCARREGADOS ---
+function TelaConsultaAlunos({ onVoltarHome }) {
+  const [busca, setBusca] = useState('');
+  const [alunoSelecionado, setAlunoSelecionado] = useState(null);
+
+  const alunosFiltrados = ALUNOS_EXEMPLO.filter(item =>
+    item.nome_aluno.toLowerCase().includes(busca.toLowerCase()) ||
+    item.bi_aluno.toLowerCase().includes(busca.toLowerCase()) ||
+    item.nome_encarregado.toLowerCase().includes(busca.toLowerCase())
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onVoltarHome}>
+          <Text style={{ fontSize: 13, color: '#1877f2', fontWeight: 'bold' }}>← Menu Principal</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#0f172a' }}>Consulta Escolar</Text>
+      </View>
+
+      <View style={{ padding: 16 }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginBottom: 4 }}>
+          🔍 Consulta de Alunos e Encarregados
+        </Text>
+        <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>
+          Pesquise pelo nome do aluno, Nº de Bilhete ou nome do Encarregado de Educação.
+        </Text>
+
+        <TextInput
+          style={styles.inputBusca}
+          placeholder="🔎 Pesquisar aluno ou encarregado..."
+          value={busca}
+          onChangeText={setBusca}
+        />
+      </View>
+
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
+        {alunosFiltrados.map((aluno) => (
+          <TouchableOpacity
+            key={aluno.id}
+            style={styles.cardConsulta}
+            onPress={() => setAlunoSelecionado(aluno)}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Image source={{ uri: aluno.foto_url }} style={styles.fotoConsulta} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.nomeAlunoConsulta}>{aluno.nome_aluno}</Text>
+                <Text style={styles.detalheConsulta}>🎓 {aluno.classe} • Turma: {aluno.turma} ({aluno.curso})</Text>
+                <Text style={styles.detalheConsulta}>🆔 BI: {aluno.bi_aluno}</Text>
+                <Text style={styles.encarregadoConsulta}>👨‍👩‍👦 Encarregado: {aluno.nome_encarregado} ({aluno.parentesco})</Text>
+                <Text style={styles.contactoConsulta}>📞 {aluno.contacto_encarregado}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        {alunosFiltrados.length === 0 && (
+          <View style={{ alignItems: 'center', marginTop: 40 }}>
+            <Text style={{ fontSize: 30, marginBottom: 10 }}>🔍</Text>
+            <Text style={{ color: '#64748b', fontSize: 14 }}>Nenhum estudante ou encarregado encontrado.</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* MODAL COM FICHA DO ALUNO */}
+      <Modal visible={alunoSelecionado !== null} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginBottom: 12, color: '#1d4ed8' }}>
+              📄 Ficha do Aluno & Encarregado
+            </Text>
+
+            {alunoSelecionado && (
+              <ScrollView style={{ paddingVertical: 10 }}>
+                <View style={{ alignItems: 'center', marginBottom: 15 }}>
+                  <Image source={{ uri: alunoSelecionado.foto_url }} style={{ width: 80, height: 80, borderRadius: 40 }} />
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: 8 }}>{alunoSelecionado.nome_aluno}</Text>
+                  <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: 'bold' }}>Status: {alunoSelecionado.status}</Text>
+                </View>
+
+                <View style={styles.cardInfoModal}>
+                  <Text style={styles.tituloSecaoModal}>🎓 Dados Académicos</Text>
+                  <Text style={styles.itemModal}>• Classe: {alunoSelecionado.classe}</Text>
+                  <Text style={styles.itemModal}>• Turma: {alunoSelecionado.turma}</Text>
+                  <Text style={styles.itemModal}>• Curso: {alunoSelecionado.curso}</Text>
+                  <Text style={styles.itemModal}>• Bilhete de Identidade: {alunoSelecionado.bi_aluno}</Text>
+                </View>
+
+                <View style={[styles.cardInfoModal, { marginTop: 10 }]}>
+                  <Text style={styles.tituloSecaoModal}>👨‍👩‍👦 Encarregado de Educação</Text>
+                  <Text style={styles.itemModal}>• Nome: {alunoSelecionado.nome_encarregado}</Text>
+                  <Text style={styles.itemModal}>• Grau de Parentesco: {alunoSelecionado.parentesco}</Text>
+                  <Text style={styles.itemModal}>• Telefone/Contacto: {alunoSelecionado.contacto_encarregado}</Text>
+                </View>
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={styles.btnSalvar} onPress={() => setAlunoSelecionado(null)}>
+              <Text style={styles.txtSalvar}>Fechar Consulta</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -522,7 +670,7 @@ function PerfilInstituicaoFacebook({ escola, onVoltarHome }) {
 }
 
 // --- TELA INICIAL (HOME) ---
-function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoProf, publicidadeLigar }) {
+function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarConsultaAlunos, publicidadeLigar }) {
   return (
     <ScrollView style={styles.homeContainer}>
       <View style={styles.homeHeader}>
@@ -564,11 +712,11 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoP
           </Text>
         </TouchableOpacity>
 
-        <View style={[styles.cardMenu, { opacity: 0.8 }]}>
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarConsultaAlunos}>
           <Text style={styles.emojiCard}>🔍</Text>
           <Text style={styles.cardMenuTitulo}>Consulta de Alunos e Encarregados</Text>
-          <Text style={styles.cardMenuDesc}>Consulte o estado de matrícula e dados de estudantes.</Text>
-        </View>
+          <Text style={styles.cardMenuDesc}>Consulte o estado de matrícula, dados dos estudantes e encarregados.</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoProf}>
           <Text style={styles.emojiCard}>👨‍🏫</Text>
@@ -582,7 +730,7 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoP
 
 // --- COMPONENTE PRINCIPAL ---
 export default function App() {
-  const [tela, setTela] = useState('home');
+  const [tela, setTela] = useState('home'); // 'home', 'formulario_inst', 'perfil_inst', 'formulario_prof', 'perfil_prof', 'consulta_alunos'
   const [destinoAposLogin, setDestinoAposLogin] = useState('formulario_inst');
   const [loginVisivel, setLoginVisivel] = useState(false);
   const [escolaCadastrada, setEscolaCadastrada] = useState(null);
@@ -611,7 +759,14 @@ export default function App() {
         <MenuPrincipalHome
           onNavegarCadastramentoInst={() => iniciarFluxo('formulario_inst')}
           onNavegarCadastramentoProf={() => iniciarFluxo('formulario_prof')}
+          onNavegarConsultaAlunos={() => setTela('consulta_alunos')}
           publicidadeLigar={() => Linking.openURL('tel:929500600')}
+        />
+      )}
+
+      {tela === 'consulta_alunos' && (
+        <TelaConsultaAlunos
+          onVoltarHome={() => setTela('home')}
         />
       )}
 
@@ -685,6 +840,18 @@ const styles = StyleSheet.create({
   emojiCard: { fontSize: 28, marginBottom: 8 },
   cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
   cardMenuDesc: { fontSize: 12, color: '#64748b', lineHeight: 16 },
+
+  inputBusca: { height: 44, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 14, backgroundColor: '#ffffff', fontSize: 14 },
+  cardConsulta: { backgroundColor: '#ffffff', borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  fotoConsulta: { width: 60, height: 60, borderRadius: 30 },
+  nomeAlunoConsulta: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
+  detalheConsulta: { fontSize: 12, color: '#475569', marginTop: 2 },
+  encarregadoConsulta: { fontSize: 12, fontWeight: '600', color: '#1d4ed8', marginTop: 4 },
+  contactoConsulta: { fontSize: 12, color: '#16a34a', fontWeight: 'bold' },
+
+  cardInfoModal: { backgroundColor: '#f1f5f9', padding: 12, borderRadius: 8 },
+  tituloSecaoModal: { fontSize: 13, fontWeight: 'bold', color: '#0f172a', marginBottom: 6 },
+  itemModal: { fontSize: 12, color: '#334155', marginBottom: 4 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20 },
