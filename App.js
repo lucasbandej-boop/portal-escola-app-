@@ -106,7 +106,7 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E REGISTO COM CÓDIGO E SUPORTE A DADOS LOCAIS ---
+// --- MODAL DE LOGIN E REGISTO COM OTP SEGURO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [etapa, setEtapa] = useState('solicitar');
   const [email, setEmail] = useState('');
@@ -116,28 +116,29 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const enviarCodigo = async () => {
     const emailLimpo = email.trim().toLowerCase();
     if (!emailLimpo || !emailLimpo.includes('@')) {
-      Alert.alert('E-mail Inválido', 'Insira um endereço de e-mail válido.');
+      Alert.alert('E-mail Inválido', 'Por favor insira um endereço de e-mail válido.');
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signInWithOtp({
         email: emailLimpo,
         options: {
-          shouldCreateUser: true,
-          emailRedirectTo: 'https://portal-escola-app-u3b6.vercel.app/'
+          shouldCreateUser: true
         }
       });
 
       if (error) {
-        Alert.alert('Erro Supabase', error.message || 'Falha ao enviar e-mail.');
+        console.error('Erro Supabase OTP:', error);
+        Alert.alert('Atenção / Erro', error.message || 'Não foi possível enviar o código OTP.');
       } else {
-        Alert.alert('E-mail Enviado 📩', `Verifique a sua caixa de entrada ou SPAM no e-mail:\n${emailLimpo}`);
+        Alert.alert('Código Enviado 📩', `Verifique o seu e-mail (${emailLimpo}) e introduza o código de 6 dígitos.`);
         setEtapa('validar');
       }
     } catch (err) {
-      Alert.alert('Erro Inesperado', err.message || 'Falha no servidor.');
+      console.error('Erro inesperado:', err);
+      Alert.alert('Erro no Servidor', err.message || 'Falha ao processar o pedido.');
     } finally {
       setLoading(false);
     }
@@ -148,7 +149,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
     const tokenLimpo = codigoOtp.trim();
 
     if (!tokenLimpo || tokenLimpo.length < 6) {
-      Alert.alert('Atenção', 'Introduza o código completo de 6 dígitos.');
+      Alert.alert('Código Incompleto', 'Insira o código de 6 dígitos enviado para o seu e-mail.');
       return;
     }
 
@@ -161,16 +162,16 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
       });
 
       if (error) {
-        Alert.alert('Erro de Verificação', error.message || 'Código inválido ou expirado.');
+        Alert.alert('Falha na Autenticação', error.message || 'Código incorreto ou expirado.');
       } else {
-        Alert.alert('Sucesso 🎉', 'Sessão iniciada com segurança!');
+        Alert.alert('Autenticado 🎉', 'Sessão iniciada com sucesso!');
         onLoginSucesso(data?.user);
         onClose();
         setEtapa('solicitar');
         setCodigoOtp('');
       }
     } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha ao validar.');
+      Alert.alert('Erro', err.message || 'Falha ao verificar código.');
     } finally {
       setLoading(false);
     }
@@ -182,7 +183,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         <View style={styles.darkModalCard}>
           <Text style={styles.darkModalTitle}>Portal Escola 🎓</Text>
           <Text style={styles.darkModalSubtitle}>
-            {etapa === 'solicitar' ? 'Autenticação Segura por E-mail' : 'Introduza o Código de Verificação'}
+            {etapa === 'solicitar' ? 'Autenticação Segura via E-mail' : 'Introduza o Código de Verificação'}
           </Text>
 
           {etapa === 'solicitar' ? (
@@ -656,7 +657,7 @@ function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
               <Text style={styles.nomeAlunoConsulta}>👨‍🎓 Aluno: {aluno.nome_completo}</Text>
 
               <View style={styles.boxEncarregadoCard}>
-                <Text style={styles.txtEncarregadoTitulo}>👨‍gsub Encarregado de Educação:</Text>
+                <Text style={styles.txtEncarregadoTitulo}>👨‍👩‍👦 Encarregado de Educação:</Text>
                 <Text style={styles.txtEncarregadoNome}>{aluno.encarregado_nome || 'Não Registado'}</Text>
                 <Text style={styles.txtEncarregadoTel}>📞 Contacto: {aluno.encarregado_telefone || aluno.telefone || 'Sem contacto'}</Text>
               </View>
