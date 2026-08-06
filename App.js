@@ -106,9 +106,9 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E REGISTO DIRETO COM E-MAIL E PALAVRA-PASSE ---
+// --- MODAL DE LOGIN E REGISTO DIRETO COM E-MAIL E PALAVRA-PASSE CORRIGIDO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [modo, setModo] = useState('login'); // 'login' ou 'registro'
+  const [modo, setModo] = useState('registro'); // Inicia em registro por padrão
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
@@ -137,27 +137,44 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 
         if (error) {
           Alert.alert('Aviso de Acesso', error.message || 'Credenciais inválidas.');
-        } else {
+        } else if (data?.user) {
           Alert.alert('Sucesso 🎉', 'Sessão iniciada com sucesso!');
-          onLoginSucesso(data?.user);
+          onLoginSucesso(data.user);
           onClose();
         }
       } else {
+        // Fluxo de Cadastro com Auto-login imediato
         const { data, error } = await supabase.auth.signUp({
           email: emailLimpo,
           password: senhaLimpa,
         });
 
         if (error) {
-          Alert.alert('Erro no Cadastro', error.message);
-        } else {
+          Alert.alert('Erro no Cadastro', error.message || 'Não foi possível criar a conta.');
+        } else if (data?.user) {
+          // Se o usuário foi criado mas a sessão não abriu, força o login direto
+          if (!data.session) {
+            const resLogin = await supabase.auth.signInWithPassword({
+              email: emailLimpo,
+              password: senhaLimpa,
+            });
+            if (!resLogin.error && resLogin.data?.user) {
+              Alert.alert('Conta Criada 🎉', 'Conta registada e sessão iniciada!');
+              onLoginSucesso(resLogin.data.user);
+              onClose();
+              return;
+            }
+          }
           Alert.alert('Conta Criada 🎉', 'A sua conta foi registada com sucesso!');
-          onLoginSucesso(data?.user);
+          onLoginSucesso(data.user);
           onClose();
+        } else {
+          Alert.alert('Aviso', 'Registo submetido. Tente fazer login com os dados inseridos.');
+          setModo('login');
         }
       }
     } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha na operação.');
+      Alert.alert('Erro no Servidor', err.message || 'Falha na operação.');
     } finally {
       setLoading(false);
     }
