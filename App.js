@@ -21,7 +21,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- COMPONENTE DO QUADRO DE PUBLICIDADE ROTATIVO (CARROSSEL) ---
+// --- COMPONENTE DO QUADRO DE PUBLICIDADE ROTATIVO ---
 function CarrosselPublicidades({ publicidadeLigar }) {
   const anuncios = [
     {
@@ -98,191 +98,7 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E CÓDIGO DE CONFIRMAÇÃO ---
-function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [modo, setModo] = useState('login');
-  const [emailOuLicenca, setEmailOuLicenca] = useState('');
-  const [senha, setSenha] = useState('');
-  const [codigoOtp, setCodigoOtp] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmeter = async () => {
-    if (!emailOuLicenca.trim() || !senha.trim()) {
-      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (modo === 'login') {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailOuLicenca.trim(),
-          password: senha,
-        });
-
-        if (error) {
-          Alert.alert('Aviso de Acesso', error.message || 'Credenciais inválidas.');
-        } else {
-          Alert.alert('Sucesso', 'Sessão iniciada!');
-          onLoginSucesso(data?.user);
-          onClose();
-        }
-      } else if (modo === 'registro') {
-        const { error } = await supabase.auth.signUp({
-          email: emailOuLicenca.trim(),
-          password: senha,
-        });
-
-        if (error) {
-          Alert.alert('Erro no Cadastro', error.message);
-        } else {
-          Alert.alert(
-            'Código Enviado ✉️',
-            `Enviamos um código de confirmação para ${emailOuLicenca.trim()}.`
-          );
-          setModo('verificar_codigo');
-        }
-      }
-    } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha na operação.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerificarCodigo = async () => {
-    if (!codigoOtp.trim() || codigoOtp.trim().length < 6) {
-      Alert.alert('Atenção', 'Insira o código de 6 dígitos.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: emailOuLicenca.trim(),
-        token: codigoOtp.trim(),
-        type: 'signup'
-      });
-
-      if (error) {
-        Alert.alert('Código Inválido', error.message || 'O código digitado está incorreto.');
-      } else {
-        Alert.alert('Conta Confirmada 🎉', 'E-mail verificado com sucesso!');
-        onLoginSucesso(data?.user);
-        onClose();
-      }
-    } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha ao verificar código.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal visible={visivel} animationType="fade" transparent={true}>
-      <View style={styles.darkModalOverlay}>
-        <View style={styles.darkModalCard}>
-          <Text style={styles.darkModalTitle}>Portal Escola 🎓</Text>
-          <Text style={styles.darkModalSubtitle}>Sistema Integrado de Gestão Escolar</Text>
-
-          {modo !== 'verificar_codigo' ? (
-            <>
-              <TextInput
-                style={styles.darkInput}
-                placeholder="E-mail ou Nº Licença"
-                placeholderTextColor="#9ca3af"
-                value={emailOuLicenca}
-                onChangeText={setEmailOuLicenca}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-
-              <TextInput
-                style={styles.darkInput}
-                placeholder="Senha"
-                placeholderTextColor="#9ca3af"
-                secureTextEntry
-                value={senha}
-                onChangeText={setSenha}
-              />
-
-              <TouchableOpacity style={styles.btnEntrarDark} onPress={handleSubmeter} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'CRIAR CONTA E RECEBER CÓDIGO'}</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.btnLinkDark}
-                onPress={() => setModo(modo === 'login' ? 'registro' : 'login')}
-              >
-                <Text style={styles.txtLinkDark}>
-                  {modo === 'login' ? 'Cadastrar Nova Instituição' : 'Já tenho conta / Iniciar Sessão'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={{ color: '#38bdf8', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
-                Insira o código enviado para:{'\n'}
-                <Text style={{ fontWeight: 'bold', color: '#ffffff' }}>{emailOuLicenca}</Text>
-              </Text>
-
-              <TextInput
-                style={[styles.darkInput, { textAlign: 'center', fontSize: 20, letterSpacing: 6 }]}
-                placeholder="000000"
-                placeholderTextColor="#64748b"
-                keyboardType="number-pad"
-                maxLength={6}
-                value={codigoOtp}
-                onChangeText={setCodigoOtp}
-              />
-
-              <TouchableOpacity style={styles.btnEntrarDark} onPress={handleVerificarCodigo} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.txtEntrarDark}>CONFIRMAR CÓDIGO</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.btnLinkDark} onPress={() => setModo('registro')}>
-                <Text style={styles.txtLinkDark}>Reenviar código / Voltar</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          <TouchableOpacity style={styles.btnFecharDark} onPress={onClose}>
-            <Text style={styles.txtFecharDark}>Fechar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// --- TELA DEDICADA DE PUBLICIDADES ---
-function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={onVoltarHome}>
-          <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Quadro de Publicidades</Text>
-        <View style={{ width: 50 }} />
-      </View>
-
-      <ScrollView style={{ flex: 1, padding: 16 }}>
-        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
-      </ScrollView>
-    </View>
-  );
-}
-
-// --- CADASTRAMENTO DE INSTITUIÇÕES (AGORA COM LEGALIZAÇÃO EMBUTIDA) ---
+// --- CADASTRAMENTO DE INSTITUIÇÕES (COM LEGALIZAÇÃO EMBUTIDA) ---
 function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
@@ -359,7 +175,6 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
       <Text style={styles.label}>Email *</Text>
       <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
 
-      {/* SECÇÃO INFORMATIVA E DE ENVIOS DE LEGALIZAÇÃO NO PRÓPRIO FORMULÁRIO */}
       <View style={styles.cardNotaLegal}>
         <Text style={styles.tituloNotaLegal}>📜 Legalização e Licenciamento (Decreto 37/23)</Text>
         <Text style={styles.corpoNotaLegal}>
@@ -380,8 +195,67 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   );
 }
 
-// --- CONSULTA DE ALUNOS ---
-function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
+// --- CADASTRAMENTO DE PROFESSOR ---
+function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
+  const [nome, setNome] = useState('');
+  const [disciplina, setDisciplina] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [bi, setBi] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleCadastrarProf = async () => {
+    if (!nome.trim() || !disciplina.trim() || !telefone.trim()) {
+      Alert.alert('Atenção', 'Preencha o nome, disciplina e telefone do professor.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('professores').insert([
+        { nome_completo: nome.trim(), disciplina: disciplina.trim(), telefone: telefone.trim(), num_bilhete: bi.trim() }
+      ]);
+
+      if (error) throw error;
+
+      Alert.alert('Sucesso 🎉', 'Professor cadastrado com sucesso!');
+      onConcluir();
+    } catch (err) {
+      Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar dados do professor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
+          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>Cadastramento de Professor</Text>
+      </View>
+
+      <Text style={styles.label}>Nome Completo do Professor *</Text>
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Prof. António Silva" />
+
+      <Text style={styles.label}>Disciplina / Cadeira *</Text>
+      <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática / Física" />
+
+      <Text style={styles.label}>Telefone de Contacto *</Text>
+      <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Ex: 923000000" />
+
+      <Text style={styles.label}>Nº do Bilhete de Identidade (BI)</Text>
+      <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 004928172LA048" />
+
+      <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrarProf} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Cadastramento</Text>}
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+// --- PESQUISA DE ALUNOS E ENCARREGADOS ---
+function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
   const [busca, setBusca] = useState('');
   const [alunos, setAlunos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -402,30 +276,49 @@ function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
     }
   };
 
+  const alunosFiltrados = alunos.filter(a => 
+    (a.nome_completo && a.nome_completo.toLowerCase().includes(busca.toLowerCase())) ||
+    (a.encarregado_nome && a.encarregado_nome.toLowerCase().includes(busca.toLowerCase())) ||
+    (a.num_bilhete && a.num_bilhete.toLowerCase().includes(busca.toLowerCase()))
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={onVoltarHome}>
           <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Consulta de Estudantes</Text>
-        <TouchableOpacity onPress={onNavegarNovoEstudante}>
-          <Text style={{ fontSize: 13, color: '#16a34a', fontWeight: '700' }}>+ Cadastrar</Text>
-        </TouchableOpacity>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Pesquisa Alunos & Encarregados</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={{ padding: 16 }}>
-        <TextInput style={styles.inputBusca} placeholder="Pesquisar por aluno..." value={busca} onChangeText={setBusca} />
+        <TextInput 
+          style={styles.inputBusca} 
+          placeholder="Pesquise por aluno, encarregado ou BI..." 
+          value={busca} 
+          onChangeText={setBusca} 
+        />
       </View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
         {loading ? (
           <ActivityIndicator size="small" color="#0f172a" style={{ marginTop: 20 }} />
+        ) : alunosFiltrados.length === 0 ? (
+          <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 30 }}>Nenhum registo encontrado.</Text>
         ) : (
-          alunos.map((aluno) => (
+          alunosFiltrados.map((aluno) => (
             <View key={aluno.id} style={styles.cardConsulta}>
-              <Text style={styles.nomeAlunoConsulta}>{aluno.nome_completo}</Text>
-              <Text style={styles.detalheCurso}>BI: {aluno.num_bilhete}</Text>
+              <Text style={styles.nomeAlunoConsulta}>👨‍🎓 Aluno: {aluno.nome_completo}</Text>
+
+              {/* DADOS DO ENCARREGADO */}
+              <View style={styles.boxEncarregadoCard}>
+                <Text style={styles.txtEncarregadoTitulo}>👨‍👩‍👦 Encarregado de Educação:</Text>
+                <Text style={styles.txtEncarregadoNome}>{aluno.encarregado_nome || 'Não Registado'}</Text>
+                <Text style={styles.txtEncarregadoTel}>📞 Contacto: {aluno.encarregado_telefone || aluno.telefone || 'Sem contacto'}</Text>
+              </View>
+
+              <Text style={styles.detalheCurso}>BI: {aluno.num_bilhete || 'N/A'}</Text>
             </View>
           ))
         )}
@@ -434,8 +327,33 @@ function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
   );
 }
 
+// --- TELA DEDICADA DE PUBLICIDADES ---
+function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onVoltarHome}>
+          <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Quadro de Publicidades</Text>
+        <View style={{ width: 50 }} />
+      </View>
+
+      <ScrollView style={{ flex: 1, padding: 16 }}>
+        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
+      </ScrollView>
+    </View>
+  );
+}
+
 // --- MENU PRINCIPAL (HOME) ---
-function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos, onNavegarQuadroPub, publicidadeLigar }) {
+function MenuPrincipalHome({ 
+  onNavegarCadastramentoInst, 
+  onNavegarPesquisaAlunosEncarregados, 
+  onNavegarCadastramentoProf,
+  onNavegarQuadroPub, 
+  publicidadeLigar 
+}) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
@@ -446,7 +364,6 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
       </View>
 
       <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        {/* PRIMEIRA PARTE: TITULO E OPÇÕES DE MENU */}
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
@@ -458,15 +375,23 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarConsultaAlunos}>
-          <Text style={styles.cardEmoji}>👨‍🎓</Text>
-          <Text style={styles.cardMenuTitulo}>Consulta de Estudantes</Text>
+        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarPesquisaAlunosEncarregados}>
+          <Text style={styles.cardEmoji}>🔎</Text>
+          <Text style={styles.cardMenuTitulo}>Pesquisa de Alunos e Encarregados</Text>
           <Text style={styles.cardMenuDesc}>
-            Pesquise a lista de alunos e gira o corpo discente registado.
+            Pesquise alunos registados, os seus bilhetes e contactos dos encarregados de educação.
           </Text>
         </TouchableOpacity>
 
-        {/* QUADRO DE PUBLICIDADE ROTATIVO NO RODA PÉ DA HOME */}
+        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarCadastramentoProf}>
+          <Text style={styles.cardEmoji}>👨‍🏫</Text>
+          <Text style={styles.cardMenuTitulo}>Cadastramento de Professor</Text>
+          <Text style={styles.cardMenuDesc}>
+            Registe o corpo docente, disciplinas atribuídas e contactos dos professores.
+          </Text>
+        </TouchableOpacity>
+
+        {/* QUADRO DE PUBLICIDADE ROTATIVO NO RODAPÉ */}
         <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
       </ScrollView>
     </SafeAreaView>
@@ -476,8 +401,6 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
 // --- APP PRINCIPAL ---
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('home');
-  const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
-  const [usuario, setUsuario] = useState(null);
 
   const ligarParaSuporte = () => {
     Linking.openURL('tel:929500600');
@@ -490,7 +413,8 @@ export default function App() {
       {telaAtual === 'home' && (
         <MenuPrincipalHome
           onNavegarCadastramentoInst={() => setTelaAtual('cadastramento')}
-          onNavegarConsultaAlunos={() => setTelaAtual('consulta_alunos')}
+          onNavegarPesquisaAlunosEncarregados={() => setTelaAtual('pesquisa_alunos_encarregados')}
+          onNavegarCadastramentoProf={() => setTelaAtual('cadastramento_prof')}
           onNavegarQuadroPub={() => setTelaAtual('quadro_pub')}
           publicidadeLigar={ligarParaSuporte}
         />
@@ -503,10 +427,16 @@ export default function App() {
         />
       )}
 
-      {telaAtual === 'consulta_alunos' && (
-        <TelaConsultaAlunos
+      {telaAtual === 'pesquisa_alunos_encarregados' && (
+        <TelaPesquisaAlunosEncarregados
           onVoltarHome={() => setTelaAtual('home')}
-          onNavegarNovoEstudante={() => Alert.alert('Aviso', 'Formulário de novo estudante.')}
+        />
+      )}
+
+      {telaAtual === 'cadastramento_prof' && (
+        <FormCadastramentoProfessor
+          onConcluir={() => setTelaAtual('home')}
+          onCancelar={() => setTelaAtual('home')}
         />
       )}
 
@@ -516,12 +446,6 @@ export default function App() {
           publicidadeLigar={ligarParaSuporte}
         />
       )}
-
-      <ModalLogin
-        visivel={modalLoginVisivel}
-        onClose={() => setModalLoginVisivel(false)}
-        onLoginSucesso={(usr) => setUsuario(usr)}
-      />
     </View>
   );
 }
@@ -596,16 +520,9 @@ const styles = StyleSheet.create({
   inputBusca: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, fontSize: 14 },
   cardConsulta: { backgroundColor: '#ffffff', padding: 14, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   nomeAlunoConsulta: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
-  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  darkModalCard: { backgroundColor: '#1e293b', width: '100%', borderRadius: 16, padding: 20, alignItems: 'stretch' },
-  darkModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
-  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 20 },
-  darkInput: { backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155', borderRadius: 8, padding: 12, color: '#ffffff', marginBottom: 12 },
-  btnEntrarDark: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  txtEntrarDark: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
-  btnLinkDark: { marginTop: 14, alignItems: 'center' },
-  txtLinkDark: { color: '#38bdf8', fontSize: 13 },
-  btnFecharDark: { marginTop: 16, alignItems: 'center' },
-  txtFecharDark: { color: '#64748b', fontSize: 13 }
+  boxEncarregadoCard: { backgroundColor: '#f1f5f9', padding: 10, borderRadius: 6, marginTop: 8, marginBottom: 6 },
+  txtEncarregadoTitulo: { fontSize: 11, color: '#475569', fontWeight: 'bold' },
+  txtEncarregadoNome: { fontSize: 13, color: '#0f172a', fontWeight: '600', marginTop: 2 },
+  txtEncarregadoTel: { fontSize: 12, color: '#2563eb', marginTop: 2 },
+  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 }
 });
