@@ -684,7 +684,7 @@ function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
             </View>
           ))
         )}
-      ScrollView>
+      </ScrollView>
     </View>
   );
 }
