@@ -1,201 +1,124 @@
 import React, { useState, useEffect } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  StatusBar,
-  ScrollView,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  Modal,
-  Linking
-} from 'react-native';
-import { createClient } from '@supabase/supabase-js';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, TextInput, Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
-const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// --- COMPONENTE DO QUADRO DE PUBLICIDADE ROTATIVO (CARROSSEL) ---
-function CarrosselPublicidades({ publicidadeLigar }) {
-  const anuncios = [
-    {
-      id: 1,
-      tag: '📢 Publicidade Patrocinada',
-      titulo: 'Matérias a bom preço',
-      corpo: '🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.\nLivros 📕 Cadernos 📓 Folha A4 Lápis',
-      corFundo: '#1d4ed8'
-    },
-    {
-      id: 2,
-      tag: '👔 Confecção de Uniformes',
-      titulo: 'Uniformes & Fardamentos',
-      corpo: 'Produção de fardas escolares para colégios e institutos.\nBatas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.',
-      corFundo: '#0f766e'
-    },
-    {
-      id: 3,
-      tag: '💻 Tecnologia Escolar',
-      titulo: 'Softwares & Equipamentos',
-      corpo: 'Computadores, impressoras e redes para instituições de ensino com assistência técnica garantida em Luanda.',
-      corFundo: '#4338ca'
-    }
-  ];
-
-  const [indiceAtual, setIndiceAtual] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndiceAtual((prev) => (prev + 1) % anuncios.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [anuncios.length]);
-
-  const anuncioAtual = anuncios[indiceAtual];
-
-  return (
-    <View style={[styles.cardPublicidade, { backgroundColor: anuncioAtual.corFundo }]}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View style={styles.badgePatrocinado}>
-          <Text style={styles.txtBadgePatrocinado}>{anuncioAtual.tag}</Text>
-        </View>
-        <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '600' }}>
-          {indiceAtual + 1} / {anuncios.length}
-        </Text>
-      </View>
-
-      <Text style={styles.tituloPublicidade}>{anuncioAtual.titulo}</Text>
-      <Text style={styles.corpoPublicidade}>{anuncioAtual.corpo}</Text>
-
-      <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
-        <Text style={styles.rodapePublicidade}>
-          Para mais informações ligue no número abaixo:{'\n'}
-          <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
-        </Text>
-      </TouchableOpacity>
-
-      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12 }}>
-        {anuncios.map((item, idx) => (
-          <TouchableOpacity
-            key={item.id}
-            onPress={() => setIndiceAtual(idx)}
-            style={{
-              width: idx === indiceAtual ? 18 : 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: idx === indiceAtual ? '#fbbf24' : 'rgba(255, 255, 255, 0.4)',
-              marginHorizontal: 3,
-            }}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-// --- MENU PRINCIPAL (HOME) ---
-function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos, onNavegarQuadroPub, onNavegarLegalizacao, publicidadeLigar }) {
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={styles.headerRowHome}>
-        <Text style={styles.homeTitleHeader}>Portal Escola</Text>
-        <TouchableOpacity style={styles.btnHeaderPub} onPress={onNavegarQuadroPub}>
-          <Text style={styles.txtHeaderPub}>📢 Publicidade</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
-        <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
-
-        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarLegalizacao}>
-          <Text style={styles.cardEmoji}>📜</Text>
-          <Text style={styles.cardMenuTitulo}>Legalização e Licenciamento</Text>
-          <Text style={styles.cardMenuDesc}>
-            Consulte os requisitos do Decreto 37/23 e submeta os documentos em PDF.
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarCadastramentoInst}>
-          <Text style={styles.cardEmoji}>🏫</Text>
-          <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
-          <Text style={styles.cardMenuDesc}>
-            Registe a sua escola para gerir turmas, alunos e professores.
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarConsultaAlunos}>
-          <Text style={styles.cardEmoji}>🔍</Text>
-          <Text style={styles.cardMenuTitulo}>Consulta de Alunos e Encarregados</Text>
-          <Text style={styles.cardMenuDesc}>
-            Consulte o estado de matrícula e dados de estudantes.
-          </Text>
-        </TouchableOpacity>
-
-        {/* QUADRO DE PUBLICIDADE FIXADO NO FUNDO */}
-        <View style={{ marginTop: 16 }}>
-          <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+const ADS = [
+  { id: '1', title: 'Propaganda Escolar 1', desc: 'Matrículas Abertas 2026', bg: '#1e293b' },
+  { id: '2', title: 'Anúncio de Cursos', desc: 'Capacitação e Formação Técnica', bg: '#0f172a' },
+  { id: '3', title: 'Espaço Publicitário', desc: 'Anuncie a sua instituição aqui', bg: '#1e1b4b' },
+];
 
 export default function App() {
-  const [tela, setTela] = useState('home');
+  const [activeTab, setActiveTab] = useState('home'); // home, cadastro
+  const [showLegalizacao, setShowLegalizacao] = useState(false);
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentAdIndex((prev) => (prev + 1) % ADS.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
-      {tela === 'home' && (
-        <MenuPrincipalHome
-          onNavegarCadastramentoInst={() => {}}
-          onNavegarConsultaAlunos={() => {}}
-          onNavegarQuadroPub={() => {}}
-          onNavegarLegalizacao={() => {}}
-          publicidadeLigar={() => Linking.openURL('tel:929500600')}
-        />
-      )}
-    </SafeAreaView>
+    <View style={styles.container}>
+      <StatusBar style="light" />
+
+      {/* Topo */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Portal Escola</Text>
+      </View>
+
+      {/* Conteúdo Principal */}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {activeTab === 'home' && (
+          <View style={styles.cardSection}>
+            <Text style={styles.welcomeText}>Bem-vindo ao Portal de Instituições</Text>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => setActiveTab('cadastro')}
+            >
+              <Text style={styles.actionButtonText}>Cadastrar Nova Instituição</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'cadastro' && (
+          <View style={styles.cardSection}>
+            <TouchableOpacity onPress={() => { setActiveTab('home'); setShowLegalizacao(false); }}>
+              <Text style={styles.backLink}>← Voltar para o Início</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.sectionTitle}>Cadastramento de Instituição</Text>
+            
+            <TextInput style={styles.input} placeholder="Nome da Instituição" placeholderTextColor="#94a3b8" />
+            <TextInput style={styles.input} placeholder="Província / Município" placeholderTextColor="#94a3b8" />
+            <TextInput style={styles.input} placeholder="NIF da Instituição" placeholderTextColor="#94a3b8" />
+
+            {/* Opção de Legalização integrada no Cadastramento */}
+            <TouchableOpacity 
+              style={styles.secondaryButton} 
+              onPress={() => setShowLegalizacao(!showLegalizacao)}
+            >
+              <Text style={styles.secondaryButtonText}>
+                {showLegalizacao ? '▼ Ocultar Legalização e Licenciamento' : '▶ Anexar Processo de Legalização / Licenciamento'}
+              </Text>
+            </TouchableOpacity>
+
+            {showLegalizacao && (
+              <View style={styles.legalBox}>
+                <Text style={styles.legalTitle}>Documentos de Legalização</Text>
+                <Text style={styles.legalSub}>Submeta a documentação legal e alvará para validação da instituição.</Text>
+                <TouchableOpacity style={styles.uploadButton}>
+                  <Text style={styles.uploadButtonText}>Selecionar PDF / Documento</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.submitButton}>
+              <Text style={styles.actionButtonText}>Concluir Cadastro</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Quadro de Publicidades no Rodapé */}
+        <View style={[styles.adCard, { backgroundColor: ADS[currentAdIndex].bg }]}>
+          <Text style={styles.adTag}>PUBLICIDADE</Text>
+          <Text style={styles.adTitle}>{ADS[currentAdIndex].title}</Text>
+          <Text style={styles.adDesc}>{ADS[currentAdIndex].desc}</Text>
+          <TouchableOpacity style={styles.adCallButton} onPress={() => Linking.openURL('tel:929500600')}>
+            <Text style={styles.adCallText}>Ligar 929 500 600</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  homeContainer: { flex: 1, backgroundColor: '#f8fafc' },
-
-  headerRowHome: {
-    height: 54,
-    backgroundColor: '#ffffff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0'
-  },
-  homeTitleHeader: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
-  btnHeaderPub: { backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#bfdbfe' },
-  txtHeaderPub: { fontSize: 12, fontWeight: 'bold', color: '#1d4ed8' },
-
-  cardPublicidade: { borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 20, elevation: 3 },
-  badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.25)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 10 },
-  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
-  tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
-  corpoPublicidade: { fontSize: 13, color: '#e0e7ff', lineHeight: 20, marginBottom: 12 },
-  btnLigarPub: { backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 10, borderRadius: 10 },
-  rodapePublicidade: { fontSize: 12, color: '#c7d2fe', lineHeight: 16 },
-  telefonePublicidade: { fontSize: 14, fontWeight: 'bold', color: '#fbbf24' },
-
-  secaoTitulo: { fontSize: 20, fontWeight: '800', color: '#1e293b', marginBottom: 2 },
-  secaoSubtitulo: { fontSize: 14, color: '#64748b', marginBottom: 16 },
-
-  cardMenuImageStyle: { backgroundColor: '#ffffff', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#e2e8f0', elevation: 2 },
-  cardEmoji: { fontSize: 28, marginBottom: 8 },
-  cardMenuTitulo: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
-  cardMenuDesc: { fontSize: 12, color: '#64748b', lineHeight: 17 },
+  header: { backgroundColor: '#1e3a8a', paddingTop: 50, paddingBottom: 16, alignItems: 'center' },
+  headerTitle: { color: '#ffffff', fontSize: 20, fontWeight: 'bold' },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  cardSection: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 20, elevation: 2 },
+  welcomeText: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginBottom: 12 },
+  backLink: { color: '#2563eb', marginBottom: 12, fontWeight: '500' },
+  actionButton: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center' },
+  actionButtonText: { color: '#ffffff', fontWeight: 'bold', fontSize: 16 },
+  input: { backgroundColor: '#f1f5f9', padding: 12, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#cbd5e1' },
+  secondaryButton: { backgroundColor: '#e2e8f0', padding: 12, borderRadius: 8, marginTop: 10, alignItems: 'center' },
+  secondaryButtonText: { color: '#1e293b', fontWeight: '600', fontSize: 14 },
+  legalBox: { marginTop: 12, padding: 12, backgroundColor: '#eff6ff', borderRadius: 8, borderWidth: 1, borderColor: '#bfdbfe' },
+  legalTitle: { fontWeight: 'bold', color: '#1e40af', fontSize: 15, marginBottom: 4 },
+  legalSub: { color: '#3b82f6', fontSize: 12, marginBottom: 10 },
+  uploadButton: { backgroundColor: '#3b82f6', padding: 10, borderRadius: 6, alignItems: 'center' },
+  uploadButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '500' },
+  submitButton: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16 },
+  adCard: { borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 10 },
+  adTag: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold', letterSpacing: 1, marginBottom: 4 },
+  adTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
+  adDesc: { color: '#cbd5e1', fontSize: 13, marginBottom: 12 },
+  adCallButton: { backgroundColor: '#16a34a', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20 },
+  adCallText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 }
 });
