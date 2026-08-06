@@ -21,7 +21,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- COMPONENTE DE QUADRO DE PUBLICIDADE ROTATIVO (CARROSSEL) ---
+// --- COMPONENTE DO QUADRO DE PUBLICIDADE ROTATIVO (CARROSSEL) ---
 function CarrosselPublicidades({ publicidadeLigar }) {
   const anuncios = [
     {
@@ -74,7 +74,7 @@ function CarrosselPublicidades({ publicidadeLigar }) {
 
       <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
         <Text style={styles.rodapePublicidade}>
-          Para mais informações ligue:{'\n'}
+          Para mais informações ligue no número abaixo:{'\n'}
           <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
         </Text>
       </TouchableOpacity>
@@ -98,7 +98,7 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E OTP ---
+// --- MODAL DE LOGIN E CÓDIGO DE CONFIRMAÇÃO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [modo, setModo] = useState('login');
   const [emailOuLicenca, setEmailOuLicenca] = useState('');
@@ -138,7 +138,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         } else {
           Alert.alert(
             'Código Enviado ✉️',
-            `Enviamos um código de confirmação de 6 dígitos para ${emailOuLicenca.trim()}.`
+            `Enviamos um código de confirmação para ${emailOuLicenca.trim()}.`
           );
           setModo('verificar_codigo');
         }
@@ -226,7 +226,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
           ) : (
             <>
               <Text style={{ color: '#38bdf8', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
-                Insira o código de 6 dígitos enviado para:{'\n'}
+                Insira o código enviado para:{'\n'}
                 <Text style={{ fontWeight: 'bold', color: '#ffffff' }}>{emailOuLicenca}</Text>
               </Text>
 
@@ -263,7 +263,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- TELA DE LEGALIZAÇÃO (DECRETO 37/23) ---
+// --- TELA DE LEGALIZAÇÃO E LICENCIAMENTO ---
 function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
   const [ficheiroPdf, setFicheiroPdf] = useState(null);
   const [nomeEscola, setNomeEscola] = useState('');
@@ -314,7 +314,7 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
 
       if (error) throw error;
 
-      Alert.alert('Processo Submetido! 🎉', 'Documentação enviada com sucesso.');
+      Alert.alert('Processo Submetido! 🎉', 'Documentação enviada com sucesso para análise.');
       onIrParaCadastro();
     } catch (err) {
       Alert.alert('Erro ao Submeter', err.message || 'Falha ao registar o processo.');
@@ -350,16 +350,16 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
         </View>
 
         <View style={styles.boxEnvioPdf}>
-          <Text style={styles.tituloBoxEnvio}>📤 Submeter Processo</Text>
+          <Text style={styles.tituloBoxEnvio}>📤 Submeter Processo de Legalização</Text>
           <TextInput
             style={styles.input}
-            placeholder="Nome da Escola"
+            placeholder="Nome da Escola / Instituição"
             value={nomeEscola}
             onChangeText={setNomeEscola}
           />
           <TextInput
             style={[styles.input, { marginTop: 10 }]}
-            placeholder="Telefone de Contacto"
+            placeholder="Telefone para Contacto"
             keyboardType="phone-pad"
             value={contacto}
             onChangeText={setContacto}
@@ -367,12 +367,12 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
 
           <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarPdf}>
             <Text style={styles.txtSelecionarPdf}>
-              {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Anexar Ficheiro PDF Completo'}
+              {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Selecionar Ficheiro PDF com Documentos'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnEnviarProcesso} onPress={enviarProcesso} disabled={loading}>
-            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEnviarProcesso}>ENVIAR PROCESSO</Text>}
+            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEnviarProcesso}>SUBMETER PROCESSO</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -380,7 +380,7 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
   );
 }
 
-// --- TELA DE QUADRO DE PUBLICIDADES ---
+// --- TELA DEDICADA DE PUBLICIDADES ---
 function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
@@ -399,7 +399,7 @@ function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   );
 }
 
-// --- CADASTRAMENTO DE INSTITUIÇÃO ---
+// --- CADASTRAMENTO DE INSTITUIÇÕES ---
 function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
@@ -421,7 +421,7 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
     if (error) {
       Alert.alert('Erro ao Salvar', error.message);
     } else {
-      Alert.alert('Sucesso', 'Instituição cadastrada!');
+      Alert.alert('Sucesso', 'Instituição cadastrada com sucesso!');
       onConcluir();
     }
   };
@@ -436,13 +436,13 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
       </View>
 
       <Text style={styles.label}>Nome da Instituição *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Progresso" />
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Futuro do Saber" />
 
       <Text style={styles.label}>Número / NIF *</Text>
       <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="NIF ou Telefone" />
 
       <Text style={styles.label}>Email *</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="escola@dominio.ao" />
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Instituição</Text>}
@@ -516,7 +516,8 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16, paddingBottom: 50 }}>
+      <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        {/* PRIMEIRA PARTE: TITULO E OPÇÕES DE MENU */}
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
@@ -544,9 +545,8 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
           </Text>
         </TouchableOpacity>
 
-        {/* QUADRO DE PUBLICIDADE ROTATIVO GARANTIDO NO RODAPÉ */}
-        <View style={{ marginTop: 10 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#64748b', marginBottom: 6 }}>DESTAQUES E PUBLICIDADE</Text>
+        {/* SEGUNDA PARTE: QUADRO DE PUBLICIDADE POSICIONADO NO FUNDO (EM BAIXO) */}
+        <View style={{ marginTop: 12 }}>
           <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
         </View>
       </ScrollView>
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   btnEnviarProcesso: { backgroundColor: '#16a34a', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   txtEnviarProcesso: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
 
-  cardPublicidade: { borderRadius: 16, padding: 16, marginTop: 4, marginBottom: 20, elevation: 3 },
+  cardPublicidade: { borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 20, elevation: 3 },
   badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.25)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 10 },
   txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
   tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
