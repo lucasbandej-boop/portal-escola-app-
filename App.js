@@ -106,72 +106,58 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E REGISTO COM OTP SEGURO ---
+// --- MODAL DE LOGIN E REGISTO DIRETO COM E-MAIL E PALAVRA-PASSE ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [etapa, setEtapa] = useState('solicitar');
+  const [modo, setModo] = useState('login'); // 'login' ou 'registro'
   const [email, setEmail] = useState('');
-  const [codigoOtp, setCodigoOtp] = useState('');
+  const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const enviarCodigo = async () => {
+  const handleSubmeter = async () => {
     const emailLimpo = email.trim().toLowerCase();
-    if (!emailLimpo || !emailLimpo.includes('@')) {
-      Alert.alert('E-mail Inválido', 'Por favor insira um endereço de e-mail válido.');
+    const senhaLimpa = senha.trim();
+
+    if (!emailLimpo || !senhaLimpa) {
+      Alert.alert('Atenção', 'Preencha o e-mail e a palavra-passe.');
+      return;
+    }
+
+    if (senhaLimpa.length < 6) {
+      Alert.alert('Palavra-passe curta', 'A palavra-passe deve ter no mínimo 6 caracteres.');
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: emailLimpo,
-        options: {
-          shouldCreateUser: true
+      if (modo === 'login') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailLimpo,
+          password: senhaLimpa,
+        });
+
+        if (error) {
+          Alert.alert('Aviso de Acesso', error.message || 'Credenciais inválidas.');
+        } else {
+          Alert.alert('Sucesso 🎉', 'Sessão iniciada com sucesso!');
+          onLoginSucesso(data?.user);
+          onClose();
         }
-      });
-
-      if (error) {
-        console.error('Erro Supabase OTP:', error);
-        Alert.alert('Atenção / Erro', error.message || 'Não foi possível enviar o código OTP.');
       } else {
-        Alert.alert('Código Enviado 📩', `Verifique o seu e-mail (${emailLimpo}) e introduza o código de 6 dígitos.`);
-        setEtapa('validar');
+        const { data, error } = await supabase.auth.signUp({
+          email: emailLimpo,
+          password: senhaLimpa,
+        });
+
+        if (error) {
+          Alert.alert('Erro no Cadastro', error.message);
+        } else {
+          Alert.alert('Conta Criada 🎉', 'A sua conta foi registada com sucesso!');
+          onLoginSucesso(data?.user);
+          onClose();
+        }
       }
     } catch (err) {
-      console.error('Erro inesperado:', err);
-      Alert.alert('Erro no Servidor', err.message || 'Falha ao processar o pedido.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const confirmarCodigo = async () => {
-    const emailLimpo = email.trim().toLowerCase();
-    const tokenLimpo = codigoOtp.trim();
-
-    if (!tokenLimpo || tokenLimpo.length < 6) {
-      Alert.alert('Código Incompleto', 'Insira o código de 6 dígitos enviado para o seu e-mail.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: emailLimpo,
-        token: tokenLimpo,
-        type: 'email',
-      });
-
-      if (error) {
-        Alert.alert('Falha na Autenticação', error.message || 'Código incorreto ou expirado.');
-      } else {
-        Alert.alert('Autenticado 🎉', 'Sessão iniciada com sucesso!');
-        onLoginSucesso(data?.user);
-        onClose();
-        setEtapa('solicitar');
-        setCodigoOtp('');
-      }
-    } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha ao verificar código.');
+      Alert.alert('Erro', err.message || 'Falha na operação.');
     } finally {
       setLoading(false);
     }
@@ -183,61 +169,47 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         <View style={styles.darkModalCard}>
           <Text style={styles.darkModalTitle}>Portal Escola 🎓</Text>
           <Text style={styles.darkModalSubtitle}>
-            {etapa === 'solicitar' ? 'Autenticação Segura via E-mail' : 'Introduza o Código de Verificação'}
+            {modo === 'login' ? 'Iniciar Sessão no Sistema' : 'Registar Nova Conta'}
           </Text>
 
-          {etapa === 'solicitar' ? (
-            <>
-              <TextInput
-                style={styles.darkInput}
-                placeholder="Seu e-mail de acesso"
-                placeholderTextColor="#9ca3af"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
+          <TextInput
+            style={styles.darkInput}
+            placeholder="E-mail de acesso"
+            placeholderTextColor="#9ca3af"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
 
-              <TouchableOpacity style={styles.btnEntrarDark} onPress={enviarCodigo} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.txtEntrarDark}>RECEBER CÓDIGO DE ACESSO 📩</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={{ color: '#38bdf8', textAlign: 'center', marginBottom: 12, fontSize: 13 }}>
-                E-mail: {email}
-              </Text>
-              
-              <TextInput
-                style={[styles.darkInput, { textAlign: 'center', fontSize: 20, letterSpacing: 4 }]}
-                placeholder="123456"
-                placeholderTextColor="#9ca3af"
-                value={codigoOtp}
-                onChangeText={setCodigoOtp}
-                keyboardType="number-pad"
-                maxLength={6}
-              />
+          <TextInput
+            style={styles.darkInput}
+            placeholder="Palavra-passe (mínimo 6 caracteres)"
+            placeholderTextColor="#9ca3af"
+            secureTextEntry
+            value={senha}
+            onChangeText={setSenha}
+          />
 
-              <TouchableOpacity style={styles.btnEntrarDark} onPress={confirmarCodigo} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.txtEntrarDark}>VERIFICAR CÓDIGO E ENTRAR</Text>
-                )}
-              </TouchableOpacity>
+          <TouchableOpacity style={styles.btnEntrarDark} onPress={handleSubmeter} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'CRIAR CONTA'}</Text>
+            )}
+          </TouchableOpacity>
 
-              <TouchableOpacity style={styles.btnLinkDark} onPress={() => setEtapa('solicitar')}>
-                <Text style={styles.txtLinkDark}>Reenviar código ou alterar e-mail</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity
+            style={styles.btnLinkDark}
+            onPress={() => setModo(modo === 'login' ? 'registro' : 'login')}
+          >
+            <Text style={styles.txtLinkDark}>
+              {modo === 'login' ? 'Não tem conta? Registe-se' : 'Já tem conta? Iniciar Sessão'}
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnFecharDark} onPress={onClose}>
-            <Text style={styles.txtFecharDark}>Cancelar</Text>
+            <Text style={styles.txtFecharDark}>Fechar</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -245,7 +217,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- PERFIL ESTILO FACEBOOK ---
+// --- VISUALIZAÇÃO E EDIÇÃO ESTILO PERFIL DO FACEBOOK + INSCRIÇÃO DE ALUNO ---
 function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
   const [modalEditVisivel, setModalEditVisivel] = useState(false);
   const [modalCadAlunoVisivel, setModalCadAlunoVisivel] = useState(false);
@@ -285,10 +257,10 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
       }
 
       onAtualizarDados(novosDados);
-      Alert.alert('Sucesso 🎉', 'Perfil atualizado com sucesso!');
+      Alert.alert('Sucesso 🎉', 'Dados do perfil atualizados com sucesso!');
       setModalEditVisivel(false);
     } catch (err) {
-      Alert.alert('Erro ao Atualizar', err.message || 'Não foi possível guardar.');
+      Alert.alert('Erro ao Atualizar', err.message || 'Não foi possível guardar as alterações.');
     } finally {
       setLoading(false);
     }
@@ -296,7 +268,7 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
 
   const cadastrarAlunoNaEscola = async () => {
     if (!nomeAluno.trim() || !biAluno.trim() || !nomeEncarregado.trim()) {
-      Alert.alert('Atenção', 'Preencha o nome do aluno, BI e encarregado.');
+      Alert.alert('Atenção', 'Preencha o nome do aluno, BI e o nome do encarregado.');
       return;
     }
 
@@ -314,7 +286,7 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
 
       if (error) throw error;
 
-      Alert.alert('Aluno Registado 🎉', `O aluno ${nomeAluno} foi inscrito com sucesso!`);
+      Alert.alert('Aluno Registado 🎉', `O aluno ${nomeAluno} foi inscrito na instituição!`);
       setNomeAluno('');
       setBiAluno('');
       setNomeEncarregado('');
@@ -379,6 +351,7 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
       </TouchableOpacity>
 
+      {/* MODAL PARA EDIÇÃO DO PERFIL */}
       <Modal visible={modalEditVisivel} animationType="slide" transparent={true}>
         <View style={styles.darkModalOverlay}>
           <View style={styles.darkModalCard}>
@@ -386,13 +359,32 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
             <Text style={styles.darkModalSubtitle}>Atualize as informações do seu registo</Text>
 
             <Text style={styles.labelModalEdit}>Nome / Titulação</Text>
-            <TextInput style={styles.darkInput} value={nome} onChangeText={setNome} placeholder="Nome" placeholderTextColor="#9ca3af" />
+            <TextInput
+              style={styles.darkInput}
+              value={nome}
+              onChangeText={setNome}
+              placeholder="Nome"
+              placeholderTextColor="#9ca3af"
+            />
 
             <Text style={styles.labelModalEdit}>{tipo === 'escola' ? 'NIF' : 'Disciplina'}</Text>
-            <TextInput style={styles.darkInput} value={subCampo} onChangeText={setSubCampo} placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'} placeholderTextColor="#9ca3af" />
+            <TextInput
+              style={styles.darkInput}
+              value={subCampo}
+              onChangeText={setSubCampo}
+              placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'}
+              placeholderTextColor="#9ca3af"
+            />
 
             <Text style={styles.labelModalEdit}>Telefone de Contacto</Text>
-            <TextInput style={styles.darkInput} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Telefone" placeholderTextColor="#9ca3af" />
+            <TextInput
+              style={styles.darkInput}
+              value={telefone}
+              onChangeText={setTelefone}
+              keyboardType="phone-pad"
+              placeholder="Telefone"
+              placeholderTextColor="#9ca3af"
+            />
 
             <TouchableOpacity style={styles.btnEntrarDark} onPress={salvarEdicao} disabled={loading}>
               {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>GUARDAR ALTERAÇÕES</Text>}
@@ -405,6 +397,7 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
         </View>
       </Modal>
 
+      {/* MODAL PARA INSCRIÇÃO DE ALUNO PELA ESCOLA */}
       <Modal visible={modalCadAlunoVisivel} animationType="slide" transparent={true}>
         <View style={styles.darkModalOverlay}>
           <View style={styles.darkModalCard}>
@@ -412,16 +405,41 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
             <Text style={styles.darkModalSubtitle}>Cadastre o aluno e os dados do encarregado</Text>
 
             <Text style={styles.labelModalEdit}>Nome Completo do Aluno *</Text>
-            <TextInput style={styles.darkInput} value={nomeAluno} onChangeText={setNomeAluno} placeholder="Ex: Manuel António" placeholderTextColor="#9ca3af" />
+            <TextInput
+              style={styles.darkInput}
+              value={nomeAluno}
+              onChangeText={setNomeAluno}
+              placeholder="Ex: Manuel António"
+              placeholderTextColor="#9ca3af"
+            />
 
             <Text style={styles.labelModalEdit}>Nº do Bilhete de Identidade (BI) *</Text>
-            <TextInput style={styles.darkInput} value={biAluno} onChangeText={setBiAluno} placeholder="Ex: 009281721LA042" placeholderTextColor="#9ca3af" />
+            <TextInput
+              style={styles.darkInput}
+              value={biAluno}
+              onChangeText={setBiAluno}
+              placeholder="Ex: 009281721LA042"
+              placeholderTextColor="#9ca3af"
+            />
 
             <Text style={styles.labelModalEdit}>Nome do Encarregado de Educação *</Text>
-            <TextInput style={styles.darkInput} value={nomeEncarregado} onChangeText={setNomeEncarregado} placeholder="Ex: João António" placeholderTextColor="#9ca3af" />
+            <TextInput
+              style={styles.darkInput}
+              value={nomeEncarregado}
+              onChangeText={setNomeEncarregado}
+              placeholder="Ex: João António"
+              placeholderTextColor="#9ca3af"
+            />
 
             <Text style={styles.labelModalEdit}>Telefone do Encarregado</Text>
-            <TextInput style={styles.darkInput} value={telEncarregado} onChangeText={setTelEncarregado} keyboardType="phone-pad" placeholder="Ex: 923112233" placeholderTextColor="#9ca3af" />
+            <TextInput
+              style={styles.darkInput}
+              value={telEncarregado}
+              onChangeText={setTelEncarregado}
+              keyboardType="phone-pad"
+              placeholder="Ex: 923112233"
+              placeholderTextColor="#9ca3af"
+            />
 
             <TouchableOpacity style={styles.btnEntrarDark} onPress={cadastrarAlunoNaEscola} disabled={loadingAluno}>
               {loadingAluno ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>INSCREVER ALUNO</Text>}
@@ -457,7 +475,7 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         Alert.alert('Ficheiro Anexado', `Documento selecionado: ${res.assets[0].name}`);
       }
     } catch (err) {
-      Alert.alert('Erro', 'Não foi possível selecionar o PDF.');
+      Alert.alert('Erro', 'Não foi possível selecionar o ficheiro PDF.');
     }
   };
 
@@ -666,7 +684,7 @@ function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
             </View>
           ))
         )}
-      </ScrollView>
+      ScrollView>
     </View>
   );
 }
