@@ -11,11 +11,9 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
-  Linking,
-  Image
+  Linking
 } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
-import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
@@ -23,7 +21,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- COMPONENTE DE QUADRO DE PUBLICIDADE DEDICADO E ROTATIVO (CARROSSEL) ---
+// --- COMPONENTE DE QUADRO DE PUBLICIDADE ROTATIVO (CARROSSEL) ---
 function CarrosselPublicidades({ publicidadeLigar }) {
   const anuncios = [
     {
@@ -100,7 +98,7 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E CONFIRMAÇÃO DE CÓDIGO (OTP) ---
+// --- MODAL DE LOGIN E OTP ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [modo, setModo] = useState('login');
   const [emailOuLicenca, setEmailOuLicenca] = useState('');
@@ -140,7 +138,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         } else {
           Alert.alert(
             'Código Enviado ✉️',
-            `Enviamos um código de confirmação de 6 dígitos para ${emailOuLicenca.trim()}. Por favor, verifique a sua caixa de entrada.`
+            `Enviamos um código de confirmação de 6 dígitos para ${emailOuLicenca.trim()}.`
           );
           setModo('verificar_codigo');
         }
@@ -154,7 +152,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 
   const handleVerificarCodigo = async () => {
     if (!codigoOtp.trim() || codigoOtp.trim().length < 6) {
-      Alert.alert('Atenção', 'Insira o código de 6 dígitos enviado para o seu e-mail.');
+      Alert.alert('Atenção', 'Insira o código de 6 dígitos.');
       return;
     }
 
@@ -167,7 +165,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
       });
 
       if (error) {
-        Alert.alert('Código Inválido', error.message || 'O código digitado está incorreto ou expirou.');
+        Alert.alert('Código Inválido', error.message || 'O código digitado está incorreto.');
       } else {
         Alert.alert('Conta Confirmada 🎉', 'E-mail verificado com sucesso!');
         onLoginSucesso(data?.user);
@@ -265,7 +263,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- TELA DE LEGALIZAÇÃO E ENVIO DE DOCUMENTOS (PDF) ---
+// --- TELA DE LEGALIZAÇÃO (DECRETO 37/23) ---
 function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
   const [ficheiroPdf, setFicheiroPdf] = useState(null);
   const [nomeEscola, setNomeEscola] = useState('');
@@ -295,7 +293,7 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
     }
 
     if (!ficheiroPdf) {
-      Alert.alert('Ficheiro Ausente', 'Por favor, anexe o ficheiro PDF com toda a documentação reunida.');
+      Alert.alert('Ficheiro Ausente', 'Por favor, anexe o ficheiro PDF.');
       return;
     }
 
@@ -316,10 +314,7 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
 
       if (error) throw error;
 
-      Alert.alert(
-        'Processo Submetido! 🎉',
-        'A sua documentação foi enviada com sucesso para análise técnica da Direção da Educação.'
-      );
+      Alert.alert('Processo Submetido! 🎉', 'Documentação enviada com sucesso.');
       onIrParaCadastro();
     } catch (err) {
       Alert.alert('Erro ao Submeter', err.message || 'Falha ao registar o processo.');
@@ -342,57 +337,29 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
         <View style={styles.cardNotaLegal}>
           <Text style={styles.tituloNotaLegal}>📜 Nota Explicativa e Requisitos Legais</Text>
           <Text style={styles.corpoNotaLegal}>
-            Para abrir e legalizar uma escola privada ou público-privada em Angola, o processo é regulado pelo{' '}
-            <Text style={{ fontWeight: 'bold' }}>Decreto Presidencial n.º 37/23</Text> (Regime Jurídico das Instituições Privadas de Educação).
+            Processo regulado pelo <Text style={{ fontWeight: 'bold' }}>Decreto Presidencial n.º 37/23</Text>.
           </Text>
         </View>
 
-        <Text style={styles.secaoFormHeader}>1. Documentos Jurídicos da Entidade Promotora</Text>
+        <Text style={styles.secaoFormHeader}>Requisitos Essenciais</Text>
         <View style={styles.boxRequisitos}>
-          <Text style={styles.itemRequisito}>• Certidão de Registo Comercial ou Pacto Social da empresa promotora.</Text>
-          <Text style={styles.itemRequisito}>• Certificado de Admissibilidade emitido pelo Guiché Único da Empresa (GUE).</Text>
-          <Text style={styles.itemRequisito}>• Número de Identificação Fiscal (NIF) da pessoa coletiva.</Text>
-          <Text style={styles.itemRequisito}>• Cópia do Bilhete de Identidade (B.I.) dos promotores ou investidores.</Text>
-          <Text style={styles.itemRequisito}>• Registo Criminal atualizado dos promotores.</Text>
-        </View>
-
-        <Text style={styles.secaoFormHeader}>2. Documentação Pedagógica e Administrativa</Text>
-        <View style={styles.boxRequisitos}>
-          <Text style={styles.itemRequisito}>• Requerimento dirigido à entidade licenciadora (Administrador Municipal ou Governador Provincial).</Text>
-          <Text style={styles.itemRequisito}>• Projeto Educativo da Instituição (visão, metas e objetivos pedagógicos).</Text>
-          <Text style={styles.itemRequisito}>• Regulamento Interno da escola.</Text>
-          <Text style={styles.itemRequisito}>• Planos de Estudos e Programas Curriculares em conformidade com o MED.</Text>
-          <Text style={styles.itemRequisito}>• Mapa de pessoal docente/administrativo, horários e certificados dos professores.</Text>
-          <Text style={styles.itemRequisito}>• Proposta do Preçário (tabela de propinas e comparticipações familiares).</Text>
-        </View>
-
-        <Text style={styles.secaoFormHeader}>3. Documentos Técnicos da Infraestrutura</Text>
-        <View style={styles.boxRequisitos}>
-          <Text style={styles.itemRequisito}>• Título de propriedade do imóvel ou Contrato de Arrendamento Comercial.</Text>
-          <Text style={styles.itemRequisito}>• Planta de arquitetura aprovada pela Administração Municipal.</Text>
-          <Text style={styles.itemRequisito}>• Parecer das Autoridades de Saúde (condições de higiene e habitabilidade).</Text>
-          <Text style={styles.itemRequisito}>• Licença de Utilização / Alvará de Habitabilidade.</Text>
-          <Text style={styles.itemRequisito}>• Certificado do Serviço de Proteção Civil e Bombeiros (segurança contra incêndios).</Text>
+          <Text style={styles.itemRequisito}>• Certidão de Registo Comercial e Estatutos.</Text>
+          <Text style={styles.itemRequisito}>• Projeto Pedagógico e Regulamento Interno.</Text>
+          <Text style={styles.itemRequisito}>• Título de propriedade ou contrato de arrendamento do imóvel escolar.</Text>
+          <Text style={styles.itemRequisito}>• Parecer técnico de salubridade e segurança contra incêndios.</Text>
         </View>
 
         <View style={styles.boxEnvioPdf}>
-          <Text style={styles.tituloBoxEnvio}>📤 Submeter Processo de Legalização</Text>
-          <Text style={styles.descBoxEnvio}>
-            Reúna todos os documentos listados acima num único ficheiro PDF e faça o envio para análise:
-          </Text>
-
-          <Text style={styles.label}>Nome da Escola / Instituição *</Text>
+          <Text style={styles.tituloBoxEnvio}>📤 Submeter Processo</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ex: Colégio Futuro do Saber"
+            placeholder="Nome da Escola"
             value={nomeEscola}
             onChangeText={setNomeEscola}
           />
-
-          <Text style={styles.label}>Número de Telefone para Contacto *</Text>
           <TextInput
-            style={styles.input}
-            placeholder="+244 9XX XXX XXX"
+            style={[styles.input, { marginTop: 10 }]}
+            placeholder="Telefone de Contacto"
             keyboardType="phone-pad"
             value={contacto}
             onChangeText={setContacto}
@@ -400,16 +367,12 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
 
           <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarPdf}>
             <Text style={styles.txtSelecionarPdf}>
-              {ficheiroPdf ? `📄 Ficheiro: ${ficheiroPdf.name}` : '📎 Selecionar Ficheiro PDF com Documentos'}
+              {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Anexar Ficheiro PDF Completo'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnEnviarProcesso} onPress={enviarProcesso} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.txtEnviarProcesso}>SUBMETER PROCESSO COMPLETO</Text>
-            )}
+            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEnviarProcesso}>ENVIAR PROCESSO</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -417,7 +380,7 @@ function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
   );
 }
 
-// --- TELA DEDICADA: QUADRO DE PUBLICIDADES ---
+// --- TELA DE QUADRO DE PUBLICIDADES ---
 function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
@@ -436,11 +399,9 @@ function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   );
 }
 
-// --- FORMULÁRIO DE CADASTRAMENTO DE INSTITUIÇÃO ---
+// --- CADASTRAMENTO DE INSTITUIÇÃO ---
 function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
-  const [fotoUrl, setFotoUrl] = useState('');
-  const [localizacao, setLocalizacao] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -452,23 +413,15 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
     }
 
     setLoading(true);
-
     const { error } = await supabase.from('instituicoes').insert([
-      {
-        nome: nome.trim(),
-        logo_url: fotoUrl || '',
-        localizacao: localizacao.trim(),
-        nif: numeroInst.trim(),
-        email: email.trim(),
-      }
+      { nome: nome.trim(), nif: numeroInst.trim(), email: email.trim() }
     ]);
-
     setLoading(false);
 
     if (error) {
       Alert.alert('Erro ao Salvar', error.message);
     } else {
-      Alert.alert('Sucesso', 'Instituição cadastrada com sucesso!');
+      Alert.alert('Sucesso', 'Instituição cadastrada!');
       onConcluir();
     }
   };
@@ -483,13 +436,13 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
       </View>
 
       <Text style={styles.label}>Nome da Instituição *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Instituto Politécnico" />
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Progresso" />
 
-      <Text style={styles.label}>Número da Instituição *</Text>
-      <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="Ex: 929500600" />
+      <Text style={styles.label}>Número / NIF *</Text>
+      <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="NIF ou Telefone" />
 
       <Text style={styles.label}>Email *</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="escola@dominio.ao" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Instituição</Text>}
@@ -498,7 +451,7 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   );
 }
 
-// --- TELA DE CONSULTA DE ALUNOS ---
+// --- CONSULTA DE ALUNOS ---
 function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
   const [busca, setBusca] = useState('');
   const [alunos, setAlunos] = useState([]);
@@ -511,11 +464,10 @@ function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
   const carregarEstudantes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('estudantes').select('*').order('id', { ascending: false });
-      if (error) throw error;
+      const { data } = await supabase.from('estudantes').select('*').order('id', { ascending: false });
       setAlunos(data || []);
     } catch (err) {
-      console.log('Erro ao carregar:', err.message);
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -534,12 +486,7 @@ function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
       </View>
 
       <View style={{ padding: 16 }}>
-        <TextInput
-          style={styles.inputBusca}
-          placeholder="Pesquisar por aluno ou BI..."
-          value={busca}
-          onChangeText={setBusca}
-        />
+        <TextInput style={styles.inputBusca} placeholder="Pesquisar por aluno..." value={busca} onChangeText={setBusca} />
       </View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
@@ -569,7 +516,7 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16, paddingBottom: 50 }}>
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
@@ -597,8 +544,11 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
           </Text>
         </TouchableOpacity>
 
-        {/* CARROSSEL DE PUBLICIDADE NO FINAL DA HOME */}
-        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
+        {/* QUADRO DE PUBLICIDADE ROTATIVO GARANTIDO NO RODAPÉ */}
+        <View style={{ marginTop: 10 }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#64748b', marginBottom: 6 }}>DESTAQUES E PUBLICIDADE</Text>
+          <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -698,33 +648,32 @@ const styles = StyleSheet.create({
 
   boxEnvioPdf: { backgroundColor: '#ffffff', borderRadius: 12, padding: 18, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 10 },
   tituloBoxEnvio: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 6 },
-  descBoxEnvio: { fontSize: 13, color: '#64748b', marginBottom: 14 },
   btnSelecionarPdf: { backgroundColor: '#f1f5f9', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', alignItems: 'center', marginVertical: 12 },
   txtSelecionarPdf: { color: '#1e293b', fontWeight: '600', fontSize: 13 },
   btnEnviarProcesso: { backgroundColor: '#16a34a', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   txtEnviarProcesso: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
 
-  cardPublicidade: { borderRadius: 20, padding: 18, marginTop: 12, marginBottom: 24, elevation: 3 },
-  badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.25)', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, marginBottom: 12 },
-  txtBadgePatrocinado: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
-  tituloPublicidade: { fontSize: 20, fontWeight: 'bold', color: '#ffffff', marginBottom: 8 },
-  corpoPublicidade: { fontSize: 14, color: '#e0e7ff', lineHeight: 22, marginBottom: 14 },
-  btnLigarPub: { backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 12, borderRadius: 12 },
-  rodapePublicidade: { fontSize: 13, color: '#c7d2fe', lineHeight: 18 },
-  telefonePublicidade: { fontSize: 15, fontWeight: 'bold', color: '#fbbf24' },
+  cardPublicidade: { borderRadius: 16, padding: 16, marginTop: 4, marginBottom: 20, elevation: 3 },
+  badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.25)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 10 },
+  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
+  tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
+  corpoPublicidade: { fontSize: 13, color: '#e0e7ff', lineHeight: 20, marginBottom: 12 },
+  btnLigarPub: { backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 10, borderRadius: 10 },
+  rodapePublicidade: { fontSize: 12, color: '#c7d2fe', lineHeight: 16 },
+  telefonePublicidade: { fontSize: 14, fontWeight: 'bold', color: '#fbbf24' },
 
   secaoTitulo: { fontSize: 20, fontWeight: '800', color: '#1e293b', marginBottom: 2 },
-  secaoSubtitulo: { fontSize: 14, color: '#64748b', marginBottom: 18 },
+  secaoSubtitulo: { fontSize: 14, color: '#64748b', marginBottom: 16 },
 
-  cardMenuImageStyle: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0', elevation: 2 },
-  cardEmoji: { fontSize: 32, marginBottom: 10 },
-  cardMenuTitulo: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginBottom: 6 },
-  cardMenuDesc: { fontSize: 13, color: '#64748b', lineHeight: 18 },
+  cardMenuImageStyle: { backgroundColor: '#ffffff', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#e2e8f0', elevation: 2 },
+  cardEmoji: { fontSize: 28, marginBottom: 8 },
+  cardMenuTitulo: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
+  cardMenuDesc: { fontSize: 12, color: '#64748b', lineHeight: 17 },
 
   inputBusca: { height: 44, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 14, backgroundColor: '#ffffff', fontSize: 14, color: '#0f172a' },
-  cardConsulta: { backgroundColor: '#ffffff', borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
-  nomeAlunoConsulta: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
-  detalheCurso: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  cardConsulta: { backgroundColor: '#ffffff', borderRadius: 8, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  nomeAlunoConsulta: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 },
   topBar: { height: 50, backgroundColor: '#ffffff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
 
   formContainer: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
@@ -732,7 +681,6 @@ const styles = StyleSheet.create({
   btnVoltarHeader: { paddingVertical: 6, marginBottom: 4 },
   txtVoltarHeader: { color: '#1e40af', fontWeight: '600', fontSize: 13 },
   formTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  secaoFormHeader: { fontSize: 15, fontWeight: 'bold', color: '#1e40af', marginTop: 18, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingBottom: 4 },
   label: { fontSize: 12, fontWeight: '600', color: '#334155', marginBottom: 4, marginTop: 10 },
   input: { height: 42, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 6, paddingHorizontal: 12, backgroundColor: '#ffffff', fontSize: 14, color: '#0f172a' },
   btnSalvar: { backgroundColor: '#0f172a', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 24, marginBottom: 30 },
