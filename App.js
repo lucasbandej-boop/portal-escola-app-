@@ -263,123 +263,6 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- TELA DE LEGALIZAÇÃO E LICENCIAMENTO ---
-function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
-  const [ficheiroPdf, setFicheiroPdf] = useState(null);
-  const [nomeEscola, setNomeEscola] = useState('');
-  const [contacto, setContacto] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const selecionarPdf = async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-        copyToCacheDirectory: true,
-      });
-
-      if (!res.canceled && res.assets && res.assets.length > 0) {
-        setFicheiroPdf(res.assets[0]);
-        Alert.alert('Ficheiro Anexado', `Documento selecionado: ${res.assets[0].name}`);
-      }
-    } catch (err) {
-      Alert.alert('Erro', 'Não foi possível selecionar o ficheiro PDF.');
-    }
-  };
-
-  const enviarProcesso = async () => {
-    if (!nomeEscola.trim() || !contacto.trim()) {
-      Alert.alert('Atenção', 'Insira o nome da instituição e o contacto telefónico.');
-      return;
-    }
-
-    if (!ficheiroPdf) {
-      Alert.alert('Ficheiro Ausente', 'Por favor, anexe o ficheiro PDF.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('instituicoes').insert([
-        {
-          nome: nomeEscola.trim(),
-          nif: contacto.trim(),
-          email: 'processo.legalizacao@escola.ao',
-          sobre: JSON.stringify({
-            status_legalizacao: 'Em Análise',
-            ficheiro_nome: ficheiroPdf.name,
-            tamanho_bytes: ficheiroPdf.size
-          })
-        }
-      ]);
-
-      if (error) throw error;
-
-      Alert.alert('Processo Submetido! 🎉', 'Documentação enviada com sucesso para análise.');
-      onIrParaCadastro();
-    } catch (err) {
-      Alert.alert('Erro ao Submeter', err.message || 'Falha ao registar o processo.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={onVoltarHome}>
-          <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Legalização de Instituição</Text>
-        <View style={{ width: 50 }} />
-      </View>
-
-      <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View style={styles.cardNotaLegal}>
-          <Text style={styles.tituloNotaLegal}>📜 Nota Explicativa e Requisitos Legais</Text>
-          <Text style={styles.corpoNotaLegal}>
-            Processo regulado pelo <Text style={{ fontWeight: 'bold' }}>Decreto Presidencial n.º 37/23</Text>.
-          </Text>
-        </View>
-
-        <Text style={styles.secaoFormHeader}>Requisitos Essenciais</Text>
-        <View style={styles.boxRequisitos}>
-          <Text style={styles.itemRequisito}>• Certidão de Registo Comercial e Estatutos.</Text>
-          <Text style={styles.itemRequisito}>• Projeto Pedagógico e Regulamento Interno.</Text>
-          <Text style={styles.itemRequisito}>• Título de propriedade ou contrato de arrendamento do imóvel escolar.</Text>
-          <Text style={styles.itemRequisito}>• Parecer técnico de salubridade e segurança contra incêndios.</Text>
-        </View>
-
-        <View style={styles.boxEnvioPdf}>
-          <Text style={styles.tituloBoxEnvio}>📤 Submeter Processo de Legalização</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Nome da Escola / Instituição"
-            value={nomeEscola}
-            onChangeText={setNomeEscola}
-          />
-          <TextInput
-            style={[styles.input, { marginTop: 10 }]}
-            placeholder="Telefone para Contacto"
-            keyboardType="phone-pad"
-            value={contacto}
-            onChangeText={setContacto}
-          />
-
-          <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarPdf}>
-            <Text style={styles.txtSelecionarPdf}>
-              {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Selecionar Ficheiro PDF com Documentos'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.btnEnviarProcesso} onPress={enviarProcesso} disabled={loading}>
-            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEnviarProcesso}>SUBMETER PROCESSO</Text>}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
 // --- TELA DEDICADA DE PUBLICIDADES ---
 function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   return (
@@ -399,30 +282,62 @@ function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   );
 }
 
-// --- CADASTRAMENTO DE INSTITUIÇÕES ---
+// --- CADASTRAMENTO DE INSTITUIÇÕES (AGORA COM LEGALIZAÇÃO EMBUTIDA) ---
 function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
   const [email, setEmail] = useState('');
+  const [ficheiroPdf, setFicheiroPdf] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const selecionarPdf = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setFicheiroPdf(res.assets[0]);
+        Alert.alert('Ficheiro Anexado', `Documento selecionado: ${res.assets[0].name}`);
+      }
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível selecionar o ficheiro PDF.');
+    }
+  };
 
   const handleCadastrar = async () => {
     if (!nome.trim() || !numeroInst.trim() || !email.trim()) {
-      Alert.alert('Atenção', 'Preencha os campos obrigatórios.');
+      Alert.alert('Atenção', 'Preencha os campos obrigatórios da instituição.');
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.from('instituicoes').insert([
-      { nome: nome.trim(), nif: numeroInst.trim(), email: email.trim() }
-    ]);
-    setLoading(false);
+    try {
+      const payload = {
+        nome: nome.trim(),
+        nif: numeroInst.trim(),
+        email: email.trim(),
+      };
 
-    if (error) {
-      Alert.alert('Erro ao Salvar', error.message);
-    } else {
-      Alert.alert('Sucesso', 'Instituição cadastrada com sucesso!');
+      if (ficheiroPdf) {
+        payload.sobre = JSON.stringify({
+          status_legalizacao: 'Em Análise',
+          ficheiro_nome: ficheiroPdf.name,
+          tamanho_bytes: ficheiroPdf.size
+        });
+      }
+
+      const { error } = await supabase.from('instituicoes').insert([payload]);
+
+      if (error) throw error;
+
+      Alert.alert('Sucesso', 'Instituição e processo cadastrados com sucesso!');
       onConcluir();
+    } catch (err) {
+      Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar os dados.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -443,6 +358,20 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
 
       <Text style={styles.label}>Email *</Text>
       <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
+
+      {/* SECÇÃO INFORMATIVA E DE ENVIOS DE LEGALIZAÇÃO NO PRÓPRIO FORMULÁRIO */}
+      <View style={styles.cardNotaLegal}>
+        <Text style={styles.tituloNotaLegal}>📜 Legalização e Licenciamento (Decreto 37/23)</Text>
+        <Text style={styles.corpoNotaLegal}>
+          Para legalizar a instituição, anexe a documentação completa (Certidão, Projeto Pedagógico e Vistoria).
+        </Text>
+
+        <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarPdf}>
+          <Text style={styles.txtSelecionarPdf}>
+            {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Anexar Processo em PDF (Opcional)'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Instituição</Text>}
@@ -506,7 +435,7 @@ function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
 }
 
 // --- MENU PRINCIPAL (HOME) ---
-function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos, onNavegarQuadroPub, onNavegarLegalizacao, publicidadeLigar }) {
+function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos, onNavegarQuadroPub, publicidadeLigar }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
@@ -521,168 +450,162 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
-        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarLegalizacao}>
-          <Text style={styles.cardEmoji}>📜</Text>
-          <Text style={styles.cardMenuTitulo}>Legalização e Licenciamento</Text>
-          <Text style={styles.cardMenuDesc}>
-            Consulte os requisitos do Decreto 37/23 e submeta os documentos em PDF.
-          </Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarCadastramentoInst}>
           <Text style={styles.cardEmoji}>🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
           <Text style={styles.cardMenuDesc}>
-            Registe a sua escola para gerir turmas, alunos e professores.
+            Registe a sua instituição de ensino e anexe os documentos de legalização.
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarConsultaAlunos}>
-          <Text style={styles.cardEmoji}>🔍</Text>
-          <Text style={styles.cardMenuTitulo}>Consulta de Alunos e Encarregados</Text>
+          <Text style={styles.cardEmoji}>👨‍🎓</Text>
+          <Text style={styles.cardMenuTitulo}>Consulta de Estudantes</Text>
           <Text style={styles.cardMenuDesc}>
-            Consulte o estado de matrícula e dados de estudantes.
+            Pesquise a lista de alunos e gira o corpo discente registado.
           </Text>
         </TouchableOpacity>
 
-        {/* SEGUNDA PARTE: QUADRO DE PUBLICIDADE POSICIONADO NO FUNDO (EM BAIXO) */}
-        <View style={{ marginTop: 12 }}>
-          <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
-        </View>
+        {/* QUADRO DE PUBLICIDADE ROTATIVO NO RODA PÉ DA HOME */}
+        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// --- APP PRINCIPAL ---
 export default function App() {
-  const [tela, setTela] = useState('home');
-  const [loginVisivel, setLoginVisivel] = useState(false);
+  const [telaAtual, setTelaAtual] = useState('home');
+  const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+
+  const ligarParaSuporte = () => {
+    Linking.openURL('tel:929500600');
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <StatusBar style="dark" />
+
+      {telaAtual === 'home' && (
+        <MenuPrincipalHome
+          onNavegarCadastramentoInst={() => setTelaAtual('cadastramento')}
+          onNavegarConsultaAlunos={() => setTelaAtual('consulta_alunos')}
+          onNavegarQuadroPub={() => setTelaAtual('quadro_pub')}
+          publicidadeLigar={ligarParaSuporte}
+        />
+      )}
+
+      {telaAtual === 'cadastramento' && (
+        <FormCadastramentoInstituicao
+          onConcluir={() => setTelaAtual('home')}
+          onCancelar={() => setTelaAtual('home')}
+        />
+      )}
+
+      {telaAtual === 'consulta_alunos' && (
+        <TelaConsultaAlunos
+          onVoltarHome={() => setTelaAtual('home')}
+          onNavegarNovoEstudante={() => Alert.alert('Aviso', 'Formulário de novo estudante.')}
+        />
+      )}
+
+      {telaAtual === 'quadro_pub' && (
+        <TelaQuadroPublicidades
+          onVoltarHome={() => setTelaAtual('home')}
+          publicidadeLigar={ligarParaSuporte}
+        />
+      )}
 
       <ModalLogin
-        visivel={loginVisivel}
-        onClose={() => setLoginVisivel(false)}
-        onLoginSucesso={() => setTela('formulario_inst')}
+        visivel={modalLoginVisivel}
+        onClose={() => setModalLoginVisivel(false)}
+        onLoginSucesso={(usr) => setUsuario(usr)}
       />
-
-      {tela === 'home' && (
-        <MenuPrincipalHome
-          onNavegarCadastramentoInst={() => setLoginVisivel(true)}
-          onNavegarConsultaAlunos={() => setTela('consulta_alunos')}
-          onNavegarQuadroPub={() => setTela('quadro_publicidades')}
-          onNavegarLegalizacao={() => setTela('legalizacao')}
-          publicidadeLigar={() => Linking.openURL('tel:929500600')}
-        />
-      )}
-
-      {tela === 'legalizacao' && (
-        <TelaLegalizacaoEscola
-          onVoltarHome={() => setTela('home')}
-          onIrParaCadastro={() => setTela('formulario_inst')}
-        />
-      )}
-
-      {tela === 'quadro_publicidades' && (
-        <TelaQuadroPublicidades
-          onVoltarHome={() => setTela('home')}
-          publicidadeLigar={() => Linking.openURL('tel:929500600')}
-        />
-      )}
-
-      {tela === 'consulta_alunos' && (
-        <TelaConsultaAlunos
-          onVoltarHome={() => setTela('home')}
-          onNavegarNovoEstudante={() => setTela('formulario_inst')}
-        />
-      )}
-
-      {tela === 'formulario_inst' && (
-        <FormCadastramentoInstituicao
-          onConcluir={() => setTela('home')}
-          onCancelar={() => setTela('home')}
-        />
-      )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  homeContainer: { flex: 1, backgroundColor: '#f8fafc' },
-
   headerRowHome: {
-    height: 54,
-    backgroundColor: '#ffffff',
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
+    paddingTop: 45,
+    paddingBottom: 15,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0'
   },
-  homeTitleHeader: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
-  btnHeaderPub: { backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#bfdbfe' },
-  txtHeaderPub: { fontSize: 12, fontWeight: 'bold', color: '#1d4ed8' },
-
-  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(10, 15, 26, 0.85)', justifyContent: 'center', paddingHorizontal: 20 },
-  darkModalCard: { backgroundColor: '#172033', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#26334d', alignItems: 'center' },
-  darkModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 4 },
-  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 24 },
-  darkInput: { width: '100%', height: 48, backgroundColor: '#243047', borderRadius: 8, paddingHorizontal: 16, fontSize: 14, color: '#ffffff', marginBottom: 14, borderWidth: 1, borderColor: '#334155' },
-  btnEntrarDark: { width: '100%', height: 48, backgroundColor: '#2563eb', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 8, marginBottom: 16 },
-  txtEntrarDark: { color: '#ffffff', fontSize: 14, fontWeight: 'bold' },
-  btnLinkDark: { paddingVertical: 8 },
-  txtLinkDark: { color: '#38bdf8', fontSize: 13, fontWeight: '600' },
-  btnFecharDark: { marginTop: 12, paddingVertical: 6 },
-  txtFecharDark: { color: '#64748b', fontSize: 12 },
-
-  cardNotaLegal: { backgroundColor: '#eff6ff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#bfdbfe', marginBottom: 16 },
-  tituloNotaLegal: { fontSize: 16, fontWeight: 'bold', color: '#1e40af', marginBottom: 6 },
-  corpoNotaLegal: { fontSize: 13, color: '#334155', lineHeight: 20 },
-
-  boxRequisitos: { backgroundColor: '#ffffff', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 16 },
-  itemRequisito: { fontSize: 13, color: '#475569', lineHeight: 20, marginBottom: 6 },
-
-  boxEnvioPdf: { backgroundColor: '#ffffff', borderRadius: 12, padding: 18, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 10 },
-  tituloBoxEnvio: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 6 },
-  btnSelecionarPdf: { backgroundColor: '#f1f5f9', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', alignItems: 'center', marginVertical: 12 },
-  txtSelecionarPdf: { color: '#1e293b', fontWeight: '600', fontSize: 13 },
-  btnEnviarProcesso: { backgroundColor: '#16a34a', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  txtEnviarProcesso: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
-
-  cardPublicidade: { borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 20, elevation: 3 },
-  badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.25)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 10 },
-  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
-  tituloPublicidade: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
-  corpoPublicidade: { fontSize: 13, color: '#e0e7ff', lineHeight: 20, marginBottom: 12 },
-  btnLigarPub: { backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 10, borderRadius: 10 },
-  rodapePublicidade: { fontSize: 12, color: '#c7d2fe', lineHeight: 16 },
-  telefonePublicidade: { fontSize: 14, fontWeight: 'bold', color: '#fbbf24' },
-
-  secaoTitulo: { fontSize: 20, fontWeight: '800', color: '#1e293b', marginBottom: 2 },
-  secaoSubtitulo: { fontSize: 14, color: '#64748b', marginBottom: 16 },
-
-  cardMenuImageStyle: { backgroundColor: '#ffffff', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#e2e8f0', elevation: 2 },
-  cardEmoji: { fontSize: 28, marginBottom: 8 },
-  cardMenuTitulo: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
-  cardMenuDesc: { fontSize: 12, color: '#64748b', lineHeight: 17 },
-
-  inputBusca: { height: 44, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 14, backgroundColor: '#ffffff', fontSize: 14, color: '#0f172a' },
-  cardConsulta: { backgroundColor: '#ffffff', borderRadius: 8, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
-  nomeAlunoConsulta: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
-  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  topBar: { height: 50, backgroundColor: '#ffffff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-
-  formContainer: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
-  formHeader: { marginBottom: 15 },
-  btnVoltarHeader: { paddingVertical: 6, marginBottom: 4 },
-  txtVoltarHeader: { color: '#1e40af', fontWeight: '600', fontSize: 13 },
-  formTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  label: { fontSize: 12, fontWeight: '600', color: '#334155', marginBottom: 4, marginTop: 10 },
-  input: { height: 42, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 6, paddingHorizontal: 12, backgroundColor: '#ffffff', fontSize: 14, color: '#0f172a' },
-  btnSalvar: { backgroundColor: '#0f172a', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 24, marginBottom: 30 },
+  homeTitleHeader: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
+  btnHeaderPub: { backgroundColor: '#f1f5f9', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  txtHeaderPub: { color: '#1e40af', fontSize: 13, fontWeight: '600' },
+  homeContainer: { flex: 1 },
+  secaoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
+  secaoSubtitulo: { fontSize: 13, color: '#64748b', marginBottom: 16 },
+  cardMenuImageStyle: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2
+  },
+  cardEmoji: { fontSize: 24, marginBottom: 8 },
+  cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
+  cardMenuDesc: { fontSize: 13, color: '#64748b' },
+  cardPublicidade: { borderRadius: 12, padding: 16, marginTop: 12, marginBottom: 20 },
+  badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.2)', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 12 },
+  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
+  tituloPublicidade: { color: '#ffffff', fontSize: 17, fontWeight: 'bold', marginTop: 10, marginBottom: 6 },
+  corpoPublicidade: { color: '#f8fafc', fontSize: 13, lineHeight: 18 },
+  btnLigarPub: { marginTop: 14, backgroundColor: 'rgba(0, 0, 0, 0.25)', padding: 10, borderRadius: 8 },
+  rodapePublicidade: { color: '#ffffff', fontSize: 12, textAlign: 'center' },
+  telefonePublicidade: { fontWeight: 'bold', color: '#fbbf24', fontSize: 13 },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 45,
+    paddingBottom: 15,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0'
+  },
+  formContainer: { flex: 1, padding: 16, backgroundColor: '#ffffff' },
+  formHeader: { flexDirection: 'row', alignItems: 'center', paddingTop: 40, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  btnVoltarHeader: { marginRight: 15 },
+  txtVoltarHeader: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
+  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
+  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginTop: 14, marginBottom: 6 },
+  input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 14, color: '#0f172a' },
+  btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 24 },
   txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
+  cardNotaLegal: { backgroundColor: '#eff6ff', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#bfdbfe', marginTop: 16 },
+  tituloNotaLegal: { fontSize: 14, fontWeight: 'bold', color: '#1e40af', marginBottom: 6 },
+  corpoNotaLegal: { fontSize: 12, color: '#1e3a8a', lineHeight: 16, marginBottom: 10 },
+  btnSelecionarPdf: { backgroundColor: '#2563eb', padding: 10, borderRadius: 6, alignItems: 'center' },
+  txtSelecionarPdf: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
+  inputBusca: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, fontSize: 14 },
+  cardConsulta: { backgroundColor: '#ffffff', padding: 14, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  nomeAlunoConsulta: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
+  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  darkModalCard: { backgroundColor: '#1e293b', width: '100%', borderRadius: 16, padding: 20, alignItems: 'stretch' },
+  darkModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
+  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 20 },
+  darkInput: { backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155', borderRadius: 8, padding: 12, color: '#ffffff', marginBottom: 12 },
+  btnEntrarDark: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  txtEntrarDark: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
+  btnLinkDark: { marginTop: 14, alignItems: 'center' },
+  txtLinkDark: { color: '#38bdf8', fontSize: 13 },
+  btnFecharDark: { marginTop: 16, alignItems: 'center' },
+  txtFecharDark: { color: '#64748b', fontSize: 13 }
 });
