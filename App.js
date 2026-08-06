@@ -98,11 +98,226 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- CADASTRAMENTO DE INSTITUIÇÕES (COM LEGALIZAÇÃO EMBUTIDA) ---
-function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
+// --- MODAL DE LOGIN E CÓDIGO DE CONFIRMAÇÃO ---
+function ModalLogin({ visivel, onClose, onLoginSucesso }) {
+  const [modo, setModo] = useState('login');
+  const [emailOuLicenca, setEmailOuLicenca] = useState('');
+  const [senha, setSenha] = useState('');
+  const [codigoOtp, setCodigoOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmeter = async () => {
+    if (!emailOuLicenca.trim() || !senha.trim()) {
+      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (modo === 'login') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailOuLicenca.trim(),
+          password: senha,
+        });
+
+        if (error) {
+          Alert.alert('Aviso de Acesso', error.message || 'Credenciais inválidas.');
+        } else {
+          Alert.alert('Sucesso', 'Sessão iniciada!');
+          onLoginSucesso(data?.user);
+          onClose();
+        }
+      } else if (modo === 'registro') {
+        const { error } = await supabase.auth.signUp({
+          email: emailOuLicenca.trim(),
+          password: senha,
+        });
+
+        if (error) {
+          Alert.alert('Erro no Cadastro', error.message);
+        } else {
+          Alert.alert(
+            'Código Enviado ✉️',
+            `Enviamos um código de confirmação para ${emailOuLicenca.trim()}.`
+          );
+          setModo('verificar_codigo');
+        }
+      }
+    } catch (err) {
+      Alert.alert('Erro', err.message || 'Falha na operação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificarCodigo = async () => {
+    if (!codigoOtp.trim() || codigoOtp.trim().length < 6) {
+      Alert.alert('Atenção', 'Insira o código de 6 dígitos.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: emailOuLicenca.trim(),
+        token: codigoOtp.trim(),
+        type: 'signup'
+      });
+
+      if (error) {
+        Alert.alert('Código Inválido', error.message || 'O código digitado está incorreto.');
+      } else {
+        Alert.alert('Conta Confirmada 🎉', 'E-mail verificado com sucesso!');
+        onLoginSucesso(data?.user);
+        onClose();
+      }
+    } catch (err) {
+      Alert.alert('Erro', err.message || 'Falha ao verificar código.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal visible={visivel} animationType="fade" transparent={true}>
+      <View style={styles.darkModalOverlay}>
+        <View style={styles.darkModalCard}>
+          <Text style={styles.darkModalTitle}>Portal Escola 🎓</Text>
+          <Text style={styles.darkModalSubtitle}>Sistema Integrado de Gestão Escolar</Text>
+
+          {modo !== 'verificar_codigo' ? (
+            <>
+              <TextInput
+                style={styles.darkInput}
+                placeholder="E-mail ou Nº Licença"
+                placeholderTextColor="#9ca3af"
+                value={emailOuLicenca}
+                onChangeText={setEmailOuLicenca}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+
+              <TextInput
+                style={styles.darkInput}
+                placeholder="Senha"
+                placeholderTextColor="#9ca3af"
+                secureTextEntry
+                value={senha}
+                onChangeText={setSenha}
+              />
+
+              <TouchableOpacity style={styles.btnEntrarDark} onPress={handleSubmeter} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'CRIAR CONTA E RECEBER CÓDIGO'}</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.btnLinkDark}
+                onPress={() => setModo(modo === 'login' ? 'registro' : 'login')}
+              >
+                <Text style={styles.txtLinkDark}>
+                  {modo === 'login' ? 'Cadastrar Nova Conta' : 'Já tenho conta / Iniciar Sessão'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: '#38bdf8', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
+                Insira o código enviado para:{'\n'}
+                <Text style={{ fontWeight: 'bold', color: '#ffffff' }}>{emailOuLicenca}</Text>
+              </Text>
+
+              <TextInput
+                style={[styles.darkInput, { textAlign: 'center', fontSize: 20, letterSpacing: 6 }]}
+                placeholder="000000"
+                placeholderTextColor="#64748b"
+                keyboardType="number-pad"
+                maxLength={6}
+                value={codigoOtp}
+                onChangeText={setCodigoOtp}
+              />
+
+              <TouchableOpacity style={styles.btnEntrarDark} onPress={handleVerificarCodigo} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.txtEntrarDark}>CONFIRMAR CÓDIGO</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.btnLinkDark} onPress={() => setModo('registro')}>
+                <Text style={styles.txtLinkDark}>Reenviar código / Voltar</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity style={styles.btnFecharDark} onPress={onClose}>
+            <Text style={styles.txtFecharDark}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// --- VISUALIZAÇÃO ESTILO PERFIL DO FACEBOOK ---
+function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }}>
+      {/* Capa */}
+      <View style={styles.fbCover}>
+        <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: 'bold' }}>
+          {tipo === 'escola' ? '🏛️ PERFIL INSTITUCIONAL' : '👨‍🏫 PERFIL DOCENTE'}
+        </Text>
+      </View>
+
+      {/* Foto de Perfil + Informações Principais */}
+      <View style={styles.fbHeaderCard}>
+        <View style={styles.fbAvatar}>
+          <Text style={{ fontSize: 32 }}>{tipo === 'escola' ? '🏫' : '👨‍🏫'}</Text>
+        </View>
+        <Text style={styles.fbName}>{dados.nome}</Text>
+        <Text style={styles.fbSub}>{tipo === 'escola' ? `NIF: ${dados.nif}` : `Disciplina: ${dados.disciplina}`}</Text>
+
+        {/* Badge Status Pendente */}
+        <View style={styles.badgePendenteContainer}>
+          <Text style={styles.badgePendenteTxt}>⏳ Pendente de Aprovação pelo Administrador</Text>
+        </View>
+      </View>
+
+      {/* Caixa Informativa */}
+      <View style={styles.fbInfoCard}>
+        <Text style={styles.fbSectionTitle}>📌 Informações Gerais</Text>
+        <Text style={styles.fbInfoRow}>📧 Email: {dados.email}</Text>
+        <Text style={styles.fbInfoRow}>📞 Telefone: {dados.telefone || dados.nif}</Text>
+        {tipo === 'escola' && (
+          <Text style={styles.fbInfoRow}>📜 Documentação Decreto 37/23: Submetida em PDF</Text>
+        )}
+      </View>
+
+      {/* Notificação de Análise */}
+      <View style={styles.fbNoticeCard}>
+        <Text style={styles.fbNoticeTitle}>ℹ️ Estado da Conta</Text>
+        <Text style={styles.fbNoticeBody}>
+          O seu perfil foi registado e está em fase de verificação documental. O administrador irá analisar os ficheiros para validar a ativação pública na plataforma.
+        </Text>
+      </View>
+
+      <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
+        <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+// --- FORMULÁRIO DE LEGALIZAÇÃO / INSTITUIÇÃO ---
+function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(usuario?.email || '');
   const [ficheiroPdf, setFicheiroPdf] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -124,32 +339,27 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
 
   const handleCadastrar = async () => {
     if (!nome.trim() || !numeroInst.trim() || !email.trim()) {
-      Alert.alert('Atenção', 'Preencha os campos obrigatórios da instituição.');
+      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
+      const dadosCad = {
         nome: nome.trim(),
         nif: numeroInst.trim(),
         email: email.trim(),
+        status: 'Pendente',
+        sobre: JSON.stringify({
+          status_legalizacao: 'Em Análise pelo Admin',
+          ficheiro_nome: ficheiroPdf ? ficheiroPdf.name : 'Nenhum PDF'
+        })
       };
 
-      if (ficheiroPdf) {
-        payload.sobre = JSON.stringify({
-          status_legalizacao: 'Em Análise',
-          ficheiro_nome: ficheiroPdf.name,
-          tamanho_bytes: ficheiroPdf.size
-        });
-      }
-
-      const { error } = await supabase.from('instituicoes').insert([payload]);
-
+      const { error } = await supabase.from('instituicoes').insert([dadosCad]);
       if (error) throw error;
 
-      Alert.alert('Sucesso', 'Instituição e processo cadastrados com sucesso!');
-      onConcluir();
+      onConcluir(dadosCad);
     } catch (err) {
       Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar os dados.');
     } finally {
@@ -163,7 +373,7 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>Cadastramento de Instituição</Text>
+        <Text style={styles.formTitle}>Legalização de Instituição</Text>
       </View>
 
       <Text style={styles.label}>Nome da Instituição *</Text>
@@ -172,31 +382,31 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
       <Text style={styles.label}>Número / NIF *</Text>
       <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="NIF ou Telefone" />
 
-      <Text style={styles.label}>Email *</Text>
+      <Text style={styles.label}>Email da Instituição *</Text>
       <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
 
       <View style={styles.cardNotaLegal}>
-        <Text style={styles.tituloNotaLegal}>📜 Legalização e Licenciamento (Decreto 37/23)</Text>
+        <Text style={styles.tituloNotaLegal}>📜 Requisitos do Decreto Presidencial 37/23</Text>
         <Text style={styles.corpoNotaLegal}>
-          Para legalizar a instituição, anexe a documentação completa (Certidão, Projeto Pedagógico e Vistoria).
+          Anexe a Certidão de Registo, Estatutos e Projeto Pedagógico num único PDF para análise do administrador.
         </Text>
 
         <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarPdf}>
           <Text style={styles.txtSelecionarPdf}>
-            {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Anexar Processo em PDF (Opcional)'}
+            {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Anexar Documentação em PDF'}
           </Text>
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Instituição</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Criar Perfil e Submeter</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// --- CADASTRAMENTO DE PROFESSOR ---
-function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
+// --- FORMULÁRIO DE PROFESSOR ---
+function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [disciplina, setDisciplina] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -211,16 +421,26 @@ function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('professores').insert([
-        { nome_completo: nome.trim(), disciplina: disciplina.trim(), telefone: telefone.trim(), num_bilhete: bi.trim() }
-      ]);
+      const dadosProf = {
+        nome_completo: nome.trim(),
+        disciplina: disciplina.trim(),
+        telefone: telefone.trim(),
+        num_bilhete: bi.trim(),
+        status: 'Pendente',
+        email: usuario?.email || ''
+      };
 
+      const { error } = await supabase.from('professores').insert([dadosProf]);
       if (error) throw error;
 
-      Alert.alert('Sucesso 🎉', 'Professor cadastrado com sucesso!');
-      onConcluir();
+      onConcluir({
+        nome: nome.trim(),
+        disciplina: disciplina.trim(),
+        telefone: telefone.trim(),
+        email: usuario?.email || 'Registo Interno'
+      });
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar dados do professor.');
+      Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar os dados.');
     } finally {
       setLoading(false);
     }
@@ -232,13 +452,13 @@ function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>Cadastramento de Professor</Text>
+        <Text style={styles.formTitle}>Inscrição de Professor</Text>
       </View>
 
       <Text style={styles.label}>Nome Completo do Professor *</Text>
       <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Prof. António Silva" />
 
-      <Text style={styles.label}>Disciplina / Cadeira *</Text>
+      <Text style={styles.label}>Disciplina / Especialidade *</Text>
       <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática / Física" />
 
       <Text style={styles.label}>Telefone de Contacto *</Text>
@@ -248,7 +468,7 @@ function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
       <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 004928172LA048" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrarProf} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Cadastramento</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Criar Perfil Docente</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -311,7 +531,6 @@ function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
             <View key={aluno.id} style={styles.cardConsulta}>
               <Text style={styles.nomeAlunoConsulta}>👨‍🎓 Aluno: {aluno.nome_completo}</Text>
 
-              {/* DADOS DO ENCARREGADO */}
               <View style={styles.boxEncarregadoCard}>
                 <Text style={styles.txtEncarregadoTitulo}>👨‍👩‍👦 Encarregado de Educação:</Text>
                 <Text style={styles.txtEncarregadoNome}>{aluno.encarregado_nome || 'Não Registado'}</Text>
@@ -391,7 +610,6 @@ function MenuPrincipalHome({
           </Text>
         </TouchableOpacity>
 
-        {/* QUADRO DE PUBLICIDADE ROTATIVO NO RODAPÉ */}
         <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
       </ScrollView>
     </SafeAreaView>
@@ -401,9 +619,23 @@ function MenuPrincipalHome({
 // --- APP PRINCIPAL ---
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('home');
+  const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+  const [acaoPendente, setAcaoPendente] = useState(null);
+  const [dadosPerfilCriado, setDadosPerfilCriado] = useState(null);
+  const [tipoPerfil, setTipoPerfil] = useState('escola');
 
   const ligarParaSuporte = () => {
     Linking.openURL('tel:929500600');
+  };
+
+  const solicitarAutenticacao = (destino) => {
+    if (!usuario) {
+      setAcaoPendente(destino);
+      setModalLoginVisivel(true);
+    } else {
+      setTelaAtual(destino);
+    }
   };
 
   return (
@@ -412,9 +644,9 @@ export default function App() {
 
       {telaAtual === 'home' && (
         <MenuPrincipalHome
-          onNavegarCadastramentoInst={() => setTelaAtual('cadastramento')}
+          onNavegarCadastramentoInst={() => solicitarAutenticacao('cadastramento')}
           onNavegarPesquisaAlunosEncarregados={() => setTelaAtual('pesquisa_alunos_encarregados')}
-          onNavegarCadastramentoProf={() => setTelaAtual('cadastramento_prof')}
+          onNavegarCadastramentoProf={() => solicitarAutenticacao('cadastramento_prof')}
           onNavegarQuadroPub={() => setTelaAtual('quadro_pub')}
           publicidadeLigar={ligarParaSuporte}
         />
@@ -422,8 +654,33 @@ export default function App() {
 
       {telaAtual === 'cadastramento' && (
         <FormCadastramentoInstituicao
-          onConcluir={() => setTelaAtual('home')}
+          usuario={usuario}
+          onConcluir={(dados) => {
+            setDadosPerfilCriado(dados);
+            setTipoPerfil('escola');
+            setTelaAtual('perfil_facebook');
+          }}
           onCancelar={() => setTelaAtual('home')}
+        />
+      )}
+
+      {telaAtual === 'cadastramento_prof' && (
+        <FormCadastramentoProfessor
+          usuario={usuario}
+          onConcluir={(dados) => {
+            setDadosPerfilCriado(dados);
+            setTipoPerfil('professor');
+            setTelaAtual('perfil_facebook');
+          }}
+          onCancelar={() => setTelaAtual('home')}
+        />
+      )}
+
+      {telaAtual === 'perfil_facebook' && dadosPerfilCriado && (
+        <PerfilEstiloFacebook
+          dados={dadosPerfilCriado}
+          tipo={tipoPerfil}
+          onVoltarHome={() => setTelaAtual('home')}
         />
       )}
 
@@ -433,19 +690,24 @@ export default function App() {
         />
       )}
 
-      {telaAtual === 'cadastramento_prof' && (
-        <FormCadastramentoProfessor
-          onConcluir={() => setTelaAtual('home')}
-          onCancelar={() => setTelaAtual('home')}
-        />
-      )}
-
       {telaAtual === 'quadro_pub' && (
         <TelaQuadroPublicidades
           onVoltarHome={() => setTelaAtual('home')}
           publicidadeLigar={ligarParaSuporte}
         />
       )}
+
+      <ModalLogin
+        visivel={modalLoginVisivel}
+        onClose={() => setModalLoginVisivel(false)}
+        onLoginSucesso={(usr) => {
+          setUsuario(usr);
+          if (acaoPendente) {
+            setTelaAtual(acaoPendente);
+            setAcaoPendente(null);
+          }
+        }}
+      />
     </View>
   );
 }
@@ -475,10 +737,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
     elevation: 2
   },
   cardEmoji: { fontSize: 24, marginBottom: 8 },
@@ -524,5 +782,31 @@ const styles = StyleSheet.create({
   txtEncarregadoTitulo: { fontSize: 11, color: '#475569', fontWeight: 'bold' },
   txtEncarregadoNome: { fontSize: 13, color: '#0f172a', fontWeight: '600', marginTop: 2 },
   txtEncarregadoTel: { fontSize: 12, color: '#2563eb', marginTop: 2 },
-  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 }
+  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  darkModalCard: { backgroundColor: '#1e293b', width: '100%', borderRadius: 16, padding: 20, alignItems: 'stretch' },
+  darkModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
+  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 20 },
+  darkInput: { backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155', borderRadius: 8, padding: 12, color: '#ffffff', marginBottom: 12 },
+  btnEntrarDark: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  txtEntrarDark: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
+  btnLinkDark: { marginTop: 14, alignItems: 'center' },
+  txtLinkDark: { color: '#38bdf8', fontSize: 13 },
+  btnFecharDark: { marginTop: 16, alignItems: 'center' },
+  txtFecharDark: { color: '#64748b', fontSize: 13 },
+  fbCover: { height: 120, backgroundColor: '#1877f2', justifyContent: 'flex-end', padding: 12 },
+  fbHeaderCard: { backgroundColor: '#ffffff', padding: 16, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#dddfe2' },
+  fbAvatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#e4e6eb', justifyContent: 'center', alignItems: 'center', marginTop: -40, borderWidth: 3, borderColor: '#ffffff' },
+  fbName: { fontSize: 20, fontWeight: 'bold', color: '#050505', marginTop: 8 },
+  fbSub: { fontSize: 14, color: '#65676b', marginTop: 2 },
+  badgePendenteContainer: { marginTop: 10, backgroundColor: '#fef3c7', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#fde047' },
+  badgePendenteTxt: { color: '#b45309', fontSize: 12, fontWeight: 'bold' },
+  fbInfoCard: { backgroundColor: '#ffffff', padding: 16, marginTop: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#dddfe2' },
+  fbSectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#050505', marginBottom: 8 },
+  fbInfoRow: { fontSize: 13, color: '#334155', marginBottom: 6 },
+  fbNoticeCard: { backgroundColor: '#eff6ff', padding: 16, margin: 16, borderRadius: 8, borderWidth: 1, borderColor: '#bfdbfe' },
+  fbNoticeTitle: { fontSize: 14, fontWeight: 'bold', color: '#1e40af', marginBottom: 4 },
+  fbNoticeBody: { fontSize: 12, color: '#1e3a8a', lineHeight: 16 },
+  btnVoltarFb: { backgroundColor: '#1877f2', padding: 14, marginHorizontal: 16, marginBottom: 30, borderRadius: 8, alignItems: 'center' },
+  txtVoltarFb: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 }
 });
