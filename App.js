@@ -98,7 +98,7 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E CÓDIGO DE CONFIRMAÇÃO ---
+// --- MODAL DE LOGIN ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [modo, setModo] = useState('login');
   const [emailOuLicenca, setEmailOuLicenca] = useState('');
@@ -263,8 +263,90 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- VISUALIZAÇÃO ESTILO PERFIL DO FACEBOOK ---
-function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
+// --- VISUALIZAÇÃO E EDIÇÃO ESTILO PERFIL DO FACEBOOK + INSCRIÇÃO DE ALUNO ---
+function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
+  const [modalEditVisivel, setModalEditVisivel] = useState(false);
+  const [modalCadAlunoVisivel, setModalCadAlunoVisivel] = useState(false);
+  
+  // Estados para edição do perfil
+  const [nome, setNome] = useState(dados.nome || '');
+  const [subCampo, setSubCampo] = useState(tipo === 'escola' ? (dados.nif || '') : (dados.disciplina || ''));
+  const [telefone, setTelefone] = useState(dados.telefone || '');
+  const [loading, setLoading] = useState(false);
+
+  // Estados para cadastramento do aluno
+  const [nomeAluno, setNomeAluno] = useState('');
+  const [biAluno, setBiAluno] = useState('');
+  const [nomeEncarregado, setNomeEncarregado] = useState('');
+  const [telEncarregado, setTelEncarregado] = useState('');
+  const [loadingAluno, setLoadingAluno] = useState(false);
+
+  const salvarEdicao = async () => {
+    setLoading(true);
+    try {
+      let novosDados = { ...dados, nome, telefone };
+
+      if (tipo === 'escola') {
+        novosDados.nif = subCampo;
+        const { error } = await supabase
+          .from('instituicoes')
+          .update({ nome, nif: subCampo })
+          .eq('email', dados.email);
+
+        if (error) throw error;
+      } else {
+        novosDados.disciplina = subCampo;
+        const { error } = await supabase
+          .from('professores')
+          .update({ nome_completo: nome, disciplina: subCampo, telefone })
+          .eq('email', dados.email);
+
+        if (error) throw error;
+      }
+
+      onAtualizarDados(novosDados);
+      Alert.alert('Sucesso 🎉', 'Dados do perfil atualizados com sucesso!');
+      setModalEditVisivel(false);
+    } catch (err) {
+      Alert.alert('Erro ao Atualizar', err.message || 'Não foi possível guardar as alterações.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cadastrarAlunoNaEscola = async () => {
+    if (!nomeAluno.trim() || !biAluno.trim() || !nomeEncarregado.trim()) {
+      Alert.alert('Atenção', 'Preencha o nome do aluno, BI e o nome do encarregado.');
+      return;
+    }
+
+    setLoadingAluno(true);
+    try {
+      const { error } = await supabase.from('estudantes').insert([
+        {
+          nome_completo: nomeAluno.trim(),
+          num_bilhete: biAluno.trim(),
+          encarregado_nome: nomeEncarregado.trim(),
+          encarregado_telefone: telEncarregado.trim(),
+          escola_id: dados.id || null
+        }
+      ]);
+
+      if (error) throw error;
+
+      Alert.alert('Aluno Registado 🎉', `O aluno ${nomeAluno} foi inscrito na instituição!`);
+      setNomeAluno('');
+      setBiAluno('');
+      setNomeEncarregado('');
+      setTelEncarregado('');
+      setModalCadAlunoVisivel(false);
+    } catch (err) {
+      Alert.alert('Erro ao Registar Aluno', err.message || 'Falha ao guardar os dados do aluno.');
+    } finally {
+      setLoadingAluno(false);
+    }
+  };
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }}>
       {/* Capa */}
@@ -274,13 +356,25 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         </Text>
       </View>
 
-      {/* Foto de Perfil + Informações Principais */}
+      {/* Foto de Perfil e Botões de Ação */}
       <View style={styles.fbHeaderCard}>
         <View style={styles.fbAvatar}>
           <Text style={{ fontSize: 32 }}>{tipo === 'escola' ? '🏫' : '👨‍🏫'}</Text>
         </View>
         <Text style={styles.fbName}>{dados.nome}</Text>
         <Text style={styles.fbSub}>{tipo === 'escola' ? `NIF: ${dados.nif}` : `Disciplina: ${dados.disciplina}`}</Text>
+
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+          <TouchableOpacity style={styles.btnEditarPerfil} onPress={() => setModalEditVisivel(true)}>
+            <Text style={styles.txtEditarPerfil}>✏️ Editar Perfil</Text>
+          </TouchableOpacity>
+
+          {tipo === 'escola' && (
+            <TouchableOpacity style={styles.btnCadAlunoPerfil} onPress={() => setModalCadAlunoVisivel(true)}>
+              <Text style={styles.txtCadAlunoPerfil}>➕ Inscrever Aluno</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Badge Status Pendente */}
         <View style={styles.badgePendenteContainer}>
@@ -309,11 +403,112 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
       <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
       </TouchableOpacity>
+
+      {/* MODAL PARA EDIÇÃO DO PERFIL */}
+      <Modal visible={modalEditVisivel} animationType="slide" transparent={true}>
+        <View style={styles.darkModalOverlay}>
+          <View style={styles.darkModalCard}>
+            <Text style={styles.darkModalTitle}>Editar Perfil ✏️</Text>
+            <Text style={styles.darkModalSubtitle}>Atualize as informações do seu registo</Text>
+
+            <Text style={styles.labelModalEdit}>Nome / Titulação</Text>
+            <TextInput
+              style={styles.darkInput}
+              value={nome}
+              onChangeText={setNome}
+              placeholder="Nome"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <Text style={styles.labelModalEdit}>{tipo === 'escola' ? 'NIF' : 'Disciplina'}</Text>
+            <TextInput
+              style={styles.darkInput}
+              value={subCampo}
+              onChangeText={setSubCampo}
+              placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'}
+              placeholderTextColor="#9ca3af"
+            />
+
+            <Text style={styles.labelModalEdit}>Telefone de Contacto</Text>
+            <TextInput
+              style={styles.darkInput}
+              value={telefone}
+              onChangeText={setTelefone}
+              keyboardType="phone-pad"
+              placeholder="Telefone"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <TouchableOpacity style={styles.btnEntrarDark} onPress={salvarEdicao} disabled={loading}>
+              {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>GUARDAR ALTERAÇÕES</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnFecharDark} onPress={() => setModalEditVisivel(false)}>
+              <Text style={styles.txtFecharDark}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL PARA INSCRIÇÃO DE ALUNO PELA ESCOLA */}
+      <Modal visible={modalCadAlunoVisivel} animationType="slide" transparent={true}>
+        <View style={styles.darkModalOverlay}>
+          <View style={styles.darkModalCard}>
+            <Text style={styles.darkModalTitle}>Inscrever Aluno 👨‍🎓</Text>
+            <Text style={styles.darkModalSubtitle}>Cadastre o aluno e os dados do encarregado</Text>
+
+            <Text style={styles.labelModalEdit}>Nome Completo do Aluno *</Text>
+            <TextInput
+              style={styles.darkInput}
+              value={nomeAluno}
+              onChangeText={setNomeAluno}
+              placeholder="Ex: Manuel António"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <Text style={styles.labelModalEdit}>Nº do Bilhete de Identidade (BI) *</Text>
+            <TextInput
+              style={styles.darkInput}
+              value={biAluno}
+              onChangeText={setBiAluno}
+              placeholder="Ex: 009281721LA042"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <Text style={styles.labelModalEdit}>Nome do Encarregado de Educação *</Text>
+            <TextInput
+              style={styles.darkInput}
+              value={nomeEncarregado}
+              onChangeText={setNomeEncarregado}
+              placeholder="Ex: João António"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <Text style={styles.labelModalEdit}>Telefone do Encarregado</Text>
+            <TextInput
+              style={styles.darkInput}
+              value={telEncarregado}
+              onChangeText={setTelEncarregado}
+              keyboardType="phone-pad"
+              placeholder="Ex: 923112233"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <TouchableOpacity style={styles.btnEntrarDark} onPress={cadastrarAlunoNaEscola} disabled={loadingAluno}>
+              {loadingAluno ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>INSCREVER ALUNO</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnFecharDark} onPress={() => setModalCadAlunoVisivel(false)}>
+              <Text style={styles.txtFecharDark}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
-// --- FORMULÁRIO DE LEGALIZAÇÃO / INSTITUIÇÃO ---
+// --- FORMULÁRIO DE INSTITUIÇÃO ---
 function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
@@ -356,10 +551,10 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         })
       };
 
-      const { error } = await supabase.from('instituicoes').insert([dadosCad]);
+      const { data, error } = await supabase.from('instituicoes').insert([dadosCad]).select();
       if (error) throw error;
 
-      onConcluir(dadosCad);
+      onConcluir(data && data.length > 0 ? data[0] : dadosCad);
     } catch (err) {
       Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar os dados.');
     } finally {
@@ -430,10 +625,11 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
         email: usuario?.email || ''
       };
 
-      const { error } = await supabase.from('professores').insert([dadosProf]);
+      const { data, error } = await supabase.from('professores').insert([dadosProf]).select();
       if (error) throw error;
 
       onConcluir({
+        id: data && data.length > 0 ? data[0].id : null,
         nome: nome.trim(),
         disciplina: disciplina.trim(),
         telefone: telefone.trim(),
@@ -680,6 +876,7 @@ export default function App() {
         <PerfilEstiloFacebook
           dados={dadosPerfilCriado}
           tipo={tipoPerfil}
+          onAtualizarDados={(novosDados) => setDadosPerfilCriado(novosDados)}
           onVoltarHome={() => setTelaAtual('home')}
         />
       )}
@@ -799,6 +996,10 @@ const styles = StyleSheet.create({
   fbAvatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#e4e6eb', justifyContent: 'center', alignItems: 'center', marginTop: -40, borderWidth: 3, borderColor: '#ffffff' },
   fbName: { fontSize: 20, fontWeight: 'bold', color: '#050505', marginTop: 8 },
   fbSub: { fontSize: 14, color: '#65676b', marginTop: 2 },
+  btnEditarPerfil: { backgroundColor: '#e4e6eb', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
+  txtEditarPerfil: { color: '#050505', fontWeight: 'bold', fontSize: 13 },
+  btnCadAlunoPerfil: { backgroundColor: '#16a34a', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
+  txtCadAlunoPerfil: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   badgePendenteContainer: { marginTop: 10, backgroundColor: '#fef3c7', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#fde047' },
   badgePendenteTxt: { color: '#b45309', fontSize: 12, fontWeight: 'bold' },
   fbInfoCard: { backgroundColor: '#ffffff', padding: 16, marginTop: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#dddfe2' },
@@ -808,5 +1009,6 @@ const styles = StyleSheet.create({
   fbNoticeTitle: { fontSize: 14, fontWeight: 'bold', color: '#1e40af', marginBottom: 4 },
   fbNoticeBody: { fontSize: 12, color: '#1e3a8a', lineHeight: 16 },
   btnVoltarFb: { backgroundColor: '#1877f2', padding: 14, marginHorizontal: 16, marginBottom: 30, borderRadius: 8, alignItems: 'center' },
-  txtVoltarFb: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 }
+  txtVoltarFb: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
+  labelModalEdit: { color: '#94a3b8', fontSize: 12, marginBottom: 4, marginTop: 6 }
 });
