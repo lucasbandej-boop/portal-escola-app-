@@ -16,11 +16,89 @@ import {
 } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- COMPONENTE DE QUADRO DE PUBLICIDADE DEDICADO E ROTATIVO (CARROSSEL) ---
+function CarrosselPublicidades({ publicidadeLigar }) {
+  const anuncios = [
+    {
+      id: 1,
+      tag: '📢 Publicidade Patrocinada',
+      titulo: 'Matérias a bom preço',
+      corpo: '🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.\nLivros 📕 Cadernos 📓 Folha A4 Lápis',
+      corFundo: '#1d4ed8'
+    },
+    {
+      id: 2,
+      tag: '👔 Confecção de Uniformes',
+      titulo: 'Uniformes & Fardamentos',
+      corpo: 'Produção de fardas escolares para colégios e institutos.\nBatas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.',
+      corFundo: '#0f766e'
+    },
+    {
+      id: 3,
+      tag: '💻 Tecnologia Escolar',
+      titulo: 'Softwares & Equipamentos',
+      corpo: 'Computadores, impressoras e redes para instituições de ensino com assistência técnica garantida em Luanda.',
+      corFundo: '#4338ca'
+    }
+  ];
+
+  const [indiceAtual, setIndiceAtual] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndiceAtual((prev) => (prev + 1) % anuncios.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [anuncios.length]);
+
+  const anuncioAtual = anuncios[indiceAtual];
+
+  return (
+    <View style={[styles.cardPublicidade, { backgroundColor: anuncioAtual.corFundo }]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View style={styles.badgePatrocinado}>
+          <Text style={styles.txtBadgePatrocinado}>{anuncioAtual.tag}</Text>
+        </View>
+        <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '600' }}>
+          {indiceAtual + 1} / {anuncios.length}
+        </Text>
+      </View>
+
+      <Text style={styles.tituloPublicidade}>{anuncioAtual.titulo}</Text>
+      <Text style={styles.corpoPublicidade}>{anuncioAtual.corpo}</Text>
+
+      <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
+        <Text style={styles.rodapePublicidade}>
+          Para mais informações ligue:{'\n'}
+          <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
+        </Text>
+      </TouchableOpacity>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12 }}>
+        {anuncios.map((item, idx) => (
+          <TouchableOpacity
+            key={item.id}
+            onPress={() => setIndiceAtual(idx)}
+            style={{
+              width: idx === indiceAtual ? 18 : 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: idx === indiceAtual ? '#fbbf24' : 'rgba(255, 255, 255, 0.4)',
+              marginHorizontal: 3,
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 // --- MODAL DE LOGIN E CONFIRMAÇÃO DE CÓDIGO (OTP) ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
@@ -187,6 +265,158 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
+// --- TELA DE LEGALIZAÇÃO E ENVIO DE DOCUMENTOS (PDF) ---
+function TelaLegalizacaoEscola({ onVoltarHome, onIrParaCadastro }) {
+  const [ficheiroPdf, setFicheiroPdf] = useState(null);
+  const [nomeEscola, setNomeEscola] = useState('');
+  const [contacto, setContacto] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const selecionarPdf = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setFicheiroPdf(res.assets[0]);
+        Alert.alert('Ficheiro Anexado', `Documento selecionado: ${res.assets[0].name}`);
+      }
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível selecionar o ficheiro PDF.');
+    }
+  };
+
+  const enviarProcesso = async () => {
+    if (!nomeEscola.trim() || !contacto.trim()) {
+      Alert.alert('Atenção', 'Insira o nome da instituição e o contacto telefónico.');
+      return;
+    }
+
+    if (!ficheiroPdf) {
+      Alert.alert('Ficheiro Ausente', 'Por favor, anexe o ficheiro PDF com toda a documentação reunida.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('instituicoes').insert([
+        {
+          nome: nomeEscola.trim(),
+          nif: contacto.trim(),
+          email: 'processo.legalizacao@escola.ao',
+          sobre: JSON.stringify({
+            status_legalizacao: 'Em Análise',
+            ficheiro_nome: ficheiroPdf.name,
+            tamanho_bytes: ficheiroPdf.size
+          })
+        }
+      ]);
+
+      if (error) throw error;
+
+      Alert.alert(
+        'Processo Submetido! 🎉',
+        'A sua documentação foi enviada com sucesso para análise técnica da Direção da Educação.'
+      );
+      onIrParaCadastro();
+    } catch (err) {
+      Alert.alert('Erro ao Submeter', err.message || 'Falha ao registar o processo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onVoltarHome}>
+          <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Legalização de Instituição</Text>
+        <View style={{ width: 50 }} />
+      </View>
+
+      <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.cardNotaLegal}>
+          <Text style={styles.tituloNotaLegal}>📜 Nota Explicativa e Requisitos Legais</Text>
+          <Text style={styles.corpoNotaLegal}>
+            Para abrir e legalizar uma escola privada ou público-privada em Angola, o processo é regulado pelo{' '}
+            <Text style={{ fontWeight: 'bold' }}>Decreto Presidencial n.º 37/23</Text> (Regime Jurídico das Instituições Privadas de Educação).
+          </Text>
+        </View>
+
+        <Text style={styles.secaoFormHeader}>1. Documentos Jurídicos da Entidade Promotora</Text>
+        <View style={styles.boxRequisitos}>
+          <Text style={styles.itemRequisito}>• Certidão de Registo Comercial ou Pacto Social da empresa promotora.</Text>
+          <Text style={styles.itemRequisito}>• Certificado de Admissibilidade emitido pelo Guiché Único da Empresa (GUE).</Text>
+          <Text style={styles.itemRequisito}>• Número de Identificação Fiscal (NIF) da pessoa coletiva.</Text>
+          <Text style={styles.itemRequisito}>• Cópia do Bilhete de Identidade (B.I.) dos promotores ou investidores.</Text>
+          <Text style={styles.itemRequisito}>• Registo Criminal atualizado dos promotores.</Text>
+        </View>
+
+        <Text style={styles.secaoFormHeader}>2. Documentação Pedagógica e Administrativa</Text>
+        <View style={styles.boxRequisitos}>
+          <Text style={styles.itemRequisito}>• Requerimento dirigido à entidade licenciadora (Administrador Municipal ou Governador Provincial).</Text>
+          <Text style={styles.itemRequisito}>• Projeto Educativo da Instituição (visão, metas e objetivos pedagógicos).</Text>
+          <Text style={styles.itemRequisito}>• Regulamento Interno da escola.</Text>
+          <Text style={styles.itemRequisito}>• Planos de Estudos e Programas Curriculares em conformidade com o MED.</Text>
+          <Text style={styles.itemRequisito}>• Mapa de pessoal docente/administrativo, horários e certificados dos professores.</Text>
+          <Text style={styles.itemRequisito}>• Proposta do Preçário (tabela de propinas e comparticipações familiares).</Text>
+        </View>
+
+        <Text style={styles.secaoFormHeader}>3. Documentos Técnicos da Infraestrutura</Text>
+        <View style={styles.boxRequisitos}>
+          <Text style={styles.itemRequisito}>• Título de propriedade do imóvel ou Contrato de Arrendamento Comercial.</Text>
+          <Text style={styles.itemRequisito}>• Planta de arquitetura aprovada pela Administração Municipal.</Text>
+          <Text style={styles.itemRequisito}>• Parecer das Autoridades de Saúde (condições de higiene e habitabilidade).</Text>
+          <Text style={styles.itemRequisito}>• Licença de Utilização / Alvará de Habitabilidade.</Text>
+          <Text style={styles.itemRequisito}>• Certificado do Serviço de Proteção Civil e Bombeiros (segurança contra incêndios).</Text>
+        </View>
+
+        <View style={styles.boxEnvioPdf}>
+          <Text style={styles.tituloBoxEnvio}>📤 Submeter Processo de Legalização</Text>
+          <Text style={styles.descBoxEnvio}>
+            Reúna todos os documentos listados acima num único ficheiro PDF e faça o envio para análise:
+          </Text>
+
+          <Text style={styles.label}>Nome da Escola / Instituição *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: Colégio Futuro do Saber"
+            value={nomeEscola}
+            onChangeText={setNomeEscola}
+          />
+
+          <Text style={styles.label}>Número de Telefone para Contacto *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="+244 9XX XXX XXX"
+            keyboardType="phone-pad"
+            value={contacto}
+            onChangeText={setContacto}
+          />
+
+          <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarPdf}>
+            <Text style={styles.txtSelecionarPdf}>
+              {ficheiroPdf ? `📄 Ficheiro: ${ficheiroPdf.name}` : '📎 Selecionar Ficheiro PDF com Documentos'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.btnEnviarProcesso} onPress={enviarProcesso} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.txtEnviarProcesso}>SUBMETER PROCESSO COMPLETO</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 // --- TELA DEDICADA: QUADRO DE PUBLICIDADES ---
 function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   return (
@@ -200,48 +430,7 @@ function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
       </View>
 
       <ScrollView style={{ flex: 1, padding: 16 }}>
-        <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 16 }}>
-          Confira abaixo todos os anúncios e ofertas patrocinadas ativas na plataforma:
-        </Text>
-
-        {/* Anúncio 1: Materiais Escolares */}
-        <View style={styles.cardPublicidade}>
-          <View style={styles.badgePatrocinado}>
-            <Text style={styles.txtBadgePatrocinado}>📢 Publicidade Patrocinada</Text>
-          </View>
-          <Text style={styles.tituloPublicidade}>Matérias a bom preço</Text>
-          <Text style={styles.corpoPublicidade}>
-            🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.{'\n'}
-            Livros 📕{'\n'}
-            Caderno 📓{'\n'}
-            Folha 4{'\n'}
-            Lápis
-          </Text>
-          <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
-            <Text style={styles.rodapePublicidade}>
-              Para mais informações ligue no número abaixo:{'\n'}
-              <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Anúncio 2: Uniformes Escolares */}
-        <View style={[styles.cardPublicidade, { backgroundColor: '#0f766e' }]}>
-          <View style={styles.badgePatrocinado}>
-            <Text style={styles.txtBadgePatrocinado}>👔 Confecção de Uniformes</Text>
-          </View>
-          <Text style={styles.tituloPublicidade}>Uniformes & Fardamentos</Text>
-          <Text style={styles.corpoPublicidade}>
-            Produção de fardas escolares para colégios e institutos.{'\n'}
-            Batas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.
-          </Text>
-          <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
-            <Text style={styles.rodapePublicidade}>
-              Encomendas e orçamentos pelo contacto abaixo:{'\n'}
-              <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
       </ScrollView>
     </View>
   );
@@ -254,40 +443,11 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
   const [localizacao, setLocalizacao] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
   const [email, setEmail] = useState('');
-  const [eventos, setEventos] = useState('');
-  const [classes, setClasses] = useState('');
-  const [pauta, setPauta] = useState('');
-  const [convocatoria, setConvocatoria] = useState('');
-  const [alunosDestaque, setAlunosDestaque] = useState('');
-  const [guiaAluno, setGuiaAluno] = useState('');
-  const [planoEstudo, setPlanoEstudo] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const escolherFoto = async () => {
-    try {
-      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissao.granted) {
-        Alert.alert('Permissão necessária', 'Acesso à galeria é necessário para escolher a imagem.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-
-      if (!result.canceled) {
-        setFotoUrl(result.assets[0].uri);
-      }
-    } catch (e) {
-      console.log('Erro imagem:', e);
-    }
-  };
 
   const handleCadastrar = async () => {
     if (!nome.trim() || !numeroInst.trim() || !email.trim()) {
-      Alert.alert('Atenção', 'Preencha o Nome da Instituição, Número e E-mail.');
+      Alert.alert('Atenção', 'Preencha os campos obrigatórios.');
       return;
     }
 
@@ -300,15 +460,6 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
         localizacao: localizacao.trim(),
         nif: numeroInst.trim(),
         email: email.trim(),
-        sobre: JSON.stringify({
-          eventos: eventos.trim(),
-          classes: classes.trim(),
-          pauta: pauta.trim(),
-          convocatoria: convocatoria.trim(),
-          alunos_destaque: alunosDestaque.trim(),
-          guia_aluno: guiaAluno.trim(),
-          plano_estudo: planoEstudo.trim()
-        })
       }
     ]);
 
@@ -331,54 +482,14 @@ function FormCadastramentoInstituicao({ onConcluir, onCancelar }) {
         <Text style={styles.formTitle}>Cadastramento de Instituição</Text>
       </View>
 
-      <View style={styles.fotoSection}>
-        <TouchableOpacity onPress={escolherFoto} style={styles.fotoContainer}>
-          {fotoUrl ? (
-            <Image source={{ uri: fotoUrl }} style={styles.fotoPreview} />
-          ) : (
-            <View style={styles.fotoPlaceholder}>
-              <Text style={styles.fotoTxt}>📷 Imagem da Instituição</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.secaoFormHeader}>📌 Dados Principais</Text>
-
       <Text style={styles.label}>Nome da Instituição *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Instituto Politécnico de Viana" />
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Instituto Politécnico" />
 
       <Text style={styles.label}>Número da Instituição *</Text>
-      <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="Ex: 929500600 ou Nº NIF" keyboardType="numeric" />
+      <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="Ex: 929500600" />
 
       <Text style={styles.label}>Email *</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" keyboardType="email-address" autoCapitalize="none" />
-
-      <Text style={styles.label}>Localização</Text>
-      <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Viana, Luanda" />
-
-      <Text style={styles.secaoFormHeader}>📚 Informações Académicas e Eventos</Text>
-
-      <Text style={styles.label}>➡️ Classes</Text>
-      <TextInput style={styles.input} value={classes} onChangeText={setClasses} placeholder="Ex: 7ª à 13ª Classe, Ensino Geral e Técnico" />
-
-      <Text style={styles.label}>➡️ Plano de Estudo</Text>
-      <TextInput style={styles.inputArea} value={planoEstudo} onChangeText={setPlanoEstudo} placeholder="Descreva a grelha curricular ou cursos oferecidos..." multiline />
-
-      <Text style={styles.label}>➡️ Guia do Aluno</Text>
-      <TextInput style={styles.inputArea} value={guiaAluno} onChangeText={setGuiaAluno} placeholder="Normas, regulamento interno e orientações..." multiline />
-
-      <Text style={styles.label}>➡️ Pauta</Text>
-      <TextInput style={styles.inputArea} value={pauta} onChangeText={setPauta} placeholder="Informações de publicação de notas e exames..." multiline />
-
-      <Text style={styles.label}>➡️ Convocatória</Text>
-      <TextInput style={styles.inputArea} value={convocatoria} onChangeText={setConvocatoria} placeholder="Reuniões de encarregados, comunicados gerais..." multiline />
-
-      <Text style={styles.label}>➡️ Eventos</Text>
-      <TextInput style={styles.inputArea} value={eventos} onChangeText={setEventos} placeholder="Feiras de ciências, eventos desportivos, palestras..." multiline />
-
-      <Text style={styles.label}>➡️ Alunos em Destaque</Text>
-      <TextInput style={styles.inputArea} value={alunosDestaque} onChangeText={setAlunosDestaque} placeholder="Nomes dos melhores estudantes, olimpíadas e méritos..." multiline />
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Instituição</Text>}
@@ -410,11 +521,6 @@ function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
     }
   };
 
-  const alunosFiltrados = alunos.filter(item =>
-    (item.nome_completo && item.nome_completo.toLowerCase().includes(busca.toLowerCase())) ||
-    (item.num_bilhete && item.num_bilhete.toLowerCase().includes(busca.toLowerCase()))
-  );
-
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.topBar}>
@@ -439,138 +545,21 @@ function TelaConsultaAlunos({ onVoltarHome, onNavegarNovoEstudante }) {
       <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
         {loading ? (
           <ActivityIndicator size="small" color="#0f172a" style={{ marginTop: 20 }} />
-        ) : alunosFiltrados.length > 0 ? (
-          alunosFiltrados.map((aluno) => (
+        ) : (
+          alunos.map((aluno) => (
             <View key={aluno.id} style={styles.cardConsulta}>
               <Text style={styles.nomeAlunoConsulta}>{aluno.nome_completo}</Text>
-              <Text style={styles.detalheCurso}>Classe: {aluno.classe_ou_ano} • Turma: {aluno.turma}</Text>
               <Text style={styles.detalheCurso}>BI: {aluno.num_bilhete}</Text>
-              <Text style={styles.valorInfoHighlight}>Encarregado: {aluno.encarregado_nome} ({aluno.encarregado_telefone})</Text>
             </View>
           ))
-        ) : (
-          <View style={{ alignItems: 'center', marginTop: 40 }}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>Nenhum estudante registado.</Text>
-          </View>
         )}
       </ScrollView>
     </View>
   );
 }
 
-// --- FORMULÁRIOS RESTANTES ---
-function FormCadastramentoEstudante({ onConcluir, onCancelar }) {
-  const [nome, setNome] = useState('');
-  const [bilhete, setBilhete] = useState('');
-  const [classe, setClasse] = useState('');
-  const [turma, setTurma] = useState('');
-  const [encarregadoNome, setEncarregadoNome] = useState('');
-  const [encarregadoTel, setEncarregadoTel] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleCadastrar = async () => {
-    if (!nome.trim() || !bilhete.trim()) {
-      Alert.alert('Atenção', 'Preencha o Nome e o Número do BI.');
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.from('estudantes').insert([
-      {
-        nome_completo: nome.trim(),
-        num_bilhete: bilhete.trim(),
-        classe_ou_ano: classe.trim() || '10ª Classe',
-        turma: turma.trim() || 'A',
-        encarregado_nome: encarregadoNome.trim() || 'Não informado',
-        encarregado_telefone: encarregadoTel.trim() || 'Não informado',
-      }
-    ]);
-    setLoading(false);
-    if (error) {
-      Alert.alert('Erro ao Salvar', error.message);
-    } else {
-      Alert.alert('Sucesso', 'Estudante registado com sucesso!');
-      onConcluir();
-    }
-  };
-
-  return (
-    <ScrollView style={styles.formContainer}>
-      <View style={styles.formHeader}>
-        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
-          <Text style={styles.txtVoltarHeader}>← Cancelar</Text>
-        </TouchableOpacity>
-        <Text style={styles.formTitle}>Cadastramento de Estudante</Text>
-      </View>
-      <Text style={styles.label}>Nome Completo *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: António Manuel" />
-      <Text style={styles.label}>Número do BI *</Text>
-      <TextInput style={styles.input} value={bilhete} onChangeText={setBilhete} placeholder="000000000LA000" />
-      <Text style={styles.label}>Classe</Text>
-      <TextInput style={styles.input} value={classe} onChangeText={setClasse} placeholder="Ex: 10ª Classe" />
-      <Text style={styles.label}>Turma</Text>
-      <TextInput style={styles.input} value={turma} onChangeText={setTurma} placeholder="Ex: A" />
-      <Text style={styles.label}>Encarregado de Educação</Text>
-      <TextInput style={styles.input} value={encarregadoNome} onChangeText={setEncarregadoNome} placeholder="Ex: Manuel NETO" />
-      <Text style={styles.label}>Contacto do Encarregado</Text>
-      <TextInput style={styles.input} value={encarregadoTel} onChangeText={setEncarregadoTel} placeholder="+244 9XX XXX XXX" keyboardType="phone-pad" />
-      <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Estudante</Text>}
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
-function FormCadastramentoProfessor({ onConcluir, onCancelar }) {
-  const [nome, setNome] = useState('');
-  const [bilhete, setBilhete] = useState('');
-  const [areaFormacao, setAreaFormacao] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleCadastrar = async () => {
-    if (!nome.trim() || !bilhete.trim()) {
-      Alert.alert('Atenção', 'Preencha o Nome Completo e o Bilhete.');
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.from('professores').insert([
-      {
-        nome_completo: nome.trim(),
-        num_bilhete: bilhete.trim(),
-        area_formacao: areaFormacao.trim() || 'Ensino Geral',
-      }
-    ]);
-    setLoading(false);
-    if (error) {
-      Alert.alert('Erro ao Salvar', error.message);
-    } else {
-      Alert.alert('Sucesso', 'Professor cadastrado com sucesso!');
-      onConcluir();
-    }
-  };
-
-  return (
-    <ScrollView style={styles.formContainer}>
-      <View style={styles.formHeader}>
-        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
-          <Text style={styles.txtVoltarHeader}>← Cancelar</Text>
-        </TouchableOpacity>
-        <Text style={styles.formTitle}>Cadastramento de Professor</Text>
-      </View>
-      <Text style={styles.label}>Nome Completo *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Manuel dos Santos" />
-      <Text style={styles.label}>Número do Bilhete *</Text>
-      <TextInput style={styles.input} value={bilhete} onChangeText={setBilhete} placeholder="000000000LA000" />
-      <Text style={styles.label}>Área de Formação</Text>
-      <TextInput style={styles.input} value={areaFormacao} onChangeText={setAreaFormacao} placeholder="Ex: Matemática" />
-      <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Professor</Text>}
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
 // --- MENU PRINCIPAL (HOME) ---
-function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarConsultaAlunos, onNavegarQuadroPub }) {
+function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarConsultaAlunos, onNavegarQuadroPub, onNavegarLegalizacao, publicidadeLigar }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
@@ -583,6 +572,14 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoP
       <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16 }}>
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
+
+        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarLegalizacao}>
+          <Text style={styles.cardEmoji}>📜</Text>
+          <Text style={styles.cardMenuTitulo}>Legalização e Licenciamento</Text>
+          <Text style={styles.cardMenuDesc}>
+            Consulte os requisitos do Decreto 37/23 e submeta os documentos em PDF.
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarCadastramentoInst}>
           <Text style={styles.cardEmoji}>🏫</Text>
@@ -600,13 +597,8 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoP
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarCadastramentoProf}>
-          <Text style={styles.cardEmoji}>👨‍🏫</Text>
-          <Text style={styles.cardMenuTitulo}>Cadastramento de Professores</Text>
-          <Text style={styles.cardMenuDesc}>
-            Registe-se como docente independente na plataforma.
-          </Text>
-        </TouchableOpacity>
+        {/* CARROSSEL DE PUBLICIDADE NO FINAL DA HOME */}
+        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -614,17 +606,7 @@ function MenuPrincipalHome({ onNavegarCadastramentoInst, onNavegarCadastramentoP
 
 export default function App() {
   const [tela, setTela] = useState('home');
-  const [destinoAposLogin, setDestinoAposLogin] = useState('formulario_inst');
   const [loginVisivel, setLoginVisivel] = useState(false);
-
-  const iniciarFluxo = (destino) => {
-    setDestinoAposLogin(destino);
-    setLoginVisivel(true);
-  };
-
-  const handleLoginSucesso = () => {
-    setTela(destinoAposLogin);
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -633,15 +615,23 @@ export default function App() {
       <ModalLogin
         visivel={loginVisivel}
         onClose={() => setLoginVisivel(false)}
-        onLoginSucesso={handleLoginSucesso}
+        onLoginSucesso={() => setTela('formulario_inst')}
       />
 
       {tela === 'home' && (
         <MenuPrincipalHome
-          onNavegarCadastramentoInst={() => iniciarFluxo('formulario_inst')}
-          onNavegarCadastramentoProf={() => iniciarFluxo('formulario_prof')}
+          onNavegarCadastramentoInst={() => setLoginVisivel(true)}
           onNavegarConsultaAlunos={() => setTela('consulta_alunos')}
           onNavegarQuadroPub={() => setTela('quadro_publicidades')}
+          onNavegarLegalizacao={() => setTela('legalizacao')}
+          publicidadeLigar={() => Linking.openURL('tel:929500600')}
+        />
+      )}
+
+      {tela === 'legalizacao' && (
+        <TelaLegalizacaoEscola
+          onVoltarHome={() => setTela('home')}
+          onIrParaCadastro={() => setTela('formulario_inst')}
         />
       )}
 
@@ -655,26 +645,12 @@ export default function App() {
       {tela === 'consulta_alunos' && (
         <TelaConsultaAlunos
           onVoltarHome={() => setTela('home')}
-          onNavegarNovoEstudante={() => iniciarFluxo('formulario_estudante')}
-        />
-      )}
-
-      {tela === 'formulario_estudante' && (
-        <FormCadastramentoEstudante
-          onConcluir={() => setTela('consulta_alunos')}
-          onCancelar={() => setTela('consulta_alunos')}
+          onNavegarNovoEstudante={() => setTela('formulario_inst')}
         />
       )}
 
       {tela === 'formulario_inst' && (
         <FormCadastramentoInstituicao
-          onConcluir={() => setTela('home')}
-          onCancelar={() => setTela('home')}
-        />
-      )}
-
-      {tela === 'formulario_prof' && (
-        <FormCadastramentoProfessor
           onConcluir={() => setTela('home')}
           onCancelar={() => setTela('home')}
         />
@@ -713,7 +689,22 @@ const styles = StyleSheet.create({
   btnFecharDark: { marginTop: 12, paddingVertical: 6 },
   txtFecharDark: { color: '#64748b', fontSize: 12 },
 
-  cardPublicidade: { backgroundColor: '#1d4ed8', borderRadius: 20, padding: 18, marginBottom: 16, elevation: 3 },
+  cardNotaLegal: { backgroundColor: '#eff6ff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#bfdbfe', marginBottom: 16 },
+  tituloNotaLegal: { fontSize: 16, fontWeight: 'bold', color: '#1e40af', marginBottom: 6 },
+  corpoNotaLegal: { fontSize: 13, color: '#334155', lineHeight: 20 },
+
+  boxRequisitos: { backgroundColor: '#ffffff', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 16 },
+  itemRequisito: { fontSize: 13, color: '#475569', lineHeight: 20, marginBottom: 6 },
+
+  boxEnvioPdf: { backgroundColor: '#ffffff', borderRadius: 12, padding: 18, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 10 },
+  tituloBoxEnvio: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 6 },
+  descBoxEnvio: { fontSize: 13, color: '#64748b', marginBottom: 14 },
+  btnSelecionarPdf: { backgroundColor: '#f1f5f9', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', alignItems: 'center', marginVertical: 12 },
+  txtSelecionarPdf: { color: '#1e293b', fontWeight: '600', fontSize: 13 },
+  btnEnviarProcesso: { backgroundColor: '#16a34a', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  txtEnviarProcesso: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
+
+  cardPublicidade: { borderRadius: 20, padding: 18, marginTop: 12, marginBottom: 24, elevation: 3 },
   badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.25)', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, marginBottom: 12 },
   txtBadgePatrocinado: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
   tituloPublicidade: { fontSize: 20, fontWeight: 'bold', color: '#ffffff', marginBottom: 8 },
@@ -734,7 +725,6 @@ const styles = StyleSheet.create({
   cardConsulta: { backgroundColor: '#ffffff', borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   nomeAlunoConsulta: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
   detalheCurso: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  valorInfoHighlight: { fontSize: 13, color: '#1e40af', fontWeight: '600', marginTop: 4 },
   topBar: { height: 50, backgroundColor: '#ffffff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
 
   formContainer: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
@@ -743,14 +733,8 @@ const styles = StyleSheet.create({
   txtVoltarHeader: { color: '#1e40af', fontWeight: '600', fontSize: 13 },
   formTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
   secaoFormHeader: { fontSize: 15, fontWeight: 'bold', color: '#1e40af', marginTop: 18, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingBottom: 4 },
-  fotoSection: { alignItems: 'center', marginVertical: 10 },
-  fotoContainer: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden' },
-  fotoPreview: { width: '100%', height: '100%' },
-  fotoPlaceholder: { width: '100%', height: '100%', backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', padding: 8 },
-  fotoTxt: { fontSize: 11, color: '#64748b', textAlign: 'center' },
   label: { fontSize: 12, fontWeight: '600', color: '#334155', marginBottom: 4, marginTop: 10 },
   input: { height: 42, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 6, paddingHorizontal: 12, backgroundColor: '#ffffff', fontSize: 14, color: '#0f172a' },
-  inputArea: { height: 75, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 6, paddingHorizontal: 12, paddingTop: 8, backgroundColor: '#ffffff', fontSize: 14, color: '#0f172a', textAlignVertical: 'top' },
   btnSalvar: { backgroundColor: '#0f172a', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 24, marginBottom: 30 },
   txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
 });
