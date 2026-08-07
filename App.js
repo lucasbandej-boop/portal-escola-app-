@@ -106,9 +106,9 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN E REGISTO DIRETO COM E-MAIL E PALAVRA-PASSE CORRIGIDO ---
+// --- MODAL DE LOGIN (DESIGN IDÊNTICO À IMAGEM) ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [modo, setModo] = useState('registro'); // Inicia em registro por padrão
+  const [modo, setModo] = useState('login'); // 'login' ou 'registro'
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
@@ -143,7 +143,6 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
           onClose();
         }
       } else {
-        // Fluxo de Cadastro com Auto-login imediato
         const { data, error } = await supabase.auth.signUp({
           email: emailLimpo,
           password: senhaLimpa,
@@ -152,14 +151,13 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         if (error) {
           Alert.alert('Erro no Cadastro', error.message || 'Não foi possível criar a conta.');
         } else if (data?.user) {
-          // Se o usuário foi criado mas a sessão não abriu, força o login direto
           if (!data.session) {
             const resLogin = await supabase.auth.signInWithPassword({
               email: emailLimpo,
               password: senhaLimpa,
             });
             if (!resLogin.error && resLogin.data?.user) {
-              Alert.alert('Conta Criada 🎉', 'Conta registada e sessão iniciada!');
+              Alert.alert('Conta Criada 🎉', 'Conta registada com sucesso!');
               onLoginSucesso(resLogin.data.user);
               onClose();
               return;
@@ -169,7 +167,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
           onLoginSucesso(data.user);
           onClose();
         } else {
-          Alert.alert('Aviso', 'Registo submetido. Tente fazer login com os dados inseridos.');
+          Alert.alert('Aviso', 'Registo submetido. Tente fazer login.');
           setModo('login');
         }
       }
@@ -185,9 +183,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
       <View style={styles.darkModalOverlay}>
         <View style={styles.darkModalCard}>
           <Text style={styles.darkModalTitle}>Portal Escola 🎓</Text>
-          <Text style={styles.darkModalSubtitle}>
-            {modo === 'login' ? 'Iniciar Sessão no Sistema' : 'Registar Nova Conta'}
-          </Text>
+          <Text style={styles.darkModalSubtitle}>Sistema Integrado de Gestão Escolar</Text>
 
           <TextInput
             style={styles.darkInput}
@@ -201,7 +197,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 
           <TextInput
             style={styles.darkInput}
-            placeholder="Palavra-passe (mínimo 6 caracteres)"
+            placeholder="Palavra-passe"
             placeholderTextColor="#9ca3af"
             secureTextEntry
             value={senha}
@@ -212,7 +208,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'CRIAR CONTA'}</Text>
+              <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'REGISTAR E ENTRAR'}</Text>
             )}
           </TouchableOpacity>
 
@@ -221,7 +217,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
             onPress={() => setModo(modo === 'login' ? 'registro' : 'login')}
           >
             <Text style={styles.txtLinkDark}>
-              {modo === 'login' ? 'Não tem conta? Registe-se' : 'Já tem conta? Iniciar Sessão'}
+              {modo === 'login' ? 'Cadastrar Nova Instituição' : 'Já tem conta? Entrar'}
             </Text>
           </TouchableOpacity>
 
@@ -368,7 +364,6 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
       </TouchableOpacity>
 
-      {/* MODAL PARA EDIÇÃO DO PERFIL */}
       <Modal visible={modalEditVisivel} animationType="slide" transparent={true}>
         <View style={styles.darkModalOverlay}>
           <View style={styles.darkModalCard}>
@@ -414,7 +409,6 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
         </View>
       </Modal>
 
-      {/* MODAL PARA INSCRIÇÃO DE ALUNO PELA ESCOLA */}
       <Modal visible={modalCadAlunoVisivel} animationType="slide" transparent={true}>
         <View style={styles.darkModalOverlay}>
           <View style={styles.darkModalCard}>
@@ -977,16 +971,16 @@ const styles = StyleSheet.create({
   txtEncarregadoNome: { fontSize: 13, color: '#0f172a', fontWeight: '600', marginTop: 2 },
   txtEncarregadoTel: { fontSize: 12, color: '#2563eb', marginTop: 2 },
   detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  darkModalCard: { backgroundColor: '#1e293b', width: '100%', borderRadius: 16, padding: 20, alignItems: 'stretch' },
-  darkModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
-  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 20 },
-  darkInput: { backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155', borderRadius: 8, padding: 12, color: '#ffffff', marginBottom: 12 },
-  btnEntrarDark: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  txtEntrarDark: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
-  btnLinkDark: { marginTop: 14, alignItems: 'center' },
-  txtLinkDark: { color: '#38bdf8', fontSize: 13 },
-  btnFecharDark: { marginTop: 16, alignItems: 'center' },
+  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(11, 19, 36, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  darkModalCard: { backgroundColor: '#1b253b', width: '100%', borderRadius: 16, padding: 24, alignItems: 'stretch' },
+  darkModalTitle: { fontSize: 26, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
+  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginTop: 4, marginBottom: 24 },
+  darkInput: { backgroundColor: '#243049', borderWidth: 1, borderColor: '#334155', borderRadius: 10, padding: 14, color: '#ffffff', fontSize: 14, marginBottom: 14 },
+  btnEntrarDark: { backgroundColor: '#2563eb', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 8 },
+  txtEntrarDark: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
+  btnLinkDark: { marginTop: 20, alignItems: 'center' },
+  txtLinkDark: { color: '#38bdf8', fontSize: 14, fontWeight: '600' },
+  btnFecharDark: { marginTop: 20, alignItems: 'center' },
   txtFecharDark: { color: '#64748b', fontSize: 13 },
   fbCover: { height: 120, backgroundColor: '#1877f2', justifyContent: 'flex-end', padding: 12 },
   fbHeaderCard: { backgroundColor: '#ffffff', padding: 16, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#dddfe2' },
