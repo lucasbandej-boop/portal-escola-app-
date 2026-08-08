@@ -106,7 +106,7 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN (DESIGN IDÊNTICO À IMAGEM) ---
+// --- MODAL DE LOGIN E REGISTO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [modo, setModo] = useState('login'); // 'login' ou 'registro'
   const [email, setEmail] = useState('');
@@ -136,29 +136,32 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         });
 
         if (error) {
-          Alert.alert('Aviso de Acesso', error.message || 'Credenciais inválidas.');
+          Alert.alert('Erro de Acesso', error.message || 'Credenciais inválidas.');
         } else if (data?.user) {
           Alert.alert('Sucesso 🎉', 'Sessão iniciada com sucesso!');
           onLoginSucesso(data.user);
           onClose();
         }
       } else {
+        // Tenta registar
         const { data, error } = await supabase.auth.signUp({
           email: emailLimpo,
           password: senhaLimpa,
         });
 
         if (error) {
-          Alert.alert('Erro no Cadastro', error.message || 'Não foi possível criar a conta.');
+          Alert.alert('Erro no Registo', error.message || 'Não foi possível criar a conta.');
         } else if (data?.user) {
+          // Tenta auto-login imediato caso a sessão não abra automaticamente
           if (!data.session) {
-            const resLogin = await supabase.auth.signInWithPassword({
+            const loginRes = await supabase.auth.signInWithPassword({
               email: emailLimpo,
               password: senhaLimpa,
             });
-            if (!resLogin.error && resLogin.data?.user) {
-              Alert.alert('Conta Criada 🎉', 'Conta registada com sucesso!');
-              onLoginSucesso(resLogin.data.user);
+
+            if (!loginRes.error && loginRes.data?.user) {
+              Alert.alert('Sucesso 🎉', 'Conta criada e sessão iniciada!');
+              onLoginSucesso(loginRes.data.user);
               onClose();
               return;
             }
@@ -167,12 +170,12 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
           onLoginSucesso(data.user);
           onClose();
         } else {
-          Alert.alert('Aviso', 'Registo submetido. Tente fazer login.');
+          Alert.alert('Aviso', 'Registo enviado. Tente fazer login com os dados inseridos.');
           setModo('login');
         }
       }
     } catch (err) {
-      Alert.alert('Erro no Servidor', err.message || 'Falha na operação.');
+      Alert.alert('Erro', err.message || 'Falha ao ligar ao servidor.');
     } finally {
       setLoading(false);
     }
@@ -230,7 +233,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- VISUALIZAÇÃO E EDIÇÃO ESTILO PERFIL DO FACEBOOK + INSCRIÇÃO DE ALUNO ---
+// --- PERFIL DO FACEBOOK ---
 function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
   const [modalEditVisivel, setModalEditVisivel] = useState(false);
   const [modalCadAlunoVisivel, setModalCadAlunoVisivel] = useState(false);
@@ -371,32 +374,13 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
             <Text style={styles.darkModalSubtitle}>Atualize as informações do seu registo</Text>
 
             <Text style={styles.labelModalEdit}>Nome / Titulação</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={nome}
-              onChangeText={setNome}
-              placeholder="Nome"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={nome} onChangeText={setNome} placeholder="Nome" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>{tipo === 'escola' ? 'NIF' : 'Disciplina'}</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={subCampo}
-              onChangeText={setSubCampo}
-              placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'}
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={subCampo} onChangeText={setSubCampo} placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'} placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Telefone de Contacto</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={telefone}
-              onChangeText={setTelefone}
-              keyboardType="phone-pad"
-              placeholder="Telefone"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Telefone" placeholderTextColor="#9ca3af" />
 
             <TouchableOpacity style={styles.btnEntrarDark} onPress={salvarEdicao} disabled={loading}>
               {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>GUARDAR ALTERAÇÕES</Text>}
@@ -416,41 +400,16 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
             <Text style={styles.darkModalSubtitle}>Cadastre o aluno e os dados do encarregado</Text>
 
             <Text style={styles.labelModalEdit}>Nome Completo do Aluno *</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={nomeAluno}
-              onChangeText={setNomeAluno}
-              placeholder="Ex: Manuel António"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={nomeAluno} onChangeText={setNomeAluno} placeholder="Ex: Manuel António" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Nº do Bilhete de Identidade (BI) *</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={biAluno}
-              onChangeText={setBiAluno}
-              placeholder="Ex: 009281721LA042"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={biAluno} onChangeText={setBiAluno} placeholder="Ex: 009281721LA042" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Nome do Encarregado de Educação *</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={nomeEncarregado}
-              onChangeText={setNomeEncarregado}
-              placeholder="Ex: João António"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={nomeEncarregado} onChangeText={setNomeEncarregado} placeholder="Ex: João António" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Telefone do Encarregado</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={telEncarregado}
-              onChangeText={setTelEncarregado}
-              keyboardType="phone-pad"
-              placeholder="Ex: 923112233"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={telEncarregado} onChangeText={setTelEncarregado} keyboardType="phone-pad" placeholder="Ex: 923112233" placeholderTextColor="#9ca3af" />
 
             <TouchableOpacity style={styles.btnEntrarDark} onPress={cadastrarAlunoNaEscola} disabled={loadingAluno}>
               {loadingAluno ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>INSCREVER ALUNO</Text>}
@@ -628,7 +587,7 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   );
 }
 
-// --- PESQUISA DE ALUNOS E ENCARREGADOS ---
+// --- PESQUISA DE ALUNOS ---
 function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
   const [busca, setBusca] = useState('');
   const [alunos, setAlunos] = useState([]);
@@ -686,7 +645,7 @@ function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
               <Text style={styles.nomeAlunoConsulta}>👨‍🎓 Aluno: {aluno.nome_completo}</Text>
 
               <View style={styles.boxEncarregadoCard}>
-                <Text style={styles.txtEncarregadoTitulo}>👨‍👩‍👦 Encarregado de Educação:</Text>
+                <Text style={styles.txtEncarregadoTitulo}>👨‍gsub Encarregado de Educação:</Text>
                 <Text style={styles.txtEncarregadoNome}>{aluno.encarregado_nome || 'Não Registado'}</Text>
                 <Text style={styles.txtEncarregadoTel}>📞 Contacto: {aluno.encarregado_telefone || aluno.telefone || 'Sem contacto'}</Text>
               </View>
@@ -700,7 +659,7 @@ function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
   );
 }
 
-// --- TELA DEDICADA DE PUBLICIDADES ---
+// --- PUBLICIDADES ---
 function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
@@ -719,7 +678,7 @@ function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   );
 }
 
-// --- MENU PRINCIPAL (HOME) ---
+// --- HOME ---
 function MenuPrincipalHome({ 
   usuario,
   onNavegarCadastramentoInst, 
@@ -781,7 +740,7 @@ function MenuPrincipalHome({
   );
 }
 
-// --- APP PRINCIPAL ---
+// --- MAIN ---
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('home');
   const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
