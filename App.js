@@ -8,25 +8,13 @@ import {
   StatusBar,
   ScrollView,
   TextInput,
-  Alert,
   ActivityIndicator,
   Modal,
   Linking
 } from 'react-native';
-import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
 
 function CarrosselPublicidades({ publicidadeLigar }) {
   return (
@@ -48,45 +36,42 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const [msgErro, setMsgErro] = useState('');
 
   const handleSubmeter = async () => {
     const emailLimpo = email.trim().toLowerCase();
     const senhaLimpa = senha.trim();
 
     if (!emailLimpo || !senhaLimpa) {
-      Alert.alert('Atenção', 'Preencha o e-mail e a palavra-passe.');
+      setMsgErro('Preencha o e-mail e a palavra-passe.');
       return;
     }
 
     setLoading(true);
+    setMsgErro('');
+
     try {
-      if (modo === 'login') {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailLimpo,
-          password: senhaLimpa,
-        });
+      const endpoint = modo === 'login' ? 'token?grant_type=password' : 'signup';
+      const response = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: emailLimpo, password: senhaLimpa })
+      });
 
-        if (error) {
-          Alert.alert('Erro de Acesso', error.message);
-        } else if (data?.user) {
-          onLoginSucesso(data.user);
-          onClose();
-        }
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMsgErro(data.error_description || data.msg || 'Erro na autenticação.');
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: emailLimpo,
-          password: senhaLimpa,
-        });
-
-        if (error) {
-          Alert.alert('Erro no Registo', error.message);
-        } else if (data?.user) {
-          onLoginSucesso(data.user);
-          onClose();
-        }
+        const user = data.user || data;
+        onLoginSucesso(user);
+        onClose();
       }
     } catch (err) {
-      Alert.alert('Erro', err.message);
+      setMsgErro('Erro de rede ao conectar.');
     } finally {
       setLoading(false);
     }
@@ -98,6 +83,8 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         <View style={styles.darkModalCard}>
           <Text style={styles.darkModalTitle}>Portal Escola 🎓</Text>
           <Text style={styles.darkModalSubtitle}>Sistema Integrado de Gestão Escolar</Text>
+
+          {msgErro ? <Text style={styles.txtErroModal}>{msgErro}</Text> : null}
 
           <TextInput
             style={styles.darkInput}
@@ -175,35 +162,45 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [director, setDirector] = useState('');
   const [localizacao, setLocalizacao] = useState('');
   const [loading, setLoading] = useState(false);
+  const [erroForm, setErroForm] = useState('');
 
   const handleCadastrar = async () => {
     if (!nome.trim() || !nif.trim()) {
-      Alert.alert('Campos Obrigatórios', 'Preencha o Nome da Instituição e o NIF.');
+      setErroForm('Preencha o Nome da Instituição e o NIF.');
       return;
     }
 
     setLoading(true);
+    setErroForm('');
+
+    const objetoEnvio = {
+      nome: nome.trim(),
+      nif: nif.trim(),
+      email: email.trim() || 'contacto@escola.ao',
+      estado_aprovacao: 'pendente'
+    };
+
     try {
-      const objetoEnvio = {
-        nome: nome.trim(),
-        nif: nif.trim(),
-        email: email.trim() || 'contacto@escola.ao',
-        estado_aprovacao: 'pendente'
-      };
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/instituicoes`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(objetoEnvio)
+      });
 
-      // Inserção direta sem .select() para evitar bloqueio de rede na Vercel/Web
-      const { error } = await supabase
-        .from('instituicoes')
-        .insert([objetoEnvio]);
+      const resData = await response.json();
 
-      if (error) {
-        Alert.alert('Erro Supabase', error.message);
+      if (!response.ok) {
+        setErroForm(resData.message || 'Erro ao gravar na base de dados.');
       } else {
-        Alert.alert('Sucesso 🎉', 'Instituição gravada com sucesso!');
-        onConcluir(objetoEnvio);
+        onConcluir(resData && resData.length > 0 ? resData[0] : objetoEnvio);
       }
     } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha ao conectar.');
+      setErroForm('Falha na ligação de rede.');
     } finally {
       setLoading(false);
     }
@@ -217,6 +214,8 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         </TouchableOpacity>
         <Text style={styles.formTitle}>Cadastrar Instituição</Text>
       </View>
+
+      {erroForm ? <Text style={styles.txtErroForm}>{erroForm}</Text> : null}
 
       <Text style={styles.label}>Nome da Instituição *</Text>
       <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Futuro do Saber" />
@@ -246,36 +245,46 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   const [telefone, setTelefone] = useState('');
   const [bi, setBi] = useState('');
   const [loading, setLoading] = useState(false);
+  const [erroForm, setErroForm] = useState('');
 
   const handleCadastrarProf = async () => {
     if (!nome.trim() || !disciplina.trim() || !telefone.trim()) {
-      Alert.alert('Campos Obrigatórios', 'Preencha Nome, Disciplina e Telefone.');
+      setErroForm('Preencha Nome, Disciplina e Telefone.');
       return;
     }
 
     setLoading(true);
+    setErroForm('');
+
+    const objetoEnvio = {
+      nome_completo: nome.trim(),
+      disciplina: disciplina.trim(),
+      telefone: telefone.trim(),
+      num_bilhete: bi.trim(),
+      email: usuario?.email || 'professor@escola.ao'
+    };
+
     try {
-      const objetoEnvio = {
-        nome_completo: nome.trim(),
-        disciplina: disciplina.trim(),
-        telefone: telefone.trim(),
-        num_bilhete: bi.trim(),
-        email: usuario?.email || 'professor@escola.ao'
-      };
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/professores`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(objetoEnvio)
+      });
 
-      // Inserção direta sem .select() para evitar bloqueio de rede na Vercel/Web
-      const { error } = await supabase
-        .from('professores')
-        .insert([objetoEnvio]);
+      const resData = await response.json();
 
-      if (error) {
-        Alert.alert('Erro Supabase', error.message);
+      if (!response.ok) {
+        setErroForm(resData.message || 'Erro ao gravar na base de dados.');
       } else {
-        Alert.alert('Sucesso 🎉', 'Professor gravado com sucesso!');
-        onConcluir(objetoEnvio);
+        onConcluir(resData && resData.length > 0 ? resData[0] : objetoEnvio);
       }
     } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha ao conectar.');
+      setErroForm('Falha na ligação de rede.');
     } finally {
       setLoading(false);
     }
@@ -289,6 +298,8 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
         </TouchableOpacity>
         <Text style={styles.formTitle}>Cadastrar Professor</Text>
       </View>
+
+      {erroForm ? <Text style={styles.txtErroForm}>{erroForm}</Text> : null}
 
       <Text style={styles.label}>Nome Completo *</Text>
       <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: João Manuel" />
@@ -348,18 +359,6 @@ export default function App() {
   const [dadosPerfilCriado, setDadosPerfilCriado] = useState(null);
   const [tipoPerfil, setTipoPerfil] = useState('escola');
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUsuario(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUsuario(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const ligarParaSuporte = () => {
     Linking.openURL('tel:929500600');
   };
@@ -373,8 +372,7 @@ export default function App() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
     setUsuario(null);
   };
 
@@ -462,6 +460,8 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 14, color: '#0f172a' },
   btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
+  txtErroForm: { color: '#dc2626', backgroundColor: '#fee2e2', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13 },
+  txtErroModal: { color: '#ef4444', backgroundColor: '#450a0a', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13, textAlign: 'center' },
   darkModalOverlay: { flex: 1, backgroundColor: 'rgba(11, 19, 36, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   darkModalCard: { backgroundColor: '#1b253b', width: '100%', borderRadius: 16, padding: 24 },
   darkModalTitle: { fontSize: 24, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
