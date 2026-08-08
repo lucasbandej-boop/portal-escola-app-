@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as DocumentPicker from 'expo-document-picker';
 
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
@@ -29,84 +28,21 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-// --- COMPONENTE DO QUADRO DE PUBLICIDADE ROTATIVO ---
 function CarrosselPublicidades({ publicidadeLigar }) {
-  const anuncios = [
-    {
-      id: 1,
-      tag: '📢 Publicidade Patrocinada',
-      titulo: 'Matérias a bom preço',
-      corpo: '🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.\nLivros 📕 Cadernos 📓 Folha A4 Lápis',
-      corFundo: '#1d4ed8'
-    },
-    {
-      id: 2,
-      tag: '👔 Confecção de Uniformes',
-      titulo: 'Uniformes & Fardamentos',
-      corpo: 'Produção de fardas escolares para colégios e institutos.\nBatas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.',
-      corFundo: '#0f766e'
-    },
-    {
-      id: 3,
-      tag: '💻 Tecnologia Escolar',
-      titulo: 'Softwares & Equipamentos',
-      corpo: 'Computadores, impressoras e redes para instituições de ensino com assistência técnica garantida em Luanda.',
-      corFundo: '#4338ca'
-    }
-  ];
-
-  const [indiceAtual, setIndiceAtual] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndiceAtual((prev) => (prev + 1) % anuncios.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [anuncios.length]);
-
-  const anuncioAtual = anuncios[indiceAtual];
-
   return (
-    <View style={[styles.cardPublicidade, { backgroundColor: anuncioAtual.corFundo }]}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View style={styles.badgePatrocinado}>
-          <Text style={styles.txtBadgePatrocinado}>{anuncioAtual.tag}</Text>
-        </View>
-        <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '600' }}>
-          {indiceAtual + 1} / {anuncios.length}
-        </Text>
-      </View>
-
-      <Text style={styles.tituloPublicidade}>{anuncioAtual.titulo}</Text>
-      <Text style={styles.corpoPublicidade}>{anuncioAtual.corpo}</Text>
-
+    <View style={styles.cardPublicidade}>
+      <Text style={styles.tituloPublicidade}>📢 Publicidade Patrocinada</Text>
+      <Text style={styles.corpoPublicidade}>
+        🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.{'\n'}
+        Livros 📕 Cadernos 📓 Folha A4 Lápis
+      </Text>
       <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
-        <Text style={styles.rodapePublicidade}>
-          Para mais informações ligue no número abaixo:{'\n'}
-          <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
-        </Text>
+        <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
       </TouchableOpacity>
-
-      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12 }}>
-        {anuncios.map((item, idx) => (
-          <TouchableOpacity
-            key={item.id}
-            onPress={() => setIndiceAtual(idx)}
-            style={{
-              width: idx === indiceAtual ? 18 : 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: idx === indiceAtual ? '#fbbf24' : 'rgba(255, 255, 255, 0.4)',
-              marginHorizontal: 3,
-            }}
-          />
-        ))}
-      </View>
     </View>
   );
 }
 
-// --- MODAL DE LOGIN E REGISTO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [modo, setModo] = useState('login');
   const [email, setEmail] = useState('');
@@ -122,11 +58,6 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
       return;
     }
 
-    if (senhaLimpa.length < 6) {
-      Alert.alert('Palavra-passe curta', 'A palavra-passe deve ter no mínimo 6 caracteres.');
-      return;
-    }
-
     setLoading(true);
     try {
       if (modo === 'login') {
@@ -136,9 +67,8 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         });
 
         if (error) {
-          Alert.alert('Erro de Acesso', error.message || 'Credenciais inválidas.');
+          Alert.alert('Erro de Acesso', error.message);
         } else if (data?.user) {
-          Alert.alert('Sucesso 🎉', 'Sessão iniciada com sucesso!');
           onLoginSucesso(data.user);
           onClose();
         }
@@ -149,31 +79,14 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         });
 
         if (error) {
-          Alert.alert('Erro no Registo', error.message || 'Não foi possível criar a conta.');
+          Alert.alert('Erro no Registo', error.message);
         } else if (data?.user) {
-          if (!data.session) {
-            const loginRes = await supabase.auth.signInWithPassword({
-              email: emailLimpo,
-              password: senhaLimpa,
-            });
-
-            if (!loginRes.error && loginRes.data?.user) {
-              Alert.alert('Sucesso 🎉', 'Conta criada e sessão iniciada!');
-              onLoginSucesso(loginRes.data.user);
-              onClose();
-              return;
-            }
-          }
-          Alert.alert('Conta Criada 🎉', 'A sua conta foi registada com sucesso!');
           onLoginSucesso(data.user);
           onClose();
-        } else {
-          Alert.alert('Aviso', 'Registo enviado. Tente fazer login.');
-          setModo('login');
         }
       }
     } catch (err) {
-      Alert.alert('Erro', err.message || 'Falha ao ligar ao servidor.');
+      Alert.alert('Erro', err.message);
     } finally {
       setLoading(false);
     }
@@ -193,7 +106,6 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
-            keyboardType="email-address"
           />
 
           <TextInput
@@ -206,20 +118,11 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
           />
 
           <TouchableOpacity style={styles.btnEntrarDark} onPress={handleSubmeter} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'REGISTAR E ENTRAR'}</Text>
-            )}
+            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'REGISTAR E ENTRAR'}</Text>}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.btnLinkDark}
-            onPress={() => setModo(modo === 'login' ? 'registro' : 'login')}
-          >
-            <Text style={styles.txtLinkDark}>
-              {modo === 'login' ? 'Cadastrar Nova Instituição' : 'Já tem conta? Entrar'}
-            </Text>
+          <TouchableOpacity style={styles.btnLinkDark} onPress={() => setModo(modo === 'login' ? 'registro' : 'login')}>
+            <Text style={styles.txtLinkDark}>{modo === 'login' ? 'Criar Nova Conta' : 'Já tem conta? Entrar'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnFecharDark} onPress={onClose}>
@@ -231,95 +134,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- PERFIL ESTILO FACEBOOK ---
-function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
-  const [modalEditVisivel, setModalEditVisivel] = useState(false);
-  const [modalCadAlunoVisivel, setModalCadAlunoVisivel] = useState(false);
-  
-  const [nome, setNome] = useState(dados.nome || '');
-  const [subCampo, setSubCampo] = useState(tipo === 'escola' ? (dados.nif || '') : (dados.disciplina || ''));
-  const [telefone, setTelefone] = useState(dados.telefone || '');
-  const [loading, setLoading] = useState(false);
-
-  const [nomeAluno, setNomeAluno] = useState('');
-  const [biAluno, setBiAluno] = useState('');
-  const [nomeEncarregado, setNomeEncarregado] = useState('');
-  const [telEncarregado, setTelEncarregado] = useState('');
-  const [loadingAluno, setLoadingAluno] = useState(false);
-
-  let detalhesExtra = {};
-  try {
-    detalhesExtra = typeof dados.sobre === 'string' ? JSON.parse(dados.sobre) : (dados.sobre || {});
-  } catch (e) {
-    detalhesExtra = {};
-  }
-
-  const salvarEdicao = async () => {
-    setLoading(true);
-    try {
-      let novosDados = { ...dados, nome, telefone };
-
-      if (tipo === 'escola') {
-        novosDados.nif = subCampo;
-        const { error } = await supabase
-          .from('instituicoes')
-          .update({ nome, nif: subCampo })
-          .eq('email', dados.email);
-
-        if (error) throw error;
-      } else {
-        novosDados.disciplina = subCampo;
-        const { error } = await supabase
-          .from('professores')
-          .update({ nome_completo: nome, disciplina: subCampo, telefone })
-          .eq('email', dados.email);
-
-        if (error) throw error;
-      }
-
-      onAtualizarDados(novosDados);
-      Alert.alert('Sucesso 🎉', 'Dados do perfil atualizados com sucesso!');
-      setModalEditVisivel(false);
-    } catch (err) {
-      Alert.alert('Erro ao Atualizar', err.message || 'Não foi possível guardar as alterações.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cadastrarAlunoNaEscola = async () => {
-    if (!nomeAluno.trim() || !biAluno.trim() || !nomeEncarregado.trim()) {
-      Alert.alert('Atenção', 'Preencha o nome do aluno, BI e o nome do encarregado.');
-      return;
-    }
-
-    setLoadingAluno(true);
-    try {
-      const { error } = await supabase.from('estudantes').insert([
-        {
-          nome_completo: nomeAluno.trim(),
-          num_bilhete: biAluno.trim(),
-          encarregado_nome: nomeEncarregado.trim(),
-          encarregado_telefone: telEncarregado.trim(),
-          escola_id: dados.id || null
-        }
-      ]);
-
-      if (error) throw error;
-
-      Alert.alert('Aluno Registado 🎉', `O aluno ${nomeAluno} foi inscrito na instituição!`);
-      setNomeAluno('');
-      setBiAluno('');
-      setNomeEncarregado('');
-      setTelEncarregado('');
-      setModalCadAlunoVisivel(false);
-    } catch (err) {
-      Alert.alert('Erro ao Registar Aluno', err.message || 'Falha ao guardar os dados do aluno.');
-    } finally {
-      setLoadingAluno(false);
-    }
-  };
-
+function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }}>
       <View style={styles.fbCover}>
@@ -332,543 +147,194 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
         <View style={styles.fbAvatar}>
           <Text style={{ fontSize: 32 }}>{tipo === 'escola' ? '🏫' : '👨‍🏫'}</Text>
         </View>
-        <Text style={styles.fbName}>{dados.nome}</Text>
+        <Text style={styles.fbName}>{dados.nome || dados.nome_completo}</Text>
         <Text style={styles.fbSub}>{tipo === 'escola' ? `NIF: ${dados.nif}` : `Disciplina: ${dados.disciplina}`}</Text>
 
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-          <TouchableOpacity style={styles.btnEditarPerfil} onPress={() => setModalEditVisivel(true)}>
-            <Text style={styles.txtEditarPerfil}>✏️ Editar Perfil</Text>
-          </TouchableOpacity>
-
-          {tipo === 'escola' && (
-            <TouchableOpacity style={styles.btnCadAlunoPerfil} onPress={() => setModalCadAlunoVisivel(true)}>
-              <Text style={styles.txtCadAlunoPerfil}>➕ Inscrever Aluno</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
         <View style={styles.badgePendenteContainer}>
-          <Text style={styles.badgePendenteTxt}>⏳ Pendente de Aprovação pelo Administrador</Text>
+          <Text style={styles.badgePendenteTxt}>⏳ Gravação Confirmada! Pendente de Aprovação</Text>
         </View>
       </View>
 
       <View style={styles.fbInfoCard}>
-        <Text style={styles.fbSectionTitle}>📌 Informações Gerais</Text>
+        <Text style={styles.fbSectionTitle}>📌 Informações Gravadas</Text>
         <Text style={styles.fbInfoRow}>📧 Email: {dados.email}</Text>
-        <Text style={styles.fbInfoRow}>📞 Telefone / Contacto: {dados.telefone || dados.nif}</Text>
-        {tipo === 'escola' ? (
-          <>
-            <Text style={styles.fbInfoRow}>👨‍💼 Director: {detalhesExtra.director || 'N/A'}</Text>
-            <Text style={styles.fbInfoRow}>👨‍💼 Vice-Director: {detalhesExtra.vice_director || 'N/A'}</Text>
-            <Text style={styles.fbInfoRow}>👨‍🏫 Nº Professores: {detalhesExtra.num_professores || '0'}</Text>
-            <Text style={styles.fbInfoRow}>👨‍🎓 Nº Estudantes: {detalhesExtra.num_estudantes || '0'}</Text>
-            <Text style={styles.fbInfoRow}>📍 Localização: {detalhesExtra.localizacao || 'N/A'}</Text>
-          </>
-        ) : (
-          <Text style={styles.fbInfoRow}>📷 Fotografia / Foto de Perfil: {detalhesExtra.foto_nome || 'Foto Padrão'}</Text>
-        )}
+        <Text style={styles.fbInfoRow}>📞 Contacto: {dados.telefone || dados.nif}</Text>
       </View>
-
-      {tipo === 'escola' && (
-        <View style={styles.fbInfoCard}>
-          <Text style={styles.fbSectionTitle}>📋 Módulos Pedagógicos & Documentação</Text>
-          <Text style={styles.fbInfoRow}>➡️ Classes: {detalhesExtra.classes || 'Não informado'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Eventos: {detalhesExtra.eventos || 'Sem eventos cadastrados'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Pauta: {detalhesExtra.pauta || 'Pendente de publicação'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Convocatória: {detalhesExtra.convocatoria || 'Nenhuma convocatória ativa'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Alunos em Destaque: {detalhesExtra.alunos_destaque || 'N/A'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Guia do Aluno: {detalhesExtra.guia_aluno || 'Disponível na secretaria'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Plano de Estudo: {detalhesExtra.plano_estudo || 'Plano curricular aprovado'}</Text>
-        </View>
-      )}
 
       <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
       </TouchableOpacity>
-
-      <Modal visible={modalEditVisivel} animationType="slide" transparent={true}>
-        <View style={styles.darkModalOverlay}>
-          <View style={styles.darkModalCard}>
-            <Text style={styles.darkModalTitle}>Editar Perfil ✏️</Text>
-            <Text style={styles.darkModalSubtitle}>Atualize as informações do seu registo</Text>
-
-            <Text style={styles.labelModalEdit}>Nome / Titulação</Text>
-            <TextInput style={styles.darkInput} value={nome} onChangeText={setNome} placeholder="Nome" placeholderTextColor="#9ca3af" />
-
-            <Text style={styles.labelModalEdit}>{tipo === 'escola' ? 'NIF' : 'Disciplina'}</Text>
-            <TextInput style={styles.darkInput} value={subCampo} onChangeText={setSubCampo} placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'} placeholderTextColor="#9ca3af" />
-
-            <Text style={styles.labelModalEdit}>Telefone de Contacto</Text>
-            <TextInput style={styles.darkInput} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Telefone" placeholderTextColor="#9ca3af" />
-
-            <TouchableOpacity style={styles.btnEntrarDark} onPress={salvarEdicao} disabled={loading}>
-              {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>GUARDAR ALTERAÇÕES</Text>}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.btnFecharDark} onPress={() => setModalEditVisivel(false)}>
-              <Text style={styles.txtFecharDark}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={modalCadAlunoVisivel} animationType="slide" transparent={true}>
-        <View style={styles.darkModalOverlay}>
-          <View style={styles.darkModalCard}>
-            <Text style={styles.darkModalTitle}>Inscrever Aluno 👨‍🎓</Text>
-            <Text style={styles.darkModalSubtitle}>Cadastre o aluno e os dados do encarregado</Text>
-
-            <Text style={styles.labelModalEdit}>Nome Completo do Aluno *</Text>
-            <TextInput style={styles.darkInput} value={nomeAluno} onChangeText={setNomeAluno} placeholder="Ex: Manuel António" placeholderTextColor="#9ca3af" />
-
-            <Text style={styles.labelModalEdit}>Nº do Bilhete de Identidade (BI) *</Text>
-            <TextInput style={styles.darkInput} value={biAluno} onChangeText={setBiAluno} placeholder="Ex: 009281721LA042" placeholderTextColor="#9ca3af" />
-
-            <Text style={styles.labelModalEdit}>Nome do Encarregado de Educação *</Text>
-            <TextInput style={styles.darkInput} value={nomeEncarregado} onChangeText={setNomeEncarregado} placeholder="Ex: João António" placeholderTextColor="#9ca3af" />
-
-            <Text style={styles.labelModalEdit}>Telefone do Encarregado</Text>
-            <TextInput style={styles.darkInput} value={telEncarregado} onChangeText={setTelEncarregado} keyboardType="phone-pad" placeholder="Ex: 923112233" placeholderTextColor="#9ca3af" />
-
-            <TouchableOpacity style={styles.btnEntrarDark} onPress={cadastrarAlunoNaEscola} disabled={loadingAluno}>
-              {loadingAluno ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>INSCREVER ALUNO</Text>}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.btnFecharDark} onPress={() => setModalCadAlunoVisivel(false)}>
-              <Text style={styles.txtFecharDark}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
 
-// --- FORMULÁRIO DE INSTITUIÇÃO ---
 function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
-  const [numeroInst, setNumeroInst] = useState('');
+  const [nif, setNif] = useState('');
   const [email, setEmail] = useState(usuario?.email || '');
-  const [logotipo, setLogotipo] = useState(null);
-  const [ficheiroPdf, setFicheiroPdf] = useState(null);
-
   const [director, setDirector] = useState('');
-  const [viceDirector, setViceDirector] = useState('');
-  const [numProfessores, setNumProfessores] = useState('');
-  const [numEstudantes, setNumEstudantes] = useState('');
-  const [eventos, setEventos] = useState('');
-  const [classes, setClasses] = useState('');
-  const [pauta, setPauta] = useState('');
-  const [convocatoria, setConvocatoria] = useState('');
   const [localizacao, setLocalizacao] = useState('');
-  const [alunosDestaque, setAlunosDestaque] = useState('');
-  const [guiaAluno, setGuiaAluno] = useState('');
-  const [planoEstudo, setPlanoEstudo] = useState('');
-
   const [loading, setLoading] = useState(false);
 
-  const selecionarLogotipo = async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
-        copyToCacheDirectory: true,
-      });
-
-      if (!res.canceled && res.assets && res.assets.length > 0) {
-        setLogotipo(res.assets[0]);
-        Alert.alert('Imagem Selecionada', `Fotografia/Logotipo: ${res.assets[0].name}`);
-      }
-    } catch (err) {
-      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
-    }
-  };
-
-  const selecionarPdf = async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-        copyToCacheDirectory: true,
-      });
-
-      if (!res.canceled && res.assets && res.assets.length > 0) {
-        setFicheiroPdf(res.assets[0]);
-        Alert.alert('Ficheiro Anexado', `Documento selecionado: ${res.assets[0].name}`);
-      }
-    } catch (err) {
-      Alert.alert('Erro', 'Não foi possível selecionar o ficheiro PDF.');
-    }
-  };
-
   const handleCadastrar = async () => {
-    if (!nome.trim() || !numeroInst.trim() || !email.trim()) {
-      Alert.alert('Atenção', 'Preencha o Nome da Instituição, NIF e Email.');
+    if (!nome.trim() || !nif.trim()) {
+      Alert.alert('Campos Obrigatórios', 'Preencha o Nome da Instituição e o NIF.');
       return;
     }
 
     setLoading(true);
     try {
-      const dadosExtra = {
-        director: director.trim(),
-        vice_director: viceDirector.trim(),
-        num_professores: numProfessores.trim(),
-        num_estudantes: numEstudantes.trim(),
-        eventos: eventos.trim(),
-        classes: classes.trim(),
-        pauta: pauta.trim(),
-        convocatoria: convocatoria.trim(),
-        localizacao: localizacao.trim(),
-        alunos_destaque: alunosDestaque.trim(),
-        guia_aluno: guiaAluno.trim(),
-        plano_estudo: planoEstudo.trim(),
-        logotipo_nome: logotipo ? logotipo.name : 'Sem Logotipo',
-        ficheiro_nome: ficheiroPdf ? ficheiroPdf.name : 'Nenhum PDF'
-      };
-
-      const dadosCad = {
+      const objetoEnvio = {
         nome: nome.trim(),
-        nif: numeroInst.trim(),
-        email: email.trim(),
+        nif: nif.trim(),
+        email: email.trim() || 'sem-email@escola.ao',
         status: 'Pendente',
-        sobre: JSON.stringify(dadosExtra)
+        sobre: `Director: ${director.trim()} | Localizacao: ${localizacao.trim()}`
       };
 
-      const { data, error } = await supabase.from('instituicoes').insert([dadosCad]).select();
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('instituicoes')
+        .insert([objetoEnvio])
+        .select();
 
-      onConcluir(data && data.length > 0 ? data[0] : dadosCad);
+      if (error) {
+        Alert.alert('Erro do Supabase', `${error.message}\nDetalhes: ${error.details || 'Sem detalhes'}`);
+      } else {
+        Alert.alert('Sucesso 🎉', 'Instituição gravada com sucesso na base de dados!');
+        onConcluir(data && data.length > 0 ? data[0] : objetoEnvio);
+      }
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar os dados.');
+      Alert.alert('Erro Inesperado', err.message || 'Falha ao conectar.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 60 }}>
+    <ScrollView style={styles.formContainer}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>Legalização de Instituição</Text>
+        <Text style={styles.formTitle}>Cadastrar Instituição</Text>
       </View>
 
       <Text style={styles.label}>Nome da Instituição *</Text>
       <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Futuro do Saber" />
 
-      <Text style={styles.label}>Fotografia / Logotipo da Instituição</Text>
-      <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarLogotipo}>
-        <Text style={styles.txtSelecionarPdf}>
-          {logotipo ? `🖼️ ${logotipo.name}` : '📷 Selecionar Foto/Logotipo'}
-        </Text>
-      </TouchableOpacity>
-
       <Text style={styles.label}>Número / NIF *</Text>
-      <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="NIF ou Telefone" />
+      <TextInput style={styles.input} value={nif} onChangeText={setNif} placeholder="NIF ou Número de Registo" />
 
-      <Text style={styles.label}>Email da Instituição *</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
+      <Text style={styles.label}>Email de Contacto</Text>
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="escola@contacto.com" />
 
       <Text style={styles.label}>Director da Instituição</Text>
-      <TextInput style={styles.input} value={director} onChangeText={setDirector} placeholder="Ex: Dr. Manuel dos Santos" />
+      <TextInput style={styles.input} value={director} onChangeText={setDirector} placeholder="Ex: Dr. Manuel" />
 
-      <Text style={styles.label}>Vice-Director</Text>
-      <TextInput style={styles.input} value={viceDirector} onChangeText={setViceDirector} placeholder="Ex: Prof. Maria António" />
-
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.label}>Nº de Professores</Text>
-          <TextInput style={styles.input} value={numProfessores} onChangeText={setNumProfessores} keyboardType="number-pad" placeholder="Ex: 25" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.label}>Nº de Estudantes</Text>
-          <TextInput style={styles.input} value={numEstudantes} onChangeText={setNumEstudantes} keyboardType="number-pad" placeholder="Ex: 450" />
-        </View>
-      </View>
-
-      <Text style={styles.label}>➡️ Localização</Text>
-      <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Luanda, Viana, Bairro Cazenga" />
-
-      <Text style={styles.label}>➡️ Classes Lecionadas</Text>
-      <TextInput style={styles.input} value={classes} onChangeText={setClasses} placeholder="Ex: Iniciação à 12ª Classe" />
-
-      <Text style={styles.label}>➡️ Eventos Escolares</Text>
-      <TextInput style={styles.input} value={eventos} onChangeText={setEventos} placeholder="Ex: Feira das Ciências, Feira do Livro" />
-
-      <Text style={styles.label}>➡️ Pauta / Informações</Text>
-      <TextInput style={styles.input} value={pauta} onChangeText={setPauta} placeholder="Ex: Pautas do 1º Trimestre Publicadas" />
-
-      <Text style={styles.label}>➡️ Convocatória</Text>
-      <TextInput style={styles.input} value={convocatoria} onChangeText={setConvocatoria} placeholder="Ex: Reunião Geral de Encarregados" />
-
-      <Text style={styles.label}>➡️ Alunos em Destaque</Text>
-      <TextInput style={styles.input} value={alunosDestaque} onChangeText={setAlunosDestaque} placeholder="Ex: Quadro de Honra da 10ª Classe" />
-
-      <Text style={styles.label}>➡️ Guia do Aluno</Text>
-      <TextInput style={styles.input} value={guiaAluno} onChangeText={setGuiaAluno} placeholder="Ex: Regulamento Interno e Horários" />
-
-      <Text style={styles.label}>➡️ Plano de Estudo</Text>
-      <TextInput style={styles.input} value={planoEstudo} onChangeText={setPlanoEstudo} placeholder="Ex: Currículo do Ensino Geral" />
-
-      <View style={styles.cardNotaLegal}>
-        <Text style={styles.tituloNotaLegal}>📜 Requisitos do Decreto Presidencial 37/23</Text>
-        <Text style={styles.corpoNotaLegal}>
-          Anexe a Certidão de Registo, Estatutos e Projeto Pedagógico num único PDF para análise do administrador.
-        </Text>
-
-        <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarPdf}>
-          <Text style={styles.txtSelecionarPdf}>
-            {ficheiroPdf ? `📄 ${ficheiroPdf.name}` : '📎 Anexar Documentação em PDF'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.label}>Localização</Text>
+      <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Luanda, Viana" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Criar Perfil e Submeter</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Gravar Instituição</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// --- FORMULÁRIO DE PROFESSOR (COM SELEÇÃO DE FOTOGRAFIA) ---
 function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [disciplina, setDisciplina] = useState('');
   const [telefone, setTelefone] = useState('');
   const [bi, setBi] = useState('');
-  const [foto, setFoto] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const selecionarFotoProfessor = async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
-        copyToCacheDirectory: true,
-      });
-
-      if (!res.canceled && res.assets && res.assets.length > 0) {
-        setFoto(res.assets[0]);
-        Alert.alert('Fotografia Anexada', `Imagem selecionada: ${res.assets[0].name}`);
-      }
-    } catch (err) {
-      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
-    }
-  };
 
   const handleCadastrarProf = async () => {
     if (!nome.trim() || !disciplina.trim() || !telefone.trim()) {
-      Alert.alert('Atenção', 'Preencha o nome, disciplina e telefone do professor.');
+      Alert.alert('Campos Obrigatórios', 'Preencha Nome, Disciplina e Telefone.');
       return;
     }
 
     setLoading(true);
     try {
-      const dadosProf = {
+      const objetoEnvio = {
         nome_completo: nome.trim(),
         disciplina: disciplina.trim(),
         telefone: telefone.trim(),
         num_bilhete: bi.trim(),
         status: 'Pendente',
-        email: usuario?.email || ''
+        email: usuario?.email || 'professor@escola.ao',
+        sobre: 'Sem foto'
       };
 
-      const { data, error } = await supabase.from('professores').insert([dadosProf]).select();
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('professores')
+        .insert([objetoEnvio])
+        .select();
 
-      onConcluir({
-        id: data && data.length > 0 ? data[0].id : null,
-        nome: nome.trim(),
-        disciplina: disciplina.trim(),
-        telefone: telefone.trim(),
-        email: usuario?.email || 'Registo Interno',
-        sobre: JSON.stringify({ foto_nome: foto ? foto.name : 'Sem foto' })
-      });
+      if (error) {
+        Alert.alert('Erro do Supabase', `${error.message}\nDetalhes: ${error.details || 'Sem detalhes'}`);
+      } else {
+        Alert.alert('Sucesso 🎉', 'Professor gravado com sucesso na base de dados!');
+        onConcluir(data && data.length > 0 ? data[0] : objetoEnvio);
+      }
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar os dados.');
+      Alert.alert('Erro Inesperado', err.message || 'Falha ao conectar.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.formContainer}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>Inscrição de Professor</Text>
+        <Text style={styles.formTitle}>Cadastrar Professor</Text>
       </View>
 
-      <Text style={styles.label}>Nome Completo do Professor *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Maurício João" />
-
-      <Text style={styles.label}>Fotografia / Foto do Professor</Text>
-      <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarFotoProfessor}>
-        <Text style={styles.txtSelecionarPdf}>
-          {foto ? `🖼️ ${foto.name}` : '📷 Selecionar Fotografia'}
-        </Text>
-      </TouchableOpacity>
+      <Text style={styles.label}>Nome Completo *</Text>
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: João Manuel" />
 
       <Text style={styles.label}>Disciplina / Especialidade *</Text>
       <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática" />
 
-      <Text style={styles.label}>Telefone de Contacto *</Text>
+      <Text style={styles.label}>Telefone *</Text>
       <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Ex: 929500600" />
 
-      <Text style={styles.label}>Nº do Bilhete de Identidade (BI)</Text>
-      <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 000000/0" />
+      <Text style={styles.label}>Nº Bilhete de Identidade (BI)</Text>
+      <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 000000000LA000" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrarProf} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Criar Perfil Docente</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Gravar Professor</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// --- PESQUISA DE ALUNOS ---
-function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
-  const [busca, setBusca] = useState('');
-  const [alunos, setAlunos] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    carregarEstudantes();
-  }, []);
-
-  const carregarEstudantes = async () => {
-    setLoading(true);
-    try {
-      const { data } = await supabase.from('estudantes').select('*').order('id', { ascending: false });
-      setAlunos(data || []);
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const alunosFiltrados = alunos.filter(a => 
-    (a.nome_completo && a.nome_completo.toLowerCase().includes(busca.toLowerCase())) ||
-    (a.encarregado_nome && a.encarregado_nome.toLowerCase().includes(busca.toLowerCase())) ||
-    (a.num_bilhete && a.num_bilhete.toLowerCase().includes(busca.toLowerCase()))
-  );
-
-  return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={onVoltarHome}>
-          <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Pesquisa Alunos & Encarregados</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <View style={{ padding: 16 }}>
-        <TextInput 
-          style={styles.inputBusca} 
-          placeholder="Pesquise por aluno, encarregado ou BI..." 
-          value={busca} 
-          onChangeText={setBusca} 
-        />
-      </View>
-
-      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
-        {loading ? (
-          <ActivityIndicator size="small" color="#0f172a" style={{ marginTop: 20 }} />
-        ) : alunosFiltrados.length === 0 ? (
-          <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 30 }}>Nenhum registo encontrado.</Text>
-        ) : (
-          alunosFiltrados.map((aluno) => (
-            <View key={aluno.id} style={styles.cardConsulta}>
-              <Text style={styles.nomeAlunoConsulta}>👨‍🎓 Aluno: {aluno.nome_completo}</Text>
-
-              <View style={styles.boxEncarregadoCard}>
-                <Text style={styles.txtEncarregadoTitulo}>👨‍👩‍👦 Encarregado de Educação:</Text>
-                <Text style={styles.txtEncarregadoNome}>{aluno.encarregado_nome || 'Não Registado'}</Text>
-                <Text style={styles.txtEncarregadoTel}>📞 Contacto: {aluno.encarregado_telefone || aluno.telefone || 'Sem contacto'}</Text>
-              </View>
-
-              <Text style={styles.detalheCurso}>BI: {aluno.num_bilhete || 'N/A'}</Text>
-            </View>
-          ))
-        )}
-      </ScrollView>
-    </View>
-  );
-}
-
-// --- PUBLICIDADES ---
-function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={onVoltarHome}>
-          <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '600' }}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>Quadro de Publicidades</Text>
-        <View style={{ width: 50 }} />
-      </View>
-
-      <ScrollView style={{ flex: 1, padding: 16 }}>
-        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
-      </ScrollView>
-    </View>
-  );
-}
-
-// --- HOME ---
-function MenuPrincipalHome({ 
-  usuario,
-  onNavegarCadastramentoInst, 
-  onNavegarPesquisaAlunosEncarregados, 
-  onNavegarCadastramentoProf,
-  onNavegarQuadroPub, 
-  onLogout,
-  publicidadeLigar 
-}) {
+function MenuPrincipalHome({ usuario, onNavegarCadastramentoInst, onNavegarCadastramentoProf, onLogout, publicidadeLigar }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
-        <Text style={styles.homeTitleHeader}>Portal Escola</Text>
-        
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {usuario && (
-            <TouchableOpacity style={styles.btnHeaderLogout} onPress={onLogout}>
-              <Text style={styles.txtHeaderLogout}>Sair ({usuario.email.split('@')[0]})</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity style={styles.btnHeaderPub} onPress={onNavegarQuadroPub}>
-            <Text style={styles.txtHeaderPub}>📢 Publicidade</Text>
+        <Text style={styles.homeTitleHeader}>Portal Escola 🎓</Text>
+        {usuario && (
+          <TouchableOpacity style={styles.btnHeaderLogout} onPress={onLogout}>
+            <Text style={styles.txtHeaderLogout}>Sair</Text>
           </TouchableOpacity>
-        </View>
+        )}
       </View>
 
-      <ScrollView style={styles.homeContainer} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
-        <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        <Text style={styles.secaoTitulo}>Menu Principal</Text>
 
         <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarCadastramentoInst}>
           <Text style={styles.cardEmoji}>🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
-          <Text style={styles.cardMenuDesc}>
-            Registe a sua instituição de ensino e anexe os documentos de legalização.
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarPesquisaAlunosEncarregados}>
-          <Text style={styles.cardEmoji}>🔎</Text>
-          <Text style={styles.cardMenuTitulo}>Pesquisa de Alunos e Encarregados</Text>
-          <Text style={styles.cardMenuDesc}>
-            Pesquise alunos registados, os seus bilhetes e contactos dos encarregados de educação.
-          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.cardMenuImageStyle} onPress={onNavegarCadastramentoProf}>
           <Text style={styles.cardEmoji}>👨‍🏫</Text>
           <Text style={styles.cardMenuTitulo}>Cadastramento de Professor</Text>
-          <Text style={styles.cardMenuDesc}>
-            Registe o corpo docente, disciplinas atribuídas e contactos dos professores.
-          </Text>
         </TouchableOpacity>
 
         <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
@@ -877,7 +343,6 @@ function MenuPrincipalHome({
   );
 }
 
-// --- MAIN APP ---
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('home');
   const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
@@ -914,7 +379,6 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUsuario(null);
-    Alert.alert('Sessão Encerrada', 'Saiu da sua conta com sucesso.');
   };
 
   return (
@@ -926,9 +390,7 @@ export default function App() {
           usuario={usuario}
           onLogout={handleLogout}
           onNavegarCadastramentoInst={() => solicitarAutenticacao('cadastramento')}
-          onNavegarPesquisaAlunosEncarregados={() => setTelaAtual('pesquisa_alunos_encarregados')}
           onNavegarCadastramentoProf={() => solicitarAutenticacao('cadastramento_prof')}
-          onNavegarQuadroPub={() => setTelaAtual('quadro_pub')}
           publicidadeLigar={ligarParaSuporte}
         />
       )}
@@ -961,21 +423,7 @@ export default function App() {
         <PerfilEstiloFacebook
           dados={dadosPerfilCriado}
           tipo={tipoPerfil}
-          onAtualizarDados={(novosDados) => setDadosPerfilCriado(novosDados)}
           onVoltarHome={() => setTelaAtual('home')}
-        />
-      )}
-
-      {telaAtual === 'pesquisa_alunos_encarregados' && (
-        <TelaPesquisaAlunosEncarregados
-          onVoltarHome={() => setTelaAtual('home')}
-        />
-      )}
-
-      {telaAtual === 'quadro_pub' && (
-        <TelaQuadroPublicidades
-          onVoltarHome={() => setTelaAtual('home')}
-          publicidadeLigar={ligarParaSuporte}
         />
       )}
 
@@ -995,104 +443,49 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  headerRowHome: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 45,
-    paddingBottom: 15,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0'
-  },
+  headerRowHome: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 45, paddingBottom: 15, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   homeTitleHeader: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
-  btnHeaderPub: { backgroundColor: '#f1f5f9', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
-  txtHeaderPub: { color: '#1e40af', fontSize: 13, fontWeight: '600' },
   btnHeaderLogout: { backgroundColor: '#fee2e2', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20 },
   txtHeaderLogout: { color: '#dc2626', fontSize: 12, fontWeight: '600' },
-  homeContainer: { flex: 1 },
-  secaoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
-  secaoSubtitulo: { fontSize: 13, color: '#64748b', marginBottom: 16 },
-  cardMenuImageStyle: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    elevation: 2
-  },
+  secaoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 12 },
+  cardMenuImageStyle: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   cardEmoji: { fontSize: 24, marginBottom: 8 },
-  cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
-  cardMenuDesc: { fontSize: 13, color: '#64748b' },
-  cardPublicidade: { borderRadius: 12, padding: 16, marginTop: 12, marginBottom: 20 },
-  badgePatrocinado: { backgroundColor: 'rgba(255, 255, 255, 0.2)', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 12 },
-  txtBadgePatrocinado: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
-  tituloPublicidade: { color: '#ffffff', fontSize: 17, fontWeight: 'bold', marginTop: 10, marginBottom: 6 },
-  corpoPublicidade: { color: '#f8fafc', fontSize: 13, lineHeight: 18 },
-  btnLigarPub: { marginTop: 14, backgroundColor: 'rgba(0, 0, 0, 0.25)', padding: 10, borderRadius: 8 },
-  rodapePublicidade: { color: '#ffffff', fontSize: 12, textAlign: 'center' },
-  telefonePublicidade: { fontWeight: 'bold', color: '#fbbf24', fontSize: 13 },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 45,
-    paddingBottom: 15,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0'
-  },
+  cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
+  cardPublicidade: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, marginTop: 12 },
+  tituloPublicidade: { color: '#ffffff', fontSize: 17, fontWeight: 'bold' },
+  corpoPublicidade: { color: '#f8fafc', fontSize: 13, marginTop: 4 },
+  btnLigarPub: { marginTop: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 6 },
+  telefonePublicidade: { color: '#fbbf24', fontWeight: 'bold' },
   formContainer: { flex: 1, padding: 16, backgroundColor: '#ffffff' },
-  formHeader: { flexDirection: 'row', alignItems: 'center', paddingTop: 40, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  formHeader: { flexDirection: 'row', alignItems: 'center', paddingTop: 40, paddingBottom: 20 },
   btnVoltarHeader: { marginRight: 15 },
   txtVoltarHeader: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
   formTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
-  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginTop: 14, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginTop: 12, marginBottom: 6 },
   input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 14, color: '#0f172a' },
-  btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 24 },
+  btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
-  cardNotaLegal: { backgroundColor: '#eff6ff', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#bfdbfe', marginTop: 16 },
-  tituloNotaLegal: { fontSize: 14, fontWeight: 'bold', color: '#1e40af', marginBottom: 6 },
-  corpoNotaLegal: { fontSize: 12, color: '#1e3a8a', lineHeight: 16, marginBottom: 10 },
-  btnSelecionarPdf: { backgroundColor: '#2563eb', padding: 10, borderRadius: 6, alignItems: 'center' },
-  txtSelecionarPdf: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
-  inputBusca: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, fontSize: 14 },
-  cardConsulta: { backgroundColor: '#ffffff', padding: 14, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
-  nomeAlunoConsulta: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
-  boxEncarregadoCard: { backgroundColor: '#f1f5f9', padding: 10, borderRadius: 6, marginTop: 8, marginBottom: 6 },
-  txtEncarregadoTitulo: { fontSize: 11, color: '#475569', fontWeight: 'bold' },
-  txtEncarregadoNome: { fontSize: 13, color: '#0f172a', fontWeight: '600', marginTop: 2 },
-  txtEncarregadoTel: { fontSize: 12, color: '#2563eb', marginTop: 2 },
-  detalheCurso: { fontSize: 12, color: '#64748b', marginTop: 2 },
   darkModalOverlay: { flex: 1, backgroundColor: 'rgba(11, 19, 36, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  darkModalCard: { backgroundColor: '#1b253b', width: '100%', borderRadius: 16, padding: 24, alignItems: 'stretch' },
-  darkModalTitle: { fontSize: 26, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
-  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginTop: 4, marginBottom: 24 },
-  darkInput: { backgroundColor: '#243049', borderWidth: 1, borderColor: '#334155', borderRadius: 10, padding: 14, color: '#ffffff', fontSize: 14, marginBottom: 14 },
-  btnEntrarDark: { backgroundColor: '#2563eb', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 8 },
-  txtEntrarDark: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
-  btnLinkDark: { marginTop: 20, alignItems: 'center' },
-  txtLinkDark: { color: '#38bdf8', fontSize: 14, fontWeight: '600' },
-  btnFecharDark: { marginTop: 20, alignItems: 'center' },
+  darkModalCard: { backgroundColor: '#1b253b', width: '100%', borderRadius: 16, padding: 24 },
+  darkModalTitle: { fontSize: 24, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
+  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 20 },
+  darkInput: { backgroundColor: '#243049', borderWidth: 1, borderColor: '#334155', borderRadius: 10, padding: 12, color: '#ffffff', marginBottom: 12 },
+  btnEntrarDark: { backgroundColor: '#2563eb', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 8 },
+  txtEntrarDark: { color: '#ffffff', fontWeight: 'bold' },
+  btnLinkDark: { marginTop: 16, alignItems: 'center' },
+  txtLinkDark: { color: '#38bdf8', fontSize: 13 },
+  btnFecharDark: { marginTop: 16, alignItems: 'center' },
   txtFecharDark: { color: '#64748b', fontSize: 13 },
-  fbCover: { height: 120, backgroundColor: '#1877f2', justifyContent: 'flex-end', padding: 12 },
-  fbHeaderCard: { backgroundColor: '#ffffff', padding: 16, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#dddfe2' },
-  fbAvatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#e4e6eb', justifyContent: 'center', alignItems: 'center', marginTop: -40, borderWidth: 3, borderColor: '#ffffff' },
-  fbName: { fontSize: 20, fontWeight: 'bold', color: '#050505', marginTop: 8 },
-  fbSub: { fontSize: 14, color: '#65676b', marginTop: 2 },
-  btnEditarPerfil: { backgroundColor: '#e4e6eb', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
-  txtEditarPerfil: { color: '#050505', fontWeight: 'bold', fontSize: 13 },
-  btnCadAlunoPerfil: { backgroundColor: '#16a34a', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
-  txtCadAlunoPerfil: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
-  badgePendenteContainer: { marginTop: 10, backgroundColor: '#fef3c7', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#fde047' },
-  badgePendenteTxt: { color: '#b45309', fontSize: 12, fontWeight: 'bold' },
-  fbInfoCard: { backgroundColor: '#ffffff', padding: 16, marginTop: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#dddfe2' },
+  fbCover: { height: 100, backgroundColor: '#1877f2', justifyContent: 'flex-end', padding: 12 },
+  fbHeaderCard: { backgroundColor: '#ffffff', padding: 16, alignItems: 'center' },
+  fbAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#e4e6eb', justifyContent: 'center', alignItems: 'center', marginTop: -35, borderWidth: 3, borderColor: '#ffffff' },
+  fbName: { fontSize: 18, fontWeight: 'bold', color: '#050505', marginTop: 8 },
+  fbSub: { fontSize: 13, color: '#65676b' },
+  badgePendenteContainer: { marginTop: 10, backgroundColor: '#dcfce7', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  badgePendenteTxt: { color: '#15803d', fontSize: 12, fontWeight: 'bold' },
+  fbInfoCard: { backgroundColor: '#ffffff', padding: 16, marginTop: 10 },
   fbSectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#050505', marginBottom: 8 },
   fbInfoRow: { fontSize: 13, color: '#334155', marginBottom: 6 },
-  btnVoltarFb: { backgroundColor: '#1877f2', padding: 14, marginHorizontal: 16, marginBottom: 30, borderRadius: 8, alignItems: 'center' },
-  txtVoltarFb: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
-  labelModalEdit: { color: '#94a3b8', fontSize: 12, marginBottom: 4, marginTop: 6 }
+  btnVoltarFb: { backgroundColor: '#1877f2', padding: 14, margin: 16, borderRadius: 8, alignItems: 'center' },
+  txtVoltarFb: { color: '#ffffff', fontWeight: 'bold' }
 });
