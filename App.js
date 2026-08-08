@@ -106,9 +106,9 @@ function CarrosselPublicidades({ publicidadeLigar }) {
   );
 }
 
-// --- MODAL DE LOGIN (DESIGN IDÊNTICO À IMAGEM) ---
+// --- MODAL DE LOGIN E REGISTO ---
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
-  const [modo, setModo] = useState('login'); // 'login' ou 'registro'
+  const [modo, setModo] = useState('login');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
@@ -136,7 +136,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         });
 
         if (error) {
-          Alert.alert('Aviso de Acesso', error.message || 'Credenciais inválidas.');
+          Alert.alert('Erro de Acesso', error.message || 'Credenciais inválidas.');
         } else if (data?.user) {
           Alert.alert('Sucesso 🎉', 'Sessão iniciada com sucesso!');
           onLoginSucesso(data.user);
@@ -149,16 +149,17 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         });
 
         if (error) {
-          Alert.alert('Erro no Cadastro', error.message || 'Não foi possível criar a conta.');
+          Alert.alert('Erro no Registo', error.message || 'Não foi possível criar a conta.');
         } else if (data?.user) {
           if (!data.session) {
-            const resLogin = await supabase.auth.signInWithPassword({
+            const loginRes = await supabase.auth.signInWithPassword({
               email: emailLimpo,
               password: senhaLimpa,
             });
-            if (!resLogin.error && resLogin.data?.user) {
-              Alert.alert('Conta Criada 🎉', 'Conta registada com sucesso!');
-              onLoginSucesso(resLogin.data.user);
+
+            if (!loginRes.error && loginRes.data?.user) {
+              Alert.alert('Sucesso 🎉', 'Conta criada e sessão iniciada!');
+              onLoginSucesso(loginRes.data.user);
               onClose();
               return;
             }
@@ -167,12 +168,12 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
           onLoginSucesso(data.user);
           onClose();
         } else {
-          Alert.alert('Aviso', 'Registo submetido. Tente fazer login.');
+          Alert.alert('Aviso', 'Registo enviado. Tente fazer login.');
           setModo('login');
         }
       }
     } catch (err) {
-      Alert.alert('Erro no Servidor', err.message || 'Falha na operação.');
+      Alert.alert('Erro', err.message || 'Falha ao ligar ao servidor.');
     } finally {
       setLoading(false);
     }
@@ -230,7 +231,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// --- VISUALIZAÇÃO E EDIÇÃO ESTILO PERFIL DO FACEBOOK + INSCRIÇÃO DE ALUNO ---
+// --- PERFIL ESTILO FACEBOOK ---
 function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
   const [modalEditVisivel, setModalEditVisivel] = useState(false);
   const [modalCadAlunoVisivel, setModalCadAlunoVisivel] = useState(false);
@@ -245,6 +246,13 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
   const [nomeEncarregado, setNomeEncarregado] = useState('');
   const [telEncarregado, setTelEncarregado] = useState('');
   const [loadingAluno, setLoadingAluno] = useState(false);
+
+  let detalhesExtra = {};
+  try {
+    detalhesExtra = typeof dados.sobre === 'string' ? JSON.parse(dados.sobre) : (dados.sobre || {});
+  } catch (e) {
+    detalhesExtra = {};
+  }
 
   const salvarEdicao = async () => {
     setLoading(true);
@@ -347,18 +355,32 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
       <View style={styles.fbInfoCard}>
         <Text style={styles.fbSectionTitle}>📌 Informações Gerais</Text>
         <Text style={styles.fbInfoRow}>📧 Email: {dados.email}</Text>
-        <Text style={styles.fbInfoRow}>📞 Telefone: {dados.telefone || dados.nif}</Text>
-        {tipo === 'escola' && (
-          <Text style={styles.fbInfoRow}>📜 Documentação Decreto 37/23: Submetida em PDF</Text>
+        <Text style={styles.fbInfoRow}>📞 Telefone / Contacto: {dados.telefone || dados.nif}</Text>
+        {tipo === 'escola' ? (
+          <>
+            <Text style={styles.fbInfoRow}>👨‍💼 Director: {detalhesExtra.director || 'N/A'}</Text>
+            <Text style={styles.fbInfoRow}>👨‍💼 Vice-Director: {detalhesExtra.vice_director || 'N/A'}</Text>
+            <Text style={styles.fbInfoRow}>👨‍🏫 Nº Professores: {detalhesExtra.num_professores || '0'}</Text>
+            <Text style={styles.fbInfoRow}>👨‍🎓 Nº Estudantes: {detalhesExtra.num_estudantes || '0'}</Text>
+            <Text style={styles.fbInfoRow}>📍 Localização: {detalhesExtra.localizacao || 'N/A'}</Text>
+          </>
+        ) : (
+          <Text style={styles.fbInfoRow}>📷 Fotografia / Foto de Perfil: {detalhesExtra.foto_nome || 'Foto Padrão'}</Text>
         )}
       </View>
 
-      <View style={styles.fbNoticeCard}>
-        <Text style={styles.fbNoticeTitle}>ℹ️ Estado da Conta</Text>
-        <Text style={styles.fbNoticeBody}>
-          O seu perfil foi registado e está em fase de verificação documental. O administrador irá analisar os ficheiros para validar a ativação pública na plataforma.
-        </Text>
-      </View>
+      {tipo === 'escola' && (
+        <View style={styles.fbInfoCard}>
+          <Text style={styles.fbSectionTitle}>📋 Módulos Pedagógicos & Documentação</Text>
+          <Text style={styles.fbInfoRow}>➡️ Classes: {detalhesExtra.classes || 'Não informado'}</Text>
+          <Text style={styles.fbInfoRow}>➡️ Eventos: {detalhesExtra.eventos || 'Sem eventos cadastrados'}</Text>
+          <Text style={styles.fbInfoRow}>➡️ Pauta: {detalhesExtra.pauta || 'Pendente de publicação'}</Text>
+          <Text style={styles.fbInfoRow}>➡️ Convocatória: {detalhesExtra.convocatoria || 'Nenhuma convocatória ativa'}</Text>
+          <Text style={styles.fbInfoRow}>➡️ Alunos em Destaque: {detalhesExtra.alunos_destaque || 'N/A'}</Text>
+          <Text style={styles.fbInfoRow}>➡️ Guia do Aluno: {detalhesExtra.guia_aluno || 'Disponível na secretaria'}</Text>
+          <Text style={styles.fbInfoRow}>➡️ Plano de Estudo: {detalhesExtra.plano_estudo || 'Plano curricular aprovado'}</Text>
+        </View>
+      )}
 
       <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
@@ -371,32 +393,13 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
             <Text style={styles.darkModalSubtitle}>Atualize as informações do seu registo</Text>
 
             <Text style={styles.labelModalEdit}>Nome / Titulação</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={nome}
-              onChangeText={setNome}
-              placeholder="Nome"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={nome} onChangeText={setNome} placeholder="Nome" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>{tipo === 'escola' ? 'NIF' : 'Disciplina'}</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={subCampo}
-              onChangeText={setSubCampo}
-              placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'}
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={subCampo} onChangeText={setSubCampo} placeholder={tipo === 'escola' ? 'NIF' : 'Disciplina'} placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Telefone de Contacto</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={telefone}
-              onChangeText={setTelefone}
-              keyboardType="phone-pad"
-              placeholder="Telefone"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Telefone" placeholderTextColor="#9ca3af" />
 
             <TouchableOpacity style={styles.btnEntrarDark} onPress={salvarEdicao} disabled={loading}>
               {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>GUARDAR ALTERAÇÕES</Text>}
@@ -416,41 +419,16 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
             <Text style={styles.darkModalSubtitle}>Cadastre o aluno e os dados do encarregado</Text>
 
             <Text style={styles.labelModalEdit}>Nome Completo do Aluno *</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={nomeAluno}
-              onChangeText={setNomeAluno}
-              placeholder="Ex: Manuel António"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={nomeAluno} onChangeText={setNomeAluno} placeholder="Ex: Manuel António" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Nº do Bilhete de Identidade (BI) *</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={biAluno}
-              onChangeText={setBiAluno}
-              placeholder="Ex: 009281721LA042"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={biAluno} onChangeText={setBiAluno} placeholder="Ex: 009281721LA042" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Nome do Encarregado de Educação *</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={nomeEncarregado}
-              onChangeText={setNomeEncarregado}
-              placeholder="Ex: João António"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={nomeEncarregado} onChangeText={setNomeEncarregado} placeholder="Ex: João António" placeholderTextColor="#9ca3af" />
 
             <Text style={styles.labelModalEdit}>Telefone do Encarregado</Text>
-            <TextInput
-              style={styles.darkInput}
-              value={telEncarregado}
-              onChangeText={setTelEncarregado}
-              keyboardType="phone-pad"
-              placeholder="Ex: 923112233"
-              placeholderTextColor="#9ca3af"
-            />
+            <TextInput style={styles.darkInput} value={telEncarregado} onChangeText={setTelEncarregado} keyboardType="phone-pad" placeholder="Ex: 923112233" placeholderTextColor="#9ca3af" />
 
             <TouchableOpacity style={styles.btnEntrarDark} onPress={cadastrarAlunoNaEscola} disabled={loadingAluno}>
               {loadingAluno ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>INSCREVER ALUNO</Text>}
@@ -471,8 +449,39 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
   const [email, setEmail] = useState(usuario?.email || '');
+  const [logotipo, setLogotipo] = useState(null);
   const [ficheiroPdf, setFicheiroPdf] = useState(null);
+
+  const [director, setDirector] = useState('');
+  const [viceDirector, setViceDirector] = useState('');
+  const [numProfessores, setNumProfessores] = useState('');
+  const [numEstudantes, setNumEstudantes] = useState('');
+  const [eventos, setEventos] = useState('');
+  const [classes, setClasses] = useState('');
+  const [pauta, setPauta] = useState('');
+  const [convocatoria, setConvocatoria] = useState('');
+  const [localizacao, setLocalizacao] = useState('');
+  const [alunosDestaque, setAlunosDestaque] = useState('');
+  const [guiaAluno, setGuiaAluno] = useState('');
+  const [planoEstudo, setPlanoEstudo] = useState('');
+
   const [loading, setLoading] = useState(false);
+
+  const selecionarLogotipo = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setLogotipo(res.assets[0]);
+        Alert.alert('Imagem Selecionada', `Fotografia/Logotipo: ${res.assets[0].name}`);
+      }
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
+    }
+  };
 
   const selecionarPdf = async () => {
     try {
@@ -492,21 +501,35 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
 
   const handleCadastrar = async () => {
     if (!nome.trim() || !numeroInst.trim() || !email.trim()) {
-      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
+      Alert.alert('Atenção', 'Preencha o Nome da Instituição, NIF e Email.');
       return;
     }
 
     setLoading(true);
     try {
+      const dadosExtra = {
+        director: director.trim(),
+        vice_director: viceDirector.trim(),
+        num_professores: numProfessores.trim(),
+        num_estudantes: numEstudantes.trim(),
+        eventos: eventos.trim(),
+        classes: classes.trim(),
+        pauta: pauta.trim(),
+        convocatoria: convocatoria.trim(),
+        localizacao: localizacao.trim(),
+        alunos_destaque: alunosDestaque.trim(),
+        guia_aluno: guiaAluno.trim(),
+        plano_estudo: planoEstudo.trim(),
+        logotipo_nome: logotipo ? logotipo.name : 'Sem Logotipo',
+        ficheiro_nome: ficheiroPdf ? ficheiroPdf.name : 'Nenhum PDF'
+      };
+
       const dadosCad = {
         nome: nome.trim(),
         nif: numeroInst.trim(),
         email: email.trim(),
         status: 'Pendente',
-        sobre: JSON.stringify({
-          status_legalizacao: 'Em Análise pelo Admin',
-          ficheiro_nome: ficheiroPdf ? ficheiroPdf.name : 'Nenhum PDF'
-        })
+        sobre: JSON.stringify(dadosExtra)
       };
 
       const { data, error } = await supabase.from('instituicoes').insert([dadosCad]).select();
@@ -521,7 +544,7 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   };
 
   return (
-    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 60 }}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
@@ -532,11 +555,59 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
       <Text style={styles.label}>Nome da Instituição *</Text>
       <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Futuro do Saber" />
 
+      <Text style={styles.label}>Fotografia / Logotipo da Instituição</Text>
+      <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarLogotipo}>
+        <Text style={styles.txtSelecionarPdf}>
+          {logotipo ? `🖼️ ${logotipo.name}` : '📷 Selecionar Foto/Logotipo'}
+        </Text>
+      </TouchableOpacity>
+
       <Text style={styles.label}>Número / NIF *</Text>
       <TextInput style={styles.input} value={numeroInst} onChangeText={setNumeroInst} placeholder="NIF ou Telefone" />
 
       <Text style={styles.label}>Email da Instituição *</Text>
       <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="contacto@escola.ao" />
+
+      <Text style={styles.label}>Director da Instituição</Text>
+      <TextInput style={styles.input} value={director} onChangeText={setDirector} placeholder="Ex: Dr. Manuel dos Santos" />
+
+      <Text style={styles.label}>Vice-Director</Text>
+      <TextInput style={styles.input} value={viceDirector} onChangeText={setViceDirector} placeholder="Ex: Prof. Maria António" />
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Nº de Professores</Text>
+          <TextInput style={styles.input} value={numProfessores} onChangeText={setNumProfessores} keyboardType="number-pad" placeholder="Ex: 25" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Nº de Estudantes</Text>
+          <TextInput style={styles.input} value={numEstudantes} onChangeText={setNumEstudantes} keyboardType="number-pad" placeholder="Ex: 450" />
+        </View>
+      </View>
+
+      <Text style={styles.label}>➡️ Localização</Text>
+      <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Luanda, Viana, Bairro Cazenga" />
+
+      <Text style={styles.label}>➡️ Classes Lecionadas</Text>
+      <TextInput style={styles.input} value={classes} onChangeText={setClasses} placeholder="Ex: Iniciação à 12ª Classe" />
+
+      <Text style={styles.label}>➡️ Eventos Escolares</Text>
+      <TextInput style={styles.input} value={eventos} onChangeText={setEventos} placeholder="Ex: Feira das Ciências, Feira do Livro" />
+
+      <Text style={styles.label}>➡️ Pauta / Informações</Text>
+      <TextInput style={styles.input} value={pauta} onChangeText={setPauta} placeholder="Ex: Pautas do 1º Trimestre Publicadas" />
+
+      <Text style={styles.label}>➡️ Convocatória</Text>
+      <TextInput style={styles.input} value={convocatoria} onChangeText={setConvocatoria} placeholder="Ex: Reunião Geral de Encarregados" />
+
+      <Text style={styles.label}>➡️ Alunos em Destaque</Text>
+      <TextInput style={styles.input} value={alunosDestaque} onChangeText={setAlunosDestaque} placeholder="Ex: Quadro de Honra da 10ª Classe" />
+
+      <Text style={styles.label}>➡️ Guia do Aluno</Text>
+      <TextInput style={styles.input} value={guiaAluno} onChangeText={setGuiaAluno} placeholder="Ex: Regulamento Interno e Horários" />
+
+      <Text style={styles.label}>➡️ Plano de Estudo</Text>
+      <TextInput style={styles.input} value={planoEstudo} onChangeText={setPlanoEstudo} placeholder="Ex: Currículo do Ensino Geral" />
 
       <View style={styles.cardNotaLegal}>
         <Text style={styles.tituloNotaLegal}>📜 Requisitos do Decreto Presidencial 37/23</Text>
@@ -558,13 +629,30 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   );
 }
 
-// --- FORMULÁRIO DE PROFESSOR ---
+// --- FORMULÁRIO DE PROFESSOR (COM SELEÇÃO DE FOTOGRAFIA) ---
 function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [disciplina, setDisciplina] = useState('');
   const [telefone, setTelefone] = useState('');
   const [bi, setBi] = useState('');
+  const [foto, setFoto] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const selecionarFotoProfessor = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setFoto(res.assets[0]);
+        Alert.alert('Fotografia Anexada', `Imagem selecionada: ${res.assets[0].name}`);
+      }
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
+    }
+  };
 
   const handleCadastrarProf = async () => {
     if (!nome.trim() || !disciplina.trim() || !telefone.trim()) {
@@ -591,7 +679,8 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
         nome: nome.trim(),
         disciplina: disciplina.trim(),
         telefone: telefone.trim(),
-        email: usuario?.email || 'Registo Interno'
+        email: usuario?.email || 'Registo Interno',
+        sobre: JSON.stringify({ foto_nome: foto ? foto.name : 'Sem foto' })
       });
     } catch (err) {
       Alert.alert('Erro ao Salvar', err.message || 'Falha ao guardar os dados.');
@@ -610,16 +699,23 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
       </View>
 
       <Text style={styles.label}>Nome Completo do Professor *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Prof. António Silva" />
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Maurício João" />
+
+      <Text style={styles.label}>Fotografia / Foto do Professor</Text>
+      <TouchableOpacity style={styles.btnSelecionarPdf} onPress={selecionarFotoProfessor}>
+        <Text style={styles.txtSelecionarPdf}>
+          {foto ? `🖼️ ${foto.name}` : '📷 Selecionar Fotografia'}
+        </Text>
+      </TouchableOpacity>
 
       <Text style={styles.label}>Disciplina / Especialidade *</Text>
-      <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática / Física" />
+      <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática" />
 
       <Text style={styles.label}>Telefone de Contacto *</Text>
-      <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Ex: 923000000" />
+      <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Ex: 929500600" />
 
       <Text style={styles.label}>Nº do Bilhete de Identidade (BI)</Text>
-      <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 004928172LA048" />
+      <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 000000/0" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrarProf} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Criar Perfil Docente</Text>}
@@ -628,7 +724,7 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   );
 }
 
-// --- PESQUISA DE ALUNOS E ENCARREGADOS ---
+// --- PESQUISA DE ALUNOS ---
 function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
   const [busca, setBusca] = useState('');
   const [alunos, setAlunos] = useState([]);
@@ -700,7 +796,7 @@ function TelaPesquisaAlunosEncarregados({ onVoltarHome }) {
   );
 }
 
-// --- TELA DEDICADA DE PUBLICIDADES ---
+// --- PUBLICIDADES ---
 function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
@@ -719,7 +815,7 @@ function TelaQuadroPublicidades({ onVoltarHome, publicidadeLigar }) {
   );
 }
 
-// --- MENU PRINCIPAL (HOME) ---
+// --- HOME ---
 function MenuPrincipalHome({ 
   usuario,
   onNavegarCadastramentoInst, 
@@ -781,7 +877,7 @@ function MenuPrincipalHome({
   );
 }
 
-// --- APP PRINCIPAL ---
+// --- MAIN APP ---
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('home');
   const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
@@ -803,7 +899,7 @@ export default function App() {
   }, []);
 
   const ligarParaSuporte = () => {
-    Linking.openURL('tel:929561442');
+    Linking.openURL('tel:929500600');
   };
 
   const solicitarAutenticacao = (destino) => {
@@ -996,9 +1092,6 @@ const styles = StyleSheet.create({
   fbInfoCard: { backgroundColor: '#ffffff', padding: 16, marginTop: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#dddfe2' },
   fbSectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#050505', marginBottom: 8 },
   fbInfoRow: { fontSize: 13, color: '#334155', marginBottom: 6 },
-  fbNoticeCard: { backgroundColor: '#eff6ff', padding: 16, margin: 16, borderRadius: 8, borderWidth: 1, borderColor: '#bfdbfe' },
-  fbNoticeTitle: { fontSize: 14, fontWeight: 'bold', color: '#1e40af', marginBottom: 4 },
-  fbNoticeBody: { fontSize: 12, color: '#1e3a8a', lineHeight: 16 },
   btnVoltarFb: { backgroundColor: '#1877f2', padding: 14, marginHorizontal: 16, marginBottom: 30, borderRadius: 8, alignItems: 'center' },
   txtVoltarFb: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
   labelModalEdit: { color: '#94a3b8', fontSize: 12, marginBottom: 4, marginTop: 6 }
