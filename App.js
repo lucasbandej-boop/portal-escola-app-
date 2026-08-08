@@ -187,24 +187,23 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
       const objetoEnvio = {
         nome: nome.trim(),
         nif: nif.trim(),
-        email: email.trim() || 'sem-email@escola.ao',
-        status: 'Pendente',
-        sobre: `Director: ${director.trim()} | Localizacao: ${localizacao.trim()}`
+        email: email.trim() || 'contacto@escola.ao',
+        estado_aprovacao: 'pendente'
       };
 
-      const { data, error } = await supabase
+      // Inserção direta sem .select() para evitar bloqueio de rede na Vercel/Web
+      const { error } = await supabase
         .from('instituicoes')
-        .insert([objetoEnvio])
-        .select();
+        .insert([objetoEnvio]);
 
       if (error) {
-        Alert.alert('Erro do Supabase', `${error.message}\nDetalhes: ${error.details || 'Sem detalhes'}`);
+        Alert.alert('Erro Supabase', error.message);
       } else {
-        Alert.alert('Sucesso 🎉', 'Instituição gravada com sucesso na base de dados!');
-        onConcluir(data && data.length > 0 ? data[0] : objetoEnvio);
+        Alert.alert('Sucesso 🎉', 'Instituição gravada com sucesso!');
+        onConcluir(objetoEnvio);
       }
     } catch (err) {
-      Alert.alert('Erro Inesperado', err.message || 'Falha ao conectar.');
+      Alert.alert('Erro', err.message || 'Falha ao conectar.');
     } finally {
       setLoading(false);
     }
@@ -261,24 +260,22 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
         disciplina: disciplina.trim(),
         telefone: telefone.trim(),
         num_bilhete: bi.trim(),
-        status: 'Pendente',
-        email: usuario?.email || 'professor@escola.ao',
-        sobre: 'Sem foto'
+        email: usuario?.email || 'professor@escola.ao'
       };
 
-      const { data, error } = await supabase
+      // Inserção direta sem .select() para evitar bloqueio de rede na Vercel/Web
+      const { error } = await supabase
         .from('professores')
-        .insert([objetoEnvio])
-        .select();
+        .insert([objetoEnvio]);
 
       if (error) {
-        Alert.alert('Erro do Supabase', `${error.message}\nDetalhes: ${error.details || 'Sem detalhes'}`);
+        Alert.alert('Erro Supabase', error.message);
       } else {
-        Alert.alert('Sucesso 🎉', 'Professor gravado com sucesso na base de dados!');
-        onConcluir(data && data.length > 0 ? data[0] : objetoEnvio);
+        Alert.alert('Sucesso 🎉', 'Professor gravado com sucesso!');
+        onConcluir(objetoEnvio);
       }
     } catch (err) {
-      Alert.alert('Erro Inesperado', err.message || 'Falha ao conectar.');
+      Alert.alert('Erro', err.message || 'Falha ao conectar.');
     } finally {
       setLoading(false);
     }
