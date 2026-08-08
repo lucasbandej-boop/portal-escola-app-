@@ -16,12 +16,39 @@ import {
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
-function CarrosselPublicidades({ publicidadeLigar }) {
+// Lista Geral de Publicidades Patrocinadas
+const LISTA_PUBLICIDADES = [
+  {
+    id: '1',
+    categoria: '📚 Material Escolar',
+    titulo: 'Venda de Livros e Materiais',
+    descricao: '🇦🇴 Olá Angola, o regresso às aulas já é uma realidade! Temos livros, cadernos, folhas A4, lápis e todo o material escolar com entregas em Luanda.',
+    telefone: '929500600'
+  },
+  {
+    id: '2',
+    categoria: '💻 Tecnologia Escolar',
+    titulo: 'Softwares & Equipamentos',
+    descricao: 'Computadores, impressoras e redes para instituições de ensino com assistência técnica garantida e manutenção preventiva.',
+    telefone: '929500600'
+  },
+  {
+    id: '3',
+    categoria: '👔 Uniformes Escolares',
+    titulo: 'Confecção de Batas e Uniformes',
+    descricao: 'Uniformes escolares para todos os níveis de ensino com tecidos de alta durabilidade e personalização de logótipos.',
+    telefone: '929500600'
+  }
+];
+
+function CarrosselPublicidades({ publicidadeLigar, onVerTodas }) {
   return (
     <View style={styles.cardPublicidade}>
       <View style={styles.pubBadgeRow}>
         <Text style={styles.badgeCategoria}>💻 Tecnologia Escolar</Text>
-        <Text style={styles.contadorPub}>3 / 3</Text>
+        <TouchableOpacity onPress={onVerTodas}>
+          <Text style={styles.contadorPub}>Ver Todas →</Text>
+        </TouchableOpacity>
       </View>
       <Text style={styles.tituloPublicidade}>Softwares & Equipamentos</Text>
       <Text style={styles.corpoPublicidade}>
@@ -33,6 +60,33 @@ function CarrosselPublicidades({ publicidadeLigar }) {
         <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
       </TouchableOpacity>
     </View>
+  );
+}
+
+function TelaTodasPublicidades({ onVoltar, publicidadeLigar }) {
+  return (
+    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onVoltar}>
+          <Text style={styles.txtVoltarHeader}>← Voltar ao Menu</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>Mural de Publicidades 📢</Text>
+      </View>
+
+      <Text style={styles.secaoSubtitulo}>Confira todas as ofertas e serviços patrocinados para a comunidade escolar:</Text>
+
+      {LISTA_PUBLICIDADES.map((pub) => (
+        <View key={pub.id} style={styles.cardPublicidadeGeral}>
+          <Text style={styles.badgeCategoriaGeral}>{pub.categoria}</Text>
+          <Text style={styles.tituloPublicidadeGeral}>{pub.titulo}</Text>
+          <Text style={styles.corpoPublicidadeGeral}>{pub.descricao}</Text>
+
+          <TouchableOpacity style={styles.btnLigarPubGeral} onPress={publicidadeLigar}>
+            <Text style={styles.telefonePublicidade}>📞 Ligar: {pub.telefone}</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -220,6 +274,16 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
       nome: nome.trim(),
       nif: nif.trim(),
       email: email.trim(),
+      vice_director: viceDirector.trim(),
+      num_professores_estimado: numProfessores.trim(),
+      num_estudantes_estimado: numEstudantes.trim(),
+      classes_lecionadas: classesLecionadas.trim(),
+      eventos_escolares: eventosEscolares.trim(),
+      pauta_informacoes: pautaInformacoes.trim(),
+      convocatoria: convocatoria.trim(),
+      alunos_destaque: alunosDestaque.trim(),
+      guia_aluno: guiaAluno.trim(),
+      plano_estudo: planoEstudo.trim(),
       estado_aprovacao: 'pendente'
     };
 
@@ -444,12 +508,12 @@ function TelaPesquisaAlunos({ onCancelar }) {
   );
 }
 
-function MenuPrincipalHome({ usuario, onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarPesquisa, onLogout, publicidadeLigar }) {
+function MenuPrincipalHome({ usuario, onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarPesquisa, onNavegarPublicidades, onLogout, publicidadeLigar }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
         <Text style={styles.homeTitleHeader}>Portal Escola</Text>
-        <TouchableOpacity style={styles.btnPillPubHeader} onPress={publicidadeLigar}>
+        <TouchableOpacity style={styles.btnPillPubHeader} onPress={onNavegarPublicidades}>
           <Text style={styles.txtPillPubHeader}>📢 Publicidade</Text>
         </TouchableOpacity>
       </View>
@@ -473,7 +537,7 @@ function MenuPrincipalHome({ usuario, onNavegarCadastramentoInst, onNavegarCadas
           <Text style={styles.cardMenuTitulo}>Cadastramento de Professores</Text>
         </TouchableOpacity>
 
-        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} />
+        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} onVerTodas={onNavegarPublicidades} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -511,6 +575,14 @@ export default function App() {
           onNavegarCadastramentoInst={() => solicitarAutenticacao('cadastramento')}
           onNavegarCadastramentoProf={() => solicitarAutenticacao('cadastramento_prof')}
           onNavegarPesquisa={() => setTelaAtual('pesquisa')}
+          onNavegarPublicidades={() => setTelaAtual('mural_publicidades')}
+          publicidadeLigar={ligarParaSuporte}
+        />
+      )}
+
+      {telaAtual === 'mural_publicidades' && (
+        <TelaTodasPublicidades
+          onVoltar={() => setTelaAtual('home')}
           publicidadeLigar={ligarParaSuporte}
         />
       )}
@@ -579,12 +651,17 @@ const styles = StyleSheet.create({
   cardPublicidade: { backgroundColor: '#1e293b', borderRadius: 14, padding: 16, marginTop: 12 },
   pubBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   badgeCategoria: { backgroundColor: 'rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 11, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  contadorPub: { color: '#64748b', fontSize: 11, fontWeight: 'bold' },
+  contadorPub: { color: '#fbbf24', fontSize: 12, fontWeight: 'bold' },
   tituloPublicidade: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
   corpoPublicidade: { color: '#94a3b8', fontSize: 13, marginTop: 6, lineHeight: 18 },
   subCallPub: { color: '#cbd5e1', fontSize: 12, marginTop: 14 },
   btnLigarPub: { marginTop: 6, backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8, alignItems: 'center' },
   telefonePublicidade: { color: '#fbbf24', fontWeight: 'bold', fontSize: 13 },
+  cardPublicidadeGeral: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 16, marginBottom: 16 },
+  badgeCategoriaGeral: { alignSelf: 'flex-start', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: 11, fontWeight: 'bold', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 8 },
+  tituloPublicidadeGeral: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
+  corpoPublicidadeGeral: { fontSize: 13, color: '#475569', marginTop: 4, lineHeight: 18 },
+  btnLigarPubGeral: { marginTop: 12, backgroundColor: '#1e293b', padding: 10, borderRadius: 8, alignItems: 'center' },
   formContainer: { flex: 1, padding: 16, backgroundColor: '#ffffff' },
   formHeader: { flexDirection: 'row', alignItems: 'center', paddingTop: 40, paddingBottom: 20 },
   btnVoltarHeader: { marginRight: 15 },
