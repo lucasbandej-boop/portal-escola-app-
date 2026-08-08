@@ -19,11 +19,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 function CarrosselPublicidades({ publicidadeLigar }) {
   return (
     <View style={styles.cardPublicidade}>
-      <Text style={styles.tituloPublicidade}>📢 Publicidade Patrocinada</Text>
+      <View style={styles.pubBadgeRow}>
+        <Text style={styles.badgeCategoria}>💻 Tecnologia Escolar</Text>
+        <Text style={styles.contadorPub}>3 / 3</Text>
+      </View>
+      <Text style={styles.tituloPublicidade}>Softwares & Equipamentos</Text>
       <Text style={styles.corpoPublicidade}>
-        🇦🇴 Olá Angola, o regresso às aulas já é uma realidade, estamos a disponibilizar materiais de boa qualidade.{'\n'}
-        Livros 📕 Cadernos 📓 Folha A4 Lápis
+        Computadores, impressoras e redes para instituições de ensino com assistência técnica garantida em Luanda.
       </Text>
+
+      <Text style={styles.subCallPub}>Para mais informações ligue no número abaixo:</Text>
       <TouchableOpacity style={styles.btnLigarPub} onPress={publicidadeLigar}>
         <Text style={styles.telefonePublicidade}>📞 929500600 (Clique para Ligar)</Text>
       </TouchableOpacity>
@@ -82,7 +87,9 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
       <View style={styles.darkModalOverlay}>
         <View style={styles.darkModalCard}>
           <Text style={styles.darkModalTitle}>Portal Escola 🎓</Text>
-          <Text style={styles.darkModalSubtitle}>Sistema Integrado de Gestão Escolar</Text>
+          <Text style={styles.darkModalSubtitle}>
+            {modo === 'login' ? 'Iniciar Sessão no Sistema' : 'Registar Nova Conta'}
+          </Text>
 
           {msgErro ? <Text style={styles.txtErroModal}>{msgErro}</Text> : null}
 
@@ -97,7 +104,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 
           <TextInput
             style={styles.darkInput}
-            placeholder="Palavra-passe"
+            placeholder="Palavra-passe (mínimo 6 caracteres)"
             placeholderTextColor="#9ca3af"
             secureTextEntry
             value={senha}
@@ -105,11 +112,11 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
           />
 
           <TouchableOpacity style={styles.btnEntrarDark} onPress={handleSubmeter} disabled={loading}>
-            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'REGISTAR E ENTRAR'}</Text>}
+            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.txtEntrarDark}>{modo === 'login' ? 'ENTRAR' : 'CRIAR CONTA'}</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnLinkDark} onPress={() => setModo(modo === 'login' ? 'registro' : 'login')}>
-            <Text style={styles.txtLinkDark}>{modo === 'login' ? 'Criar Nova Conta' : 'Já tem conta? Entrar'}</Text>
+            <Text style={styles.txtLinkDark}>{modo === 'login' ? 'Registar Nova Conta' : 'Já tem conta? Iniciar Sessão'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnFecharDark} onPress={onClose}>
@@ -171,9 +178,34 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [alunosDestaque, setAlunosDestaque] = useState('');
   const [guiaAluno, setGuiaAluno] = useState('');
   const [planoEstudo, setPlanoEstudo] = useState('');
+
+  const [nomeFoto, setNomeFoto] = useState('');
+  const [nomePdf, setNomePdf] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [erroForm, setErroForm] = useState('');
+
+  const selecionarFoto = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) setNomeFoto(file.name);
+    };
+    input.click();
+  };
+
+  const selecionarPdf = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) setNomePdf(file.name);
+    };
+    input.click();
+  };
 
   const handleCadastrar = async () => {
     if (!nome.trim() || !nif.trim() || !email.trim()) {
@@ -232,8 +264,10 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
       <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Futuro do Saber" />
 
       <Text style={styles.label}>Fotografia / Logotipo da Instituição</Text>
-      <TouchableOpacity style={styles.btnBlueAction} onPress={() => {}}>
-        <Text style={styles.txtBlueAction}>📷 Selecionar Foto/Logotipo</Text>
+      <TouchableOpacity style={styles.btnBlueAction} onPress={selecionarFoto}>
+        <Text style={styles.txtBlueAction}>
+          {nomeFoto ? `✅ Foto: ${nomeFoto}` : '📷 Selecionar Foto/Logotipo'}
+        </Text>
       </TouchableOpacity>
 
       <Text style={styles.label}>Número / NIF *</Text>
@@ -288,8 +322,10 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         <Text style={styles.corpoDecreto}>
           Anexe a Certidão de Registo, Estatutos e Projeto Pedagógico num único PDF para análise do administrador.
         </Text>
-        <TouchableOpacity style={styles.btnBlueAction} onPress={() => {}}>
-          <Text style={styles.txtBlueAction}>📎 Anexar Documentação em PDF</Text>
+        <TouchableOpacity style={styles.btnBlueAction} onPress={selecionarPdf}>
+          <Text style={styles.txtBlueAction}>
+            {nomePdf ? `✅ PDF: ${nomePdf}` : '📎 Anexar Documentação em PDF'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -412,16 +448,15 @@ function MenuPrincipalHome({ usuario, onNavegarCadastramentoInst, onNavegarCadas
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
-        <Text style={styles.homeTitleHeader}>Portal Escola 🎓</Text>
-        {usuario && (
-          <TouchableOpacity style={styles.btnHeaderLogout} onPress={onLogout}>
-            <Text style={styles.txtHeaderLogout}>Sair</Text>
-          </TouchableOpacity>
-        )}
+        <Text style={styles.homeTitleHeader}>Portal Escola</Text>
+        <TouchableOpacity style={styles.btnPillPubHeader} onPress={publicidadeLigar}>
+          <Text style={styles.txtPillPubHeader}>📢 Publicidade</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-        <Text style={styles.secaoTitulo}>Menu Principal</Text>
+        <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
+        <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
 
         <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoInst}>
           <Text style={styles.cardEmoji}>🏫</Text>
@@ -533,18 +568,23 @@ export default function App() {
 
 const styles = StyleSheet.create({
   headerRowHome: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 45, paddingBottom: 15, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  homeTitleHeader: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
-  btnHeaderLogout: { backgroundColor: '#fee2e2', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20 },
-  txtHeaderLogout: { color: '#dc2626', fontSize: 12, fontWeight: '600' },
-  secaoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 12 },
+  homeTitleHeader: { fontSize: 22, fontWeight: 'bold', color: '#0f172a' },
+  btnPillPubHeader: { backgroundColor: '#e0e7ff', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  txtPillPubHeader: { color: '#3730a3', fontSize: 13, fontWeight: 'bold' },
+  secaoTitulo: { fontSize: 20, fontWeight: 'bold', color: '#0f172a', marginTop: 4 },
+  secaoSubtitulo: { fontSize: 13, color: '#64748b', marginBottom: 16, marginTop: 2 },
   cardMenu: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   cardEmoji: { fontSize: 24, marginBottom: 8 },
   cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
-  cardPublicidade: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, marginTop: 12 },
-  tituloPublicidade: { color: '#ffffff', fontSize: 17, fontWeight: 'bold' },
-  corpoPublicidade: { color: '#f8fafc', fontSize: 13, marginTop: 4 },
-  btnLigarPub: { marginTop: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 6 },
-  telefonePublicidade: { color: '#fbbf24', fontWeight: 'bold' },
+  cardPublicidade: { backgroundColor: '#1e293b', borderRadius: 14, padding: 16, marginTop: 12 },
+  pubBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  badgeCategoria: { backgroundColor: 'rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 11, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  contadorPub: { color: '#64748b', fontSize: 11, fontWeight: 'bold' },
+  tituloPublicidade: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
+  corpoPublicidade: { color: '#94a3b8', fontSize: 13, marginTop: 6, lineHeight: 18 },
+  subCallPub: { color: '#cbd5e1', fontSize: 12, marginTop: 14 },
+  btnLigarPub: { marginTop: 6, backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8, alignItems: 'center' },
+  telefonePublicidade: { color: '#fbbf24', fontWeight: 'bold', fontSize: 13 },
   formContainer: { flex: 1, padding: 16, backgroundColor: '#ffffff' },
   formHeader: { flexDirection: 'row', alignItems: 'center', paddingTop: 40, paddingBottom: 20 },
   btnVoltarHeader: { marginRight: 15 },
