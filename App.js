@@ -155,45 +155,29 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
   );
 }
 
-function TelaPesquisaAlunos({ onCancelar }) {
-  const [busca, setBusca] = useState('');
-
-  return (
-    <ScrollView style={styles.formContainer}>
-      <View style={styles.formHeader}>
-        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
-          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={styles.formTitle}>Pesquisa de Alunos e Encarregados</Text>
-      </View>
-
-      <Text style={styles.label}>Pesquisar por Nome ou BI</Text>
-      <TextInput
-        style={styles.input}
-        value={busca}
-        onChangeText={setBusca}
-        placeholder="Digite o nome do aluno ou encarregado..."
-      />
-
-      <TouchableOpacity style={styles.btnSalvar} onPress={() => {}}>
-        <Text style={styles.txtSalvar}>Pesquisar</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
 function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [nif, setNif] = useState('');
   const [email, setEmail] = useState(usuario?.email || '');
   const [director, setDirector] = useState('');
+  const [viceDirector, setViceDirector] = useState('');
+  const [numProfessores, setNumProfessores] = useState('');
+  const [numEstudantes, setNumEstudantes] = useState('');
   const [localizacao, setLocalizacao] = useState('');
+  const [classesLecionadas, setClassesLecionadas] = useState('');
+  const [eventosEscolares, setEventosEscolares] = useState('');
+  const [pautaInformacoes, setPautaInformacoes] = useState('');
+  const [convocatoria, setConvocatoria] = useState('');
+  const [alunosDestaque, setAlunosDestaque] = useState('');
+  const [guiaAluno, setGuiaAluno] = useState('');
+  const [planoEstudo, setPlanoEstudo] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [erroForm, setErroForm] = useState('');
 
   const handleCadastrar = async () => {
-    if (!nome.trim() || !nif.trim()) {
-      setErroForm('Preencha o Nome da Instituição e o NIF.');
+    if (!nome.trim() || !nif.trim() || !email.trim()) {
+      setErroForm('Preencha os campos obrigatórios (*).');
       return;
     }
 
@@ -203,7 +187,7 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
     const objetoEnvio = {
       nome: nome.trim(),
       nif: nif.trim(),
-      email: email.trim() || 'contacto@escola.ao',
+      email: email.trim(),
       estado_aprovacao: 'pendente'
     };
 
@@ -234,12 +218,12 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   };
 
   return (
-    <ScrollView style={styles.formContainer}>
+    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>Cadastrar Instituição</Text>
+        <Text style={styles.formTitle}>Legalização de Instituição</Text>
       </View>
 
       {erroForm ? <Text style={styles.txtErroForm}>{erroForm}</Text> : null}
@@ -247,17 +231,67 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
       <Text style={styles.label}>Nome da Instituição *</Text>
       <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Futuro do Saber" />
 
-      <Text style={styles.label}>Número / NIF *</Text>
-      <TextInput style={styles.input} value={nif} onChangeText={setNif} placeholder="NIF ou Número de Registo" />
+      <Text style={styles.label}>Fotografia / Logotipo da Instituição</Text>
+      <TouchableOpacity style={styles.btnBlueAction} onPress={() => {}}>
+        <Text style={styles.txtBlueAction}>📷 Selecionar Foto/Logotipo</Text>
+      </TouchableOpacity>
 
-      <Text style={styles.label}>Email de Contacto</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="escola@contacto.com" />
+      <Text style={styles.label}>Número / NIF *</Text>
+      <TextInput style={styles.input} value={nif} onChangeText={setNif} placeholder="NIF ou Telefone" />
+
+      <Text style={styles.label}>Email da Instituição *</Text>
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="lucasbandej@gmail.com" keyboardType="email-address" autoCapitalize="none" />
 
       <Text style={styles.label}>Director da Instituição</Text>
-      <TextInput style={styles.input} value={director} onChangeText={setDirector} placeholder="Ex: Dr. Manuel" />
+      <TextInput style={styles.input} value={director} onChangeText={setDirector} placeholder="Ex: Dr. Manuel dos Santos" />
 
-      <Text style={styles.label}>Localização</Text>
-      <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Luanda, Viana" />
+      <Text style={styles.label}>Vice-Director</Text>
+      <TextInput style={styles.input} value={viceDirector} onChangeText={setViceDirector} placeholder="Ex: Prof. Maria António" />
+
+      <View style={styles.rowGrid}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <Text style={styles.label}>Nº de Professores</Text>
+          <TextInput style={styles.input} value={numProfessores} onChangeText={setNumProfessores} placeholder="Ex: 25" keyboardType="numeric" />
+        </View>
+        <View style={{ flex: 1, marginLeft: 8 }}>
+          <Text style={styles.label}>Nº de Estudantes</Text>
+          <TextInput style={styles.input} value={numEstudantes} onChangeText={setNumEstudantes} placeholder="Ex: 450" keyboardType="numeric" />
+        </View>
+      </View>
+
+      <Text style={styles.label}>➡️ Localização</Text>
+      <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Luanda, Viana, Bairro Cazenga" />
+
+      <Text style={styles.label}>➡️ Classes Lecionadas</Text>
+      <TextInput style={styles.input} value={classesLecionadas} onChangeText={setClassesLecionadas} placeholder="Ex: Iniciação à 12ª Classe" />
+
+      <Text style={styles.label}>➡️ Eventos Escolares</Text>
+      <TextInput style={styles.input} value={eventosEscolares} onChangeText={setEventosEscolares} placeholder="Ex: Feira das Ciências, Feira do Livro" />
+
+      <Text style={styles.label}>➡️ Pauta / Informações</Text>
+      <TextInput style={styles.input} value={pautaInformacoes} onChangeText={setPautaInformacoes} placeholder="Ex: Pautas do 1º Trimestre Publicadas" />
+
+      <Text style={styles.label}>➡️ Convocatória</Text>
+      <TextInput style={styles.input} value={convocatoria} onChangeText={setConvocatoria} placeholder="Ex: Reunião Geral de Encarregados" />
+
+      <Text style={styles.label}>➡️ Alunos em Destaque</Text>
+      <TextInput style={styles.input} value={alunosDestaque} onChangeText={setAlunosDestaque} placeholder="Ex: Quadro de Honra da 10ª Classe" />
+
+      <Text style={styles.label}>➡️ Guia do Aluno</Text>
+      <TextInput style={styles.input} value={guiaAluno} onChangeText={setGuiaAluno} placeholder="Ex: Regulamento Interno e Horários" />
+
+      <Text style={styles.label}>➡️ Plano de Estudo</Text>
+      <TextInput style={styles.input} value={planoEstudo} onChangeText={setPlanoEstudo} placeholder="Ex: Currículo do Ensino Geral" />
+
+      <View style={styles.boxDecreto}>
+        <Text style={styles.tituloDecreto}>📜 Requisitos do Decreto Presidencial 37/23</Text>
+        <Text style={styles.corpoDecreto}>
+          Anexe a Certidão de Registo, Estatutos e Projeto Pedagógico num único PDF para análise do administrador.
+        </Text>
+        <TouchableOpacity style={styles.btnBlueAction} onPress={() => {}}>
+          <Text style={styles.txtBlueAction}>📎 Anexar Documentação em PDF</Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrar} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Gravar Instituição</Text>}
@@ -342,6 +376,33 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrarProf} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Gravar Professor</Text>}
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+function TelaPesquisaAlunos({ onCancelar }) {
+  const [busca, setBusca] = useState('');
+
+  return (
+    <ScrollView style={styles.formContainer}>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
+          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>Pesquisa de Alunos e Encarregados</Text>
+      </View>
+
+      <Text style={styles.label}>Pesquisar por Nome ou BI</Text>
+      <TextInput
+        style={styles.input}
+        value={busca}
+        onChangeText={setBusca}
+        placeholder="Digite o nome do aluno ou encarregado..."
+      />
+
+      <TouchableOpacity style={styles.btnSalvar} onPress={() => {}}>
+        <Text style={styles.txtSalvar}>Pesquisar</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -489,9 +550,15 @@ const styles = StyleSheet.create({
   btnVoltarHeader: { marginRight: 15 },
   txtVoltarHeader: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
   formTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
-  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginTop: 12, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginTop: 14, marginBottom: 6 },
   input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 14, color: '#0f172a' },
-  btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  rowGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  btnBlueAction: { backgroundColor: '#2563eb', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  txtBlueAction: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
+  boxDecreto: { backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 10, padding: 14, marginTop: 20 },
+  tituloDecreto: { fontSize: 14, fontWeight: 'bold', color: '#1e3a8a', marginBottom: 6 },
+  corpoDecreto: { fontSize: 12, color: '#1e40af', marginBottom: 12 },
+  btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 24 },
   txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
   txtErroForm: { color: '#dc2626', backgroundColor: '#fee2e2', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13 },
   txtErroModal: { color: '#ef4444', backgroundColor: '#450a0a', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13, textAlign: 'center' },
