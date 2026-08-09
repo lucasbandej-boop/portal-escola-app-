@@ -182,7 +182,50 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
+// Função para verificar aprovação diretamente no Supabase
+const verificarAprovacaoDB = async (email, tipo) => {
+  try {
+    const tabela = tipo === 'escola' ? 'instituicoes' : 'professores';
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/${tabela}?email=eq.${encodeURIComponent(email)}&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const dados = await response.json();
+    if (response.ok && dados.length > 0) {
+      return dados[0];
+    }
+  } catch (err) {
+    console.error('Erro ao consultar Supabase:', err);
+  }
+  return null;
+};
+
 function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
+  const [estadoAtual, setEstadoAtual] = useState(dados);
+  const [carregando, setCarregando] = useState(false);
+
+  const checarEstadoDB = async () => {
+    if (!estadoAtual?.email) return;
+    setCarregando(true);
+    const dadosNovos = await verificarAprovacaoDB(estadoAtual.email, tipo);
+    if (dadosNovos) {
+      setEstadoAtual(dadosNovos);
+    }
+    setCarregando(false);
+  };
+
+  const isAprovado =
+    estadoAtual.aprovado === true ||
+    estadoAtual.estado_aprovacao?.toLowerCase() === 'aprovado';
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }}>
       <View style={styles.fbCover}>
@@ -195,18 +238,47 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         <View style={styles.fbAvatar}>
           <Text style={{ fontSize: 32 }}>{tipo === 'escola' ? '🏫' : '👨‍🏫'}</Text>
         </View>
-        <Text style={styles.fbName}>{dados.nome || dados.nome_completo}</Text>
-        <Text style={styles.fbSub}>{tipo === 'escola' ? `NIF: ${dados.nif}` : `Disciplina: ${dados.disciplina}`}</Text>
+        <Text style={styles.fbName}>{estadoAtual.nome || estadoAtual.nome_completo}</Text>
+        <Text style={styles.fbSub}>{tipo === 'escola' ? `NIF: ${estadoAtual.nif}` : `Disciplina: ${estadoAtual.disciplina}`}</Text>
 
-        <View style={styles.badgePendenteContainer}>
-          <Text style={styles.badgePendenteTxt}>⏳ Gravação Confirmada! Pendente de Aprovação</Text>
+        <View style={[
+          styles.badgePendenteContainer,
+          { backgroundColor: isAprovado ? '#dcfce7' : '#fef3c7' }
+        ]}>
+          <Text style={{
+            color: isAprovado ? '#15803d' : '#92400e',
+            fontSize: 12,
+            fontWeight: 'bold',
+            textAlign: 'center'
+          }}>
+            {isAprovado
+              ? '✅ Registo Aprovado e Legalizado!'
+              : '⏳ Gravação Confirmada! Pendente de Aprovação'}
+          </Text>
         </View>
+
+        <TouchableOpacity
+          style={styles.btnVerificarStatus}
+          onPress={checarEstadoDB}
+          disabled={carregando}
+        >
+          {carregando ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text style={{ color: '#0f172a', fontSize: 13, fontWeight: 'bold' }}>
+              🔄 Verificar Atualização de Estado
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.fbInfoCard}>
         <Text style={styles.fbSectionTitle}>📌 Informações Gravadas</Text>
-        <Text style={styles.fbInfoRow}>📧 Email: {dados.email}</Text>
-        <Text style={styles.fbInfoRow}>📞 Contacto: {dados.telefone || dados.nif}</Text>
+        <Text style={styles.fbInfoRow}>📧 Email: {estadoAtual.email}</Text>
+        <Text style={styles.fbInfoRow}>📞 Contacto: {estadoAtual.telefone || estadoAtual.nif}</Text>
+        <Text style={styles.fbInfoRow}>
+          Status no Sistema: {isAprovado ? 'Ativo / Publicado' : 'Aguardando Aprovação'}
+        </Text>
       </View>
 
       <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
@@ -695,8 +767,9 @@ const styles = StyleSheet.create({
   fbAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#e4e6eb', justifyContent: 'center', alignItems: 'center', marginTop: -35, borderWidth: 3, borderColor: '#ffffff' },
   fbName: { fontSize: 18, fontWeight: 'bold', color: '#050505', marginTop: 8 },
   fbSub: { fontSize: 13, color: '#65676b' },
-  badgePendenteContainer: { marginTop: 10, backgroundColor: '#dcfce7', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
-  badgePendenteTxt: { color: '#15803d', fontSize: 12, fontWeight: 'bold' },
+  badgePendenteContainer: { marginTop: 10, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  badgePendenteTxt: { fontSize: 12, fontWeight: 'bold' },
+  btnVerificarStatus: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#e2e8f0', borderRadius: 8, alignItems: 'center' },
   fbInfoCard: { backgroundColor: '#ffffff', padding: 16, marginTop: 10 },
   fbSectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#050505', marginBottom: 8 },
   fbInfoRow: { fontSize: 13, color: '#334155', marginBottom: 6 },
