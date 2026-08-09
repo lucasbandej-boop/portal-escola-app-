@@ -16,7 +16,6 @@ import {
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
-// Lista Geral de Publicidades Patrocinadas
 const LISTA_PUBLICIDADES = [
   {
     id: '1',
@@ -40,6 +39,48 @@ const LISTA_PUBLICIDADES = [
     telefone: '929500600'
   }
 ];
+
+// Consulta no Supabase se já existe cadastramento feito com este e-mail
+const buscarCadastroExistente = async (email) => {
+  try {
+    // Busca em instituições
+    const resInst = await fetch(
+      `${SUPABASE_URL}/rest/v1/instituicoes?email=eq.${encodeURIComponent(email)}&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    const dadosInst = await resInst.json();
+    if (resInst.ok && dadosInst.length > 0) {
+      return { tipo: 'escola', dados: dadosInst[0] };
+    }
+
+    // Busca em professores
+    const resProf = await fetch(
+      `${SUPABASE_URL}/rest/v1/professores?email=eq.${encodeURIComponent(email)}&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    const dadosProf = await resProf.json();
+    if (resProf.ok && dadosProf.length > 0) {
+      return { tipo: 'professor', dados: dadosProf[0] };
+    }
+  } catch (err) {
+    console.error('Erro ao consultar cadastro:', err);
+  }
+  return null;
+};
 
 function CarrosselPublicidades({ publicidadeLigar, onVerTodas }) {
   return (
@@ -126,7 +167,9 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
         setMsgErro(data.error_description || data.msg || 'Erro na autenticação.');
       } else {
         const user = data.user || data;
-        onLoginSucesso(user);
+        // Consulta na base de dados se existe registo prévio para abrir o perfil
+        const perfilPendente = await buscarCadastroExistente(emailLimpo);
+        onLoginSucesso(user, perfilPendente);
         onClose();
       }
     } catch (err) {
@@ -182,32 +225,6 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-// Função para verificar aprovação diretamente no Supabase
-const verificarAprovacaoDB = async (email, tipo) => {
-  try {
-    const tabela = tipo === 'escola' ? 'instituicoes' : 'professores';
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/${tabela}?email=eq.${encodeURIComponent(email)}&select=*`,
-      {
-        method: 'GET',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const dados = await response.json();
-    if (response.ok && dados.length > 0) {
-      return dados[0];
-    }
-  } catch (err) {
-    console.error('Erro ao consultar Supabase:', err);
-  }
-  return null;
-};
-
 function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
   const [estadoAtual, setEstadoAtual] = useState(dados);
   const [carregando, setCarregando] = useState(false);
@@ -215,9 +232,9 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
   const checarEstadoDB = async () => {
     if (!estadoAtual?.email) return;
     setCarregando(true);
-    const dadosNovos = await verificarAprovacaoDB(estadoAtual.email, tipo);
-    if (dadosNovos) {
-      setEstadoAtual(dadosNovos);
+    const resultado = await buscarCadastroExistente(estadoAtual.email);
+    if (resultado && resultado.dados) {
+      setEstadoAtual(resultado.dados);
     }
     setCarregando(false);
   };
@@ -580,19 +597,26 @@ function TelaPesquisaAlunos({ onCancelar }) {
   );
 }
 
-function MenuPrincipalHome({ usuario, onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarPesquisa, onNavegarPublicidades, onLogout, publicidadeLigar }) {
+function MenuPrincipalHome({ usuario, onOpenLogin, onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarPesquisa, onNavegarPublicidades, publicidadeLigar, dadosPerfilExistente, onVerPerfilPendente }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={styles.headerRowHome}>
         <Text style={styles.homeTitleHeader}>Portal Escola</Text>
-        <TouchableOpacity style={styles.btnPillPubHeader} onPress={onNavegarPublicidades}>
-          <Text style={styles.txtPillPubHeader}>📢 Publicidade</Text>
+        <TouchableOpacity style={styles.btnPillPubHeader} onPress={onOpenLogin}>
+          <Text style={styles.txtPillPubHeader}>{usuario ? usuario.email : '👤 Entrar'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
         <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
         <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
+
+        {dadosPerfilExistente && (
+          <TouchableOpacity style={[styles.cardMenu, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]} onPress={onVerPerfilPendente}>
+            <Text style={styles.cardEmoji}>⏳</Text>
+            <Text style={[styles.cardMenuTitulo, { color: '#1d4ed8' }]}>Acompanhar Meu Registo / Estado de Aprovação</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoInst}>
           <Text style={styles.cardEmoji}>🏫</Text>
@@ -643,12 +667,14 @@ export default function App() {
       {telaAtual === 'home' && (
         <MenuPrincipalHome
           usuario={usuario}
-          onLogout={() => setUsuario(null)}
+          onOpenLogin={() => setModalLoginVisivel(true)}
           onNavegarCadastramentoInst={() => solicitarAutenticacao('cadastramento')}
           onNavegarCadastramentoProf={() => solicitarAutenticacao('cadastramento_prof')}
           onNavegarPesquisa={() => setTelaAtual('pesquisa')}
           onNavegarPublicidades={() => setTelaAtual('mural_publicidades')}
           publicidadeLigar={ligarParaSuporte}
+          dadosPerfilExistente={dadosPerfilCriado}
+          onVerPerfilPendente={() => setTelaAtual('perfil_facebook')}
         />
       )}
 
@@ -698,11 +724,18 @@ export default function App() {
       <ModalLogin
         visivel={modalLoginVisivel}
         onClose={() => setModalLoginVisivel(false)}
-        onLoginSucesso={(usr) => {
+        onLoginSucesso={(usr, perfilPendente) => {
           setUsuario(usr);
-          if (acaoPendente) {
+          if (perfilPendente) {
+            // Se já tiver registo pendente/aprovado no Supabase, abre logo o Perfil!
+            setDadosPerfilCriado(perfilPendente.dados);
+            setTipoPerfil(perfilPendente.tipo);
+            setTelaAtual('perfil_facebook');
+          } else if (acaoPendente) {
             setTelaAtual(acaoPendente);
             setAcaoPendente(null);
+          } else {
+            setTelaAtual('home');
           }
         }}
       />
