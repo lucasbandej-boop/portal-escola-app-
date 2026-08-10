@@ -139,7 +139,9 @@ function CarrosselPublicidades({ publicidadeLigar, onVerTodas }) {
   return (
     <View style={styles.cardPublicidade}>
       <View style={styles.pubBadgeRow}>
-        <Text style={styles.badgeCategoria}>💻 Tecnologia Escolar</Text>
+        <View style={styles.badgeCategoriaBox}>
+          <Text style={styles.badgeCategoria}>💻 Tecnologia Escolar</Text>
+        </View>
         <TouchableOpacity onPress={onVerTodas}>
           <Text style={styles.contadorPub}>Ver Todas →</Text>
         </TouchableOpacity>
@@ -717,7 +719,6 @@ export default function App() {
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [dadosPerfil, setDadosPerfil] = useState(null);
   const [tipoPerfil, setTipoPerfil] = useState('');
-  const [termoPesquisa, setTermoPesquisa] = useState('');
 
   const ligarParaPublicidade = () => {
     Linking.openURL('tel:929500600');
@@ -740,85 +741,69 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1e293b" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       {telaAtual === 'home' && (
         <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-          <View style={styles.headerHome}>
-            <Text style={styles.logoTitle}>Portal Escola 🎓</Text>
+          {/* CABEÇALHO IDÊNTICO À IMAGEM */}
+          <View style={styles.headerHomeLight}>
+            <Text style={styles.logoTitleLight}>Portal Escola</Text>
 
-            {usuarioLogado ? (
-              <TouchableOpacity
-                style={styles.btnUserStatus}
-                onPress={() => setTelaAtual('perfil')}
-              >
-                <Text style={styles.txtUserStatus}>
-                  👤 {usuarioLogado.email ? usuarioLogado.email.split('@')[0] : 'Minha Conta'}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.btnLoginHeader}
-                onPress={() => setModalLoginVisivel(true)}
-              >
-                <Text style={styles.txtLoginHeader}>Entrar / Registo</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.btnBadgePublicidade} onPress={() => setTelaAtual('todas_pubs')}>
+              <Text style={styles.txtBadgePublicidade}>📢 Publicidade</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* O MENU E A PESQUISA FICAM EM CIMA */}
-          <View style={styles.menuGrid}>
-            <View style={styles.searchBarContainer}>
-              <TextInput
-                style={styles.inputSearch}
-                placeholder="🔍 Pesquisar escolas, cursos, professores..."
-                placeholderTextColor="#94a3b8"
-                value={termoPesquisa}
-                onChangeText={setTermoPesquisa}
-              />
+          <View style={styles.containerConteudo}>
+            <Text style={styles.tituloSecao}>Menu Principal do Sistema</Text>
+            <Text style={styles.subtituloSecao}>Selecione a opção desejada para navegar:</Text>
+
+            {/* CARTÕES DO MENU COM ESTILO DA IMAGEM */}
+            <View style={styles.menuGridLight}>
+              <TouchableOpacity
+                style={styles.menuCardLight}
+                onPress={() => {
+                  if (!usuarioLogado) setModalLoginVisivel(true);
+                  else setTelaAtual('cad_escola');
+                }}
+              >
+                <Text style={styles.menuEmojiLight}>🏫</Text>
+                <Text style={styles.menuTitleLight}>Cadastramento de Instituições</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuCardLight}>
+                <Text style={styles.menuEmojiLight}>🔍</Text>
+                <Text style={styles.menuTitleLight}>Pesquisa de Alunos e Encarregados</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuCardLight}
+                onPress={() => {
+                  if (!usuarioLogado) setModalLoginVisivel(true);
+                  else setTelaAtual('cad_prof');
+                }}
+              >
+                <Text style={styles.menuEmojiLight}>👨‍🏫</Text>
+                <Text style={styles.menuTitleLight}>Cadastramento de Professores</Text>
+              </TouchableOpacity>
+
+              {usuarioLogado?.email === EMAIL_ADMIN && (
+                <TouchableOpacity
+                  style={[styles.menuCardLight, { borderColor: '#eab308', borderWidth: 2 }]}
+                  onPress={() => setTelaAtual('admin')}
+                >
+                  <Text style={styles.menuEmojiLight}>⚙️</Text>
+                  <Text style={styles.menuTitleLight}>Painel de Gestão Admin</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
-            {usuarioLogado?.email === EMAIL_ADMIN && (
-              <TouchableOpacity
-                style={[styles.menuCard, { borderColor: '#eab308', borderWidth: 2 }]}
-                onPress={() => setTelaAtual('admin')}
-              >
-                <Text style={styles.menuEmoji}>⚙️</Text>
-                <Text style={styles.menuTitle}>Painel de Administração Admin</Text>
-                <Text style={styles.menuSub}>Gerenciar e aprovar cadastramentos pendentes</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.menuCard}
-              onPress={() => {
-                if (!usuarioLogado) setModalLoginVisivel(true);
-                else setTelaAtual('cad_escola');
-              }}
-            >
-              <Text style={styles.menuEmoji}>🏫</Text>
-              <Text style={styles.menuTitle}>Legalização de Instituição</Text>
-              <Text style={styles.menuSub}>Registe a sua escola e cumpra com o Decreto 37/23</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuCard}
-              onPress={() => {
-                if (!usuarioLogado) setModalLoginVisivel(true);
-                else setTelaAtual('cad_prof');
-              }}
-            >
-              <Text style={styles.menuEmoji}>👨‍🏫</Text>
-              <Text style={styles.menuTitle}>Registo de Professor</Text>
-              <Text style={styles.menuSub}>Cadastre o seu perfil docente e disciplinas</Text>
-            </TouchableOpacity>
+            {/* QUADRO DE PUBLICIDADE NO FUNDO */}
+            <CarrosselPublicidades
+              publicidadeLigar={ligarParaPublicidade}
+              onVerTodas={() => setTelaAtual('todas_pubs')}
+            />
           </View>
-
-          {/* O PAINEL DE PUBLICIDADE FICA EMBAIXO */}
-          <CarrosselPublicidades
-            publicidadeLigar={ligarParaPublicidade}
-            onVerTodas={() => setTelaAtual('todas_pubs')}
-          />
         </ScrollView>
       )}
 
@@ -869,29 +854,58 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a' },
-  headerHome: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#1e293b' },
-  logoTitle: { color: '#ffffff', fontSize: 20, fontWeight: 'bold' },
-  btnLoginHeader: { backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  txtLoginHeader: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
-  btnUserStatus: { backgroundColor: '#334155', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
-  txtUserStatus: { color: '#38bdf8', fontSize: 12, fontWeight: '600' },
-  searchBarContainer: { marginBottom: 12 },
-  inputSearch: { backgroundColor: '#1e293b', color: '#ffffff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155', fontSize: 14 },
-  cardPublicidade: { backgroundColor: '#1e293b', margin: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#334155', marginTop: 16 },
-  pubBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  badgeCategoria: { color: '#38bdf8', fontSize: 12, fontWeight: 'bold' },
-  contadorPub: { color: '#94a3b8', fontSize: 12 },
-  tituloPublicidade: { color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginBottom: 6 },
-  corpoPublicidade: { color: '#cbd5e1', fontSize: 13, lineHeight: 18, marginBottom: 12 },
-  subCallPub: { color: '#94a3b8', fontSize: 11, marginBottom: 4 },
-  btnLigarPub: { backgroundColor: '#16a34a', padding: 10, borderRadius: 8, alignItems: 'center' },
-  telefonePublicidade: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
-  menuGrid: { paddingHorizontal: 16, gap: 12, marginTop: 12 },
-  menuCard: { backgroundColor: '#1e293b', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
-  menuEmoji: { fontSize: 28, marginBottom: 8 },
-  menuTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  menuSub: { color: '#94a3b8', fontSize: 12 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  headerHomeLight: {
+    flexDirection: 'row',
+    justify: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff'
+  },
+  logoTitleLight: { color: '#0f172a', fontSize: 24, fontWeight: '800' },
+  btnBadgePublicidade: {
+    backgroundColor: '#e0e7ff',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20
+  },
+  txtBadgePublicidade: { color: '#4338ca', fontWeight: 'bold', fontSize: 13 },
+  containerConteudo: { paddingHorizontal: 20, paddingTop: 10 },
+  tituloSecao: { color: '#0f172a', fontSize: 22, fontWeight: '800', marginBottom: 4 },
+  subtituloSecao: { color: '#64748b', fontSize: 14, marginBottom: 20 },
+  menuGridLight: { gap: 14, marginBottom: 24 },
+  menuCardLight: {
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2
+  },
+  menuEmojiLight: { fontSize: 26, marginRight: 16 },
+  menuTitleLight: { color: '#0f172a', fontSize: 16, fontWeight: 'bold', flex: 1 },
+  cardPublicidade: {
+    backgroundColor: '#1b2537',
+    padding: 18,
+    borderRadius: 16,
+    marginTop: 8
+  },
+  pubBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  badgeCategoriaBox: { backgroundColor: '#2d3748', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  badgeCategoria: { color: '#90cdf4', fontSize: 12, fontWeight: '600' },
+  contadorPub: { color: '#e2e8f0', fontSize: 12, fontWeight: 'bold' },
+  tituloPublicidade: { color: '#ffffff', fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+  corpoPublicidade: { color: '#cbd5e1', fontSize: 13, lineHeight: 20, marginBottom: 16 },
+  subCallPub: { color: '#94a3b8', fontSize: 12, marginBottom: 8 },
+  btnLigarPub: { backgroundColor: '#2b384e', padding: 12, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#3a4a63' },
+  telefonePublicidade: { color: '#f6ad55', fontWeight: 'bold', fontSize: 13 },
   formContainer: { flex: 1, backgroundColor: '#0f172a', padding: 16 },
   formHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   btnVoltarHeader: { backgroundColor: '#334155', padding: 8, borderRadius: 6 },
