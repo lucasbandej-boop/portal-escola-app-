@@ -16,7 +16,6 @@ import {
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
-// Email do Administrador
 const EMAIL_ADMIN = 'lucasbandej@gmail.com';
 
 const LISTA_PUBLICIDADES = [
@@ -48,7 +47,6 @@ const buscarCadastroExistente = async (email) => {
     const resInst = await fetch(
       `${SUPABASE_URL}/rest/v1/instituicoes?email=eq.${encodeURIComponent(email)}&select=*`,
       {
-        method: 'GET',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -64,7 +62,6 @@ const buscarCadastroExistente = async (email) => {
     const resProf = await fetch(
       `${SUPABASE_URL}/rest/v1/professores?email=eq.${encodeURIComponent(email)}&select=*`,
       {
-        method: 'GET',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -353,6 +350,21 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
   const [estadoAtual, setEstadoAtual] = useState(dados);
   const [carregando, setCarregando] = useState(false);
+  
+  // Abas operacionais do perfil da escola
+  const [abaAtiva, setAbaAtiva] = useState('geral'); // 'geral', 'alunos', 'pautas', 'comunicados'
+  
+  // Estados para cadastro de aluno na escola
+  const [nomeAluno, setNomeAluno] = useState('');
+  const [biAluno, setBiAluno] = useState('');
+  const [nomeEncarregado, setNomeEncarregado] = useState('');
+  const [telEncarregado, setTelEncarregado] = useState('');
+  const [salvandoAluno, setSalvandoAluno] = useState(false);
+
+  // Estados para comunicados
+  const [tituloComunicado, setTituloComunicado] = useState('');
+  const [textoComunicado, setTextoComunicado] = useState('');
+  const [listaComunicados, setListaComunicados] = useState([]);
 
   const checarEstadoDB = async () => {
     if (!estadoAtual?.email) return;
@@ -364,13 +376,65 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
     setCarregando(false);
   };
 
+  const cadastrarAlunoNaEscola = async () => {
+    if (!nomeAluno.trim() || !nomeEncarregado.trim() || !telEncarregado.trim()) {
+      alert('Preencha os campos obrigatórios (*)');
+      return;
+    }
+    setSalvandoAluno(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/estudantes`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nome_completo: nomeAluno.trim(),
+          num_bilhete: biAluno.trim(),
+          encarregado_nome: nomeEncarregado.trim(),
+          encarregado_telefone: telEncarregado.trim(),
+          escola_id: estadoAtual.id || null
+        })
+      });
+      if (res.ok) {
+        alert('✅ Aluno matriculado com sucesso!');
+        setNomeAluno('');
+        setBiAluno('');
+        setNomeEncarregado('');
+        setTelEncarregado('');
+      } else {
+        alert('Erro ao guardar aluno.');
+      }
+    } catch (err) {
+      alert('Falha na ligação de rede.');
+    } finally {
+      setSalvandoAluno(false);
+    }
+  };
+
+  const publicarComunicado = () => {
+    if (!tituloComunicado.trim() || !textoComunicado.trim()) return;
+    const novo = {
+      id: Date.now(),
+      titulo: tituloComunicado,
+      texto: textoComunicado,
+      data: new Date().toLocaleDateString()
+    };
+    setListaComunicados([novo, ...listaComunicados]);
+    setTituloComunicado('');
+    setTextoComunicado('');
+    alert('📢 Comunicado publicado no mural!');
+  };
+
   const isAprovado =
     estadoAtual.aprovado === true ||
     estadoAtual.estado_aprovacao?.toLowerCase() === 'aprovado' ||
     estadoAtual.status?.toLowerCase() === 'aprovado';
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={styles.fbCover}>
         <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: 'bold' }}>
           {tipo === 'escola' ? '🏛️ PERFIL INSTITUCIONAL' : '👨‍🏫 PERFIL DOCENTE'}
@@ -415,14 +479,108 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.fbInfoCard}>
-        <Text style={styles.fbSectionTitle}>📌 Informações Gravadas</Text>
-        <Text style={styles.fbInfoRow}>📧 Email: {estadoAtual.email}</Text>
-        <Text style={styles.fbInfoRow}>📞 Contacto: {estadoAtual.telefone || estadoAtual.nif}</Text>
-        <Text style={styles.fbInfoRow}>
-          Status no Sistema: {isAprovado ? 'Ativo / Publicado' : 'Aguardando Aprovação'}
-        </Text>
-      </View>
+      {/* MENU DE ABAS OPERACIONAIS DO PERFIL */}
+      {tipo === 'escola' && isAprovado && (
+        <View style={styles.abasContainer}>
+          <TouchableOpacity
+            style={[styles.btnAba, abaAtiva === 'geral' && styles.btnAbaAtiva]}
+            onPress={() => setAbaAtiva('geral')}
+          >
+            <Text style={[styles.txtAba, abaAtiva === 'geral' && styles.txtAbaAtiva]}>Geral</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.btnAba, abaAtiva === 'alunos' && styles.btnAbaAtiva]}
+            onPress={() => setAbaAtiva('alunos')}
+          >
+            <Text style={[styles.txtAba, abaAtiva === 'alunos' && styles.txtAbaAtiva]}>+ Alunos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.btnAba, abaAtiva === 'pautas' && styles.btnAbaAtiva]}
+            onPress={() => setAbaAtiva('pautas')}
+          >
+            <Text style={[styles.txtAba, abaAtiva === 'pautas' && styles.txtAbaAtiva]}>Pautas</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.btnAba, abaAtiva === 'comunicados' && styles.btnAbaAtiva]}
+            onPress={() => setAbaAtiva('comunicados')}
+          >
+            <Text style={[styles.txtAba, abaAtiva === 'comunicados' && styles.txtAbaAtiva]}>Mural</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {abaAtiva === 'geral' && (
+        <View style={styles.fbInfoCard}>
+          <Text style={styles.fbSectionTitle}>📌 Informações Gravadas</Text>
+          <Text style={styles.fbInfoRow}>📧 Email: {estadoAtual.email}</Text>
+          <Text style={styles.fbInfoRow}>📞 Contacto: {estadoAtual.telefone || estadoAtual.nif}</Text>
+          <Text style={styles.fbInfoRow}>
+            Status no Sistema: {isAprovado ? 'Ativo / Publicado' : 'Aguardando Aprovação'}
+          </Text>
+        </View>
+      )}
+
+      {abaAtiva === 'alunos' && (
+        <View style={styles.fbInfoCard}>
+          <Text style={styles.fbSectionTitle}>📝 Matricular Novo Aluno</Text>
+          <Text style={styles.labelDark}>Nome do Estudante *</Text>
+          <TextInput style={styles.inputLight} value={nomeAluno} onChangeText={setNomeAluno} placeholder="Ex: Manuel António" />
+
+          <Text style={styles.labelDark}>Nº Bilhete de Identidade (BI)</Text>
+          <TextInput style={styles.inputLight} value={biAluno} onChangeText={setBiAluno} placeholder="Ex: 008271123LA031" />
+
+          <Text style={styles.labelDark}>Nome do Encarregado *</Text>
+          <TextInput style={styles.inputLight} value={nomeEncarregado} onChangeText={setNomeEncarregado} placeholder="Ex: João António" />
+
+          <Text style={styles.labelDark}>Telefone do Encarregado *</Text>
+          <TextInput style={styles.inputLight} value={telEncarregado} onChangeText={setTelEncarregado} keyboardType="phone-pad" placeholder="Ex: 923112233" />
+
+          <TouchableOpacity style={styles.btnSalvar} onPress={cadastrarAlunoNaEscola} disabled={salvandoAluno}>
+            {salvandoAluno ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Matrícula</Text>}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {abaAtiva === 'pautas' && (
+        <View style={styles.fbInfoCard}>
+          <Text style={styles.fbSectionTitle}>📊 Pautas & Avaliações</Text>
+          <Text style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>
+            Pautas publicadas para consulta dos encarregados de educação:
+          </Text>
+          <View style={styles.cardItemPauta}>
+            <Text style={{ fontWeight: 'bold', color: '#0f172a' }}>1º Trimestre - Iniciação à 12ª Classe</Text>
+            <Text style={{ color: '#16a34a', fontSize: 12, marginTop: 4 }}>✅ Publicado e Atualizado</Text>
+          </View>
+        </View>
+      )}
+
+      {abaAtiva === 'comunicados' && (
+        <View style={styles.fbInfoCard}>
+          <Text style={styles.fbSectionTitle}>📢 Publicar Comunicado Geral</Text>
+          <TextInput style={styles.inputLight} value={tituloComunicado} onChangeText={setTituloComunicado} placeholder="Título do aviso (Ex: Reunião Geral)" />
+          <TextInput style={[styles.inputLight, { height: 70 }]} multiline value={textoComunicado} onChangeText={setTextoComunicado} placeholder="Escreva a mensagem do comunicado..." />
+
+          <TouchableOpacity style={[styles.btnBlueAction, { marginTop: 8 }]} onPress={publicarComunicado}>
+            <Text style={styles.txtBlueAction}>Publicar no Mural</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.fbSectionTitle, { marginTop: 20 }]}>Mural da Escola</Text>
+          {listaComunicados.length === 0 ? (
+            <Text style={{ color: '#94a3b8', fontSize: 12 }}>Nenhum comunicado recente publicado.</Text>
+          ) : (
+            listaComunicados.map((item) => (
+              <View key={item.id} style={styles.cardItemPauta}>
+                <Text style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.titulo}</Text>
+                <Text style={{ color: '#334155', fontSize: 12, marginTop: 4 }}>{item.texto}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 6 }}>📅 {item.data}</Text>
+              </View>
+            ))
+          )}
+        </View>
+      )}
 
       <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
@@ -1028,5 +1186,13 @@ const styles = StyleSheet.create({
   tituloPublicidadeGeral: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginBottom: 4 },
   corpoPublicidadeGeral: { color: '#cbd5e1', fontSize: 13, marginBottom: 10 },
   btnLigarPubGeral: { backgroundColor: '#16a34a', padding: 8, borderRadius: 6, alignItems: 'center' },
-  secaoSubtitulo: { color: '#94a3b8', fontSize: 13, marginBottom: 16 }
+  secaoSubtitulo: { color: '#94a3b8', fontSize: 13, marginBottom: 16 },
+  abasContainer: { flexDirection: 'row', backgroundColor: '#ffffff', marginHorizontal: 12, borderRadius: 8, padding: 4, marginBottom: 12 },
+  btnAba: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6 },
+  btnAbaAtiva: { backgroundColor: '#2563eb' },
+  txtAba: { color: '#64748b', fontSize: 12, fontWeight: 'bold' },
+  txtAbaAtiva: { color: '#ffffff' },
+  labelDark: { color: '#334155', fontSize: 12, marginTop: 10, marginBottom: 4, fontWeight: '600' },
+  inputLight: { backgroundColor: '#f8fafc', color: '#0f172a', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', fontSize: 13 },
+  cardItemPauta: { backgroundColor: '#f1f5f9', padding: 12, borderRadius: 8, marginTop: 8 }
 });
