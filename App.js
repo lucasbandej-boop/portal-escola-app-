@@ -123,7 +123,7 @@ const aprovarRegisto = async (tabela, id) => {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({ estado_aprovacao: 'aprovado', status: 'Aprovado' })
+      body: JSON.stringify({ estado_aprovacao: 'aprovado' })
     });
     return response.ok;
   } catch (err) {
@@ -245,7 +245,7 @@ function TelaPesquisaAlunos({ onVoltar }) {
           <View key={aluno.id || Math.random()} style={styles.cardPublicidadeGeral}>
             <Text style={styles.tituloPublicidadeGeral}>👨‍🎓 {aluno.nome_completo}</Text>
             <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 4 }}>🆔 BI: {aluno.num_bilhete || 'Não informado'}</Text>
-            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 2 }}>👨‍👩‍👦 Encarregado: {aluno.encarregado_nome || 'Não informado'}</Text>
+            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 2 }}>👨‍gsub Encarregado: {aluno.encarregado_nome || 'Não informado'}</Text>
             <Text style={{ color: '#38bdf8', fontSize: 13, marginTop: 2 }}>📞 Telefone: {aluno.encarregado_telefone || 'Não informado'}</Text>
           </View>
         ))}
@@ -351,17 +351,14 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
   const [estadoAtual, setEstadoAtual] = useState(dados);
   const [carregando, setCarregando] = useState(false);
   
-  // Abas operacionais do perfil da escola
-  const [abaAtiva, setAbaAtiva] = useState('geral'); // 'geral', 'alunos', 'pautas', 'comunicados'
+  const [abaAtiva, setAbaAtiva] = useState('geral');
   
-  // Estados para cadastro de aluno na escola
   const [nomeAluno, setNomeAluno] = useState('');
   const [biAluno, setBiAluno] = useState('');
   const [nomeEncarregado, setNomeEncarregado] = useState('');
   const [telEncarregado, setTelEncarregado] = useState('');
   const [salvandoAluno, setSalvandoAluno] = useState(false);
 
-  // Estados para comunicados
   const [tituloComunicado, setTituloComunicado] = useState('');
   const [textoComunicado, setTextoComunicado] = useState('');
   const [listaComunicados, setListaComunicados] = useState([]);
@@ -479,7 +476,6 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         </TouchableOpacity>
       </View>
 
-      {/* MENU DE ABAS OPERACIONAIS DO PERFIL */}
       {tipo === 'escola' && isAprovado && (
         <View style={styles.abasContainer}>
           <TouchableOpacity
@@ -569,7 +565,7 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
 
           <Text style={[styles.fbSectionTitle, { marginTop: 20 }]}>Mural da Escola</Text>
           {listaComunicados.length === 0 ? (
-            <Text style={{ color: '#94a3b8', fontSize: 12 }}>Nenhum comunicado recente publicado.</Text>
+            <Text style={{ color: '#94a3b8', fontSize: 12 }}>Nenum comunicado recente publicado.</Text>
           ) : (
             listaComunicados.map((item) => (
               <View key={item.id} style={styles.cardItemPauta}>
