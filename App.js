@@ -186,6 +186,77 @@ function TelaTodasPublicidades({ onVoltar, publicidadeLigar }) {
   );
 }
 
+function TelaPesquisaAlunos({ onVoltar }) {
+  const [termo, setTermo] = useState('');
+  const [resultados, setResultados] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [buscou, setBuscou] = useState(false);
+
+  const buscarAlunos = async () => {
+    if (!termo.trim()) return;
+    setLoading(true);
+    setBuscou(true);
+    try {
+      const query = encodeURIComponent(`*${termo.trim()}*`);
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/estudantes?or=(nome_completo.ilike.${query},encarregado_nome.ilike.${query})&select=*`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+      const data = await response.json();
+      setResultados(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Erro ao pesquisar alunos:', err);
+      setResultados([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onVoltar}>
+          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>Pesquisa de Alunos e Encarregados 🔍</Text>
+      </View>
+
+      <Text style={styles.label}>Nome do Aluno ou Encarregado</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Digite o nome para pesquisar..."
+        placeholderTextColor="#94a3b8"
+        value={termo}
+        onChangeText={setTermo}
+      />
+
+      <TouchableOpacity style={[styles.btnBlueAction, { marginTop: 12 }]} onPress={buscarAlunos} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtBlueAction}>Buscar Registos</Text>}
+      </TouchableOpacity>
+
+      <View style={{ marginTop: 24 }}>
+        {buscou && resultados.length === 0 && !loading && (
+          <Text style={{ color: '#94a3b8', textAlign: 'center' }}>Nenhum estudante ou encarregado encontrado.</Text>
+        )}
+
+        {resultados.map((aluno) => (
+          <View key={aluno.id || Math.random()} style={styles.cardPublicidadeGeral}>
+            <Text style={styles.tituloPublicidadeGeral}>👨‍🎓 {aluno.nome_completo}</Text>
+            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 4 }}>🆔 BI: {aluno.num_bilhete || 'Não informado'}</Text>
+            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 2 }}>👨‍👩‍👦 Encarregado: {aluno.encarregado_nome || 'Não informado'}</Text>
+            <Text style={{ color: '#38bdf8', fontSize: 13, marginTop: 2 }}>📞 Telefone: {aluno.encarregado_telefone || 'Não informado'}</Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
 function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   const [modo, setModo] = useState('login');
   const [email, setEmail] = useState('');
@@ -745,7 +816,6 @@ export default function App() {
 
       {telaAtual === 'home' && (
         <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-          {/* CABEÇALHO IDÊNTICO À IMAGEM */}
           <View style={styles.headerHomeLight}>
             <Text style={styles.logoTitleLight}>Portal Escola</Text>
 
@@ -758,7 +828,6 @@ export default function App() {
             <Text style={styles.tituloSecao}>Menu Principal do Sistema</Text>
             <Text style={styles.subtituloSecao}>Selecione a opção desejada para navegar:</Text>
 
-            {/* CARTÕES DO MENU COM ESTILO DA IMAGEM */}
             <View style={styles.menuGridLight}>
               <TouchableOpacity
                 style={styles.menuCardLight}
@@ -771,7 +840,10 @@ export default function App() {
                 <Text style={styles.menuTitleLight}>Cadastramento de Instituições</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.menuCardLight}>
+              <TouchableOpacity
+                style={styles.menuCardLight}
+                onPress={() => setTelaAtual('pesquisa_alunos')}
+              >
                 <Text style={styles.menuEmojiLight}>🔍</Text>
                 <Text style={styles.menuTitleLight}>Pesquisa de Alunos e Encarregados</Text>
               </TouchableOpacity>
@@ -798,7 +870,6 @@ export default function App() {
               )}
             </View>
 
-            {/* QUADRO DE PUBLICIDADE NO FUNDO */}
             <CarrosselPublicidades
               publicidadeLigar={ligarParaPublicidade}
               onVerTodas={() => setTelaAtual('todas_pubs')}
@@ -811,6 +882,12 @@ export default function App() {
         <TelaTodasPublicidades
           onVoltar={() => setTelaAtual('home')}
           publicidadeLigar={ligarParaPublicidade}
+        />
+      )}
+
+      {telaAtual === 'pesquisa_alunos' && (
+        <TelaPesquisaAlunos
+          onVoltar={() => setTelaAtual('home')}
         />
       )}
 
@@ -857,7 +934,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   headerHomeLight: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
