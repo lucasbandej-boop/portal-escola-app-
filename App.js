@@ -717,6 +717,7 @@ export default function App() {
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [dadosPerfil, setDadosPerfil] = useState(null);
   const [tipoPerfil, setTipoPerfil] = useState('');
+  const [termoPesquisa, setTermoPesquisa] = useState('');
 
   const ligarParaPublicidade = () => {
     Linking.openURL('tel:929500600');
@@ -765,12 +766,18 @@ export default function App() {
             )}
           </View>
 
-          <CarrosselPublicidades
-            publicidadeLigar={ligarParaPublicidade}
-            onVerTodas={() => setTelaAtual('todas_pubs')}
-          />
-
+          {/* O MENU E A PESQUISA FICAM EM CIMA */}
           <View style={styles.menuGrid}>
+            <View style={styles.searchBarContainer}>
+              <TextInput
+                style={styles.inputSearch}
+                placeholder="🔍 Pesquisar escolas, cursos, professores..."
+                placeholderTextColor="#94a3b8"
+                value={termoPesquisa}
+                onChangeText={setTermoPesquisa}
+              />
+            </View>
+
             {usuarioLogado?.email === EMAIL_ADMIN && (
               <TouchableOpacity
                 style={[styles.menuCard, { borderColor: '#eab308', borderWidth: 2 }]}
@@ -806,6 +813,12 @@ export default function App() {
               <Text style={styles.menuSub}>Cadastre o seu perfil docente e disciplinas</Text>
             </TouchableOpacity>
           </View>
+
+          {/* O PAINEL DE PUBLICIDADE FICA EMBAIXO */}
+          <CarrosselPublicidades
+            publicidadeLigar={ligarParaPublicidade}
+            onVerTodas={() => setTelaAtual('todas_pubs')}
+          />
         </ScrollView>
       )}
 
@@ -863,7 +876,9 @@ const styles = StyleSheet.create({
   txtLoginHeader: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
   btnUserStatus: { backgroundColor: '#334155', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
   txtUserStatus: { color: '#38bdf8', fontSize: 12, fontWeight: '600' },
-  cardPublicidade: { backgroundColor: '#1e293b', margin: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
+  searchBarContainer: { marginBottom: 12 },
+  inputSearch: { backgroundColor: '#1e293b', color: '#ffffff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155', fontSize: 14 },
+  cardPublicidade: { backgroundColor: '#1e293b', margin: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#334155', marginTop: 16 },
   pubBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   badgeCategoria: { color: '#38bdf8', fontSize: 12, fontWeight: 'bold' },
   contadorPub: { color: '#94a3b8', fontSize: 12 },
@@ -872,7 +887,7 @@ const styles = StyleSheet.create({
   subCallPub: { color: '#94a3b8', fontSize: 11, marginBottom: 4 },
   btnLigarPub: { backgroundColor: '#16a34a', padding: 10, borderRadius: 8, alignItems: 'center' },
   telefonePublicidade: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
-  menuGrid: { paddingHorizontal: 16, gap: 12 },
+  menuGrid: { paddingHorizontal: 16, gap: 12, marginTop: 12 },
   menuCard: { backgroundColor: '#1e293b', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
   menuEmoji: { fontSize: 28, marginBottom: 8 },
   menuTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
