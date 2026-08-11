@@ -878,9 +878,49 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
 
 function TelaPesquisaAlunos({ onCancelar }) {
   const [busca, setBusca] = useState('');
+  const [resultados, setResultados] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pesquisou, setPesquisou] = useState(false);
+
+  const executarPesquisa = async () => {
+    setLoading(true);
+    setPesquisou(true);
+    
+    try {
+      let url = `${SUPABASE_URL}/rest/v1/alunos?select=*`;
+      const termo = busca.trim();
+
+      if (termo) {
+        url += `&or=(nome.ilike.*${encodeURIComponent(termo)}*,nome_completo.ilike.*${encodeURIComponent(termo)}*,num_bilhete.ilike.*${encodeURIComponent(termo)}*,numero_processo.ilike.*${encodeURIComponent(termo)}*,num_processo.ilike.*${encodeURIComponent(termo)}*)`;
+      }
+
+      const res = await fetch(url, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setResultados(data);
+      } else {
+        setResultados([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setResultados([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    executarPesquisa();
+  }, []);
 
   return (
-    <ScrollView style={styles.formContainer}>
+    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
@@ -888,17 +928,53 @@ function TelaPesquisaAlunos({ onCancelar }) {
         <Text style={styles.formTitle}>Pesquisa de Alunos e Encarregados</Text>
       </View>
 
-      <Text style={styles.label}>Pesquisar por Nome ou BI</Text>
+      <Text style={styles.label}>Pesquisar por Nome, BI ou Processo</Text>
       <TextInput
         style={styles.input}
         value={busca}
         onChangeText={setBusca}
-        placeholder="Digite o nome do aluno ou encarregado..."
+        placeholder="Digite o nome, nº de BI ou processo..."
       />
 
-      <TouchableOpacity style={styles.btnSalvar} onPress={() => {}}>
-        <Text style={styles.txtSalvar}>Pesquisar</Text>
+      <TouchableOpacity style={styles.btnSalvar} onPress={executarPesquisa} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>🔍 Pesquisar</Text>}
       </TouchableOpacity>
+
+      <View style={{ marginTop: 20 }}>
+        <Text style={styles.tituloSecaoAluno}>
+          {pesquisou ? `Resultados Encontrados (${resultados.length})` : 'Resultados'}
+        </Text>
+
+        {loading ? (
+          <ActivityIndicator color="#2563eb" style={{ marginTop: 15 }} />
+        ) : resultados.length === 0 ? (
+          <Text style={{ color: '#64748b', fontSize: 13, marginTop: 10, textAlign: 'center' }}>
+            Nenhum aluno encontrado para a pesquisa.
+          </Text>
+        ) : (
+          resultados.map((item) => (
+            <View key={item.id} style={styles.itemAlunoCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {item.foto || item.foto_url ? (
+                  <Image source={{ uri: item.foto || item.foto_url }} style={{ width: 45, height: 45, borderRadius: 22.5, marginRight: 10 }} />
+                ) : (
+                  <Text style={{ fontSize: 24, marginRight: 10 }}>👤</Text>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemAlunoNome}>{item.nome || item.nome_completo}</Text>
+                  <Text style={styles.itemAlunoSub}>🔢 Processo: {item.numero_processo || item.num_processo || 'N/A'}</Text>
+                </View>
+              </View>
+              <Text style={[styles.itemAlunoSub, { marginTop: 6 }]}>📚 Curso: {item.curso || 'Geral'}</Text>
+              <Text style={styles.itemAlunoSub}>🏫 Classe: {item.classe} {item.turma ? `(${item.turma})` : ''}</Text>
+              {item.num_bilhete ? <Text style={styles.itemAlunoSub}>🪪 BI: {item.num_bilhete}</Text> : null}
+              {item.nome_encarregado ? (
+                <Text style={styles.itemAlunoSub}>👨‍👦 Encarregado: {item.nome_encarregado} ({item.telefone_encarregado || 'S/N'})</Text>
+              ) : null}
+            </View>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }
