@@ -16,8 +16,6 @@ import {
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
 
-const EMAIL_ADMIN = 'lucasbandej@gmail.com';
-
 const LISTA_PUBLICIDADES = [
   {
     id: '1',
@@ -47,6 +45,7 @@ const buscarCadastroExistente = async (email) => {
     const resInst = await fetch(
       `${SUPABASE_URL}/rest/v1/instituicoes?email=eq.${encodeURIComponent(email)}&select=*`,
       {
+        method: 'GET',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -55,13 +54,14 @@ const buscarCadastroExistente = async (email) => {
       }
     );
     const dadosInst = await resInst.json();
-    if (resInst.ok && Array.isArray(dadosInst) && dadosInst.length > 0) {
+    if (resInst.ok && dadosInst.length > 0) {
       return { tipo: 'escola', dados: dadosInst[0] };
     }
 
     const resProf = await fetch(
       `${SUPABASE_URL}/rest/v1/professores?email=eq.${encodeURIComponent(email)}&select=*`,
       {
+        method: 'GET',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -70,7 +70,7 @@ const buscarCadastroExistente = async (email) => {
       }
     );
     const dadosProf = await resProf.json();
-    if (resProf.ok && Array.isArray(dadosProf) && dadosProf.length > 0) {
+    if (resProf.ok && dadosProf.length > 0) {
       return { tipo: 'professor', dados: dadosProf[0] };
     }
   } catch (err) {
@@ -79,66 +79,11 @@ const buscarCadastroExistente = async (email) => {
   return null;
 };
 
-const buscarPendentes = async () => {
-  try {
-    const resInst = await fetch(
-      `${SUPABASE_URL}/rest/v1/instituicoes?estado_aprovacao=eq.pendente&select=*`,
-      {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
-      }
-    );
-    const instituicoes = await resInst.json();
-
-    const resProf = await fetch(
-      `${SUPABASE_URL}/rest/v1/professores?estado_aprovacao=eq.pendente&select=*`,
-      {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
-      }
-    );
-    const professores = await resProf.json();
-
-    return {
-      instituicoes: Array.isArray(instituicoes) ? instituicoes : [],
-      professores: Array.isArray(professores) ? professores : []
-    };
-  } catch (err) {
-    console.error('Erro ao buscar pendentes:', err);
-    return { instituicoes: [], professores: [] };
-  }
-};
-
-const aprovarRegisto = async (tabela, id) => {
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({ estado_aprovacao: 'aprovado' })
-    });
-    return response.ok;
-  } catch (err) {
-    console.error('Erro ao aprovar:', err);
-    return false;
-  }
-};
-
 function CarrosselPublicidades({ publicidadeLigar, onVerTodas }) {
   return (
     <View style={styles.cardPublicidade}>
       <View style={styles.pubBadgeRow}>
-        <View style={styles.badgeCategoriaBox}>
-          <Text style={styles.badgeCategoria}>💻 Tecnologia Escolar</Text>
-        </View>
+        <Text style={styles.badgeCategoria}>💻 Tecnologia Escolar</Text>
         <TouchableOpacity onPress={onVerTodas}>
           <Text style={styles.contadorPub}>Ver Todas →</Text>
         </TouchableOpacity>
@@ -179,77 +124,6 @@ function TelaTodasPublicidades({ onVoltar, publicidadeLigar }) {
           </TouchableOpacity>
         </View>
       ))}
-    </ScrollView>
-  );
-}
-
-function TelaPesquisaAlunos({ onVoltar }) {
-  const [termo, setTermo] = useState('');
-  const [resultados, setResultados] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [buscou, setBuscou] = useState(false);
-
-  const buscarAlunos = async () => {
-    if (!termo.trim()) return;
-    setLoading(true);
-    setBuscou(true);
-    try {
-      const query = encodeURIComponent(`*${termo.trim()}*`);
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/estudantes?or=(nome_completo.ilike.${query},encarregado_nome.ilike.${query})&select=*`,
-        {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-          }
-        }
-      );
-      const data = await response.json();
-      setResultados(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Erro ao pesquisar alunos:', err);
-      setResultados([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={styles.formHeader}>
-        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onVoltar}>
-          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={styles.formTitle}>Pesquisa de Alunos e Encarregados 🔍</Text>
-      </View>
-
-      <Text style={styles.label}>Nome do Aluno ou Encarregado</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Digite o nome para pesquisar..."
-        placeholderTextColor="#94a3b8"
-        value={termo}
-        onChangeText={setTermo}
-      />
-
-      <TouchableOpacity style={[styles.btnBlueAction, { marginTop: 12 }]} onPress={buscarAlunos} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtBlueAction}>Buscar Registos</Text>}
-      </TouchableOpacity>
-
-      <View style={{ marginTop: 24 }}>
-        {buscou && resultados.length === 0 && !loading && (
-          <Text style={{ color: '#94a3b8', textAlign: 'center' }}>Nenhum estudante ou encarregado encontrado.</Text>
-        )}
-
-        {resultados.map((aluno) => (
-          <View key={aluno.id || Math.random()} style={styles.cardPublicidadeGeral}>
-            <Text style={styles.tituloPublicidadeGeral}>👨‍🎓 {aluno.nome_completo}</Text>
-            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 4 }}>🆔 BI: {aluno.num_bilhete || 'Não informado'}</Text>
-            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 2 }}>👨‍gsub Encarregado: {aluno.encarregado_nome || 'Não informado'}</Text>
-            <Text style={{ color: '#38bdf8', fontSize: 13, marginTop: 2 }}>📞 Telefone: {aluno.encarregado_telefone || 'Não informado'}</Text>
-          </View>
-        ))}
-      </View>
     </ScrollView>
   );
 }
@@ -347,21 +221,158 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
+function SeccaoAlunos({ escolaId }) {
+  const [nome, setNome] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
+  const [numBilhete, setNumBilhete] = useState('');
+  const [classe, setClasse] = useState('');
+  const [turma, setTurma] = useState('');
+  const [nomeEncarregado, setNomeEncarregado] = useState('');
+  const [telefoneEncarregado, setTelefoneEncarregado] = useState('');
+
+  const [alunos, setAlunos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [carregandoLista, setCarregandoLista] = useState(false);
+  const [msgStatus, setMsgStatus] = useState('');
+
+  const carregarAlunos = async () => {
+    if (!escolaId) return;
+    setCarregandoLista(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/alunos?escola_id=eq.${escolaId}&select=*`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) setAlunos(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCarregandoLista(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarAlunos();
+  }, [escolaId]);
+
+  const handleCadastrarAluno = async () => {
+    if (!nome.trim() || !classe.trim()) {
+      setMsgStatus('Preencha Nome Completo e Classe/Turma.');
+      return;
+    }
+
+    setLoading(true);
+    setMsgStatus('');
+
+    const novoAluno = {
+      escola_id: escolaId,
+      nome_completo: nome.trim(),
+      data_nascimento: dataNascimento.trim(),
+      num_bilhete: numBilhete.trim(),
+      classe: classe.trim(),
+      turma: turma.trim(),
+      nome_encarregado: nomeEncarregado.trim(),
+      telefone_encarregado: telefoneEncarregado.trim()
+    };
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/alunos`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(novoAluno)
+      });
+
+      if (res.ok) {
+        setMsgStatus('✅ Aluno cadastrado com sucesso!');
+        setNome('');
+        setDataNascimento('');
+        setNumBilhete('');
+        setClasse('');
+        setTurma('');
+        setNomeEncarregado('');
+        setTelefoneEncarregado('');
+        carregarAlunos();
+      } else {
+        setMsgStatus('Erro ao gravar aluno no banco.');
+      }
+    } catch (e) {
+      setMsgStatus('Erro de ligação de rede.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={{ marginTop: 10 }}>
+      <View style={styles.cardFormAluno}>
+        <Text style={styles.tituloSecaoAluno}>🎓 Cadastrar Novo Aluno</Text>
+
+        {msgStatus ? <Text style={styles.txtStatusAluno}>{msgStatus}</Text> : null}
+
+        <Text style={styles.label}>Nome Completo *</Text>
+        <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Lucas Gabriel" />
+
+        <Text style={styles.label}>Data de Nascimento</Text>
+        <TextInput style={styles.input} value={dataNascimento} onChangeText={setDataNascimento} placeholder="Ex: 12/05/2012" />
+
+        <Text style={styles.label}>Número do Bilhete / Cédula</Text>
+        <TextInput style={styles.input} value={numBilhete} onChangeText={setNumBilhete} placeholder="Ex: 009876543LA042" />
+
+        <View style={styles.rowGrid}>
+          <View style={{ flex: 1, marginRight: 6 }}>
+            <Text style={styles.label}>Classe *</Text>
+            <TextInput style={styles.input} value={classe} onChangeText={setClasse} placeholder="Ex: 7ª Classe" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 6 }}>
+            <Text style={styles.label}>Turma</Text>
+            <TextInput style={styles.input} value={turma} onChangeText={setTurma} placeholder="Ex: Turma A" />
+          </View>
+        </View>
+
+        <Text style={styles.label}>Nome do Encarregado</Text>
+        <TextInput style={styles.input} value={nomeEncarregado} onChangeText={setNomeEncarregado} placeholder="Ex: Manuel Gabriel" />
+
+        <Text style={styles.label}>Telefone do Encarregado</Text>
+        <TextInput style={styles.input} value={telefoneEncarregado} onChangeText={setTelefoneEncarregado} keyboardType="phone-pad" placeholder="Ex: 929112233" />
+
+        <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrarAluno} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>+ Cadastrar Aluno</Text>}
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ marginTop: 20 }}>
+        <Text style={styles.tituloSecaoAluno}>📋 Alunos Cadastrados ({alunos.length})</Text>
+        {carregandoLista ? (
+          <ActivityIndicator color="#2563eb" style={{ marginTop: 10 }} />
+        ) : alunos.length === 0 ? (
+          <Text style={{ color: '#64748b', fontSize: 13, marginTop: 6, textAlign: 'center' }}>Nenhum aluno cadastrado ainda.</Text>
+        ) : (
+          alunos.map((item) => (
+            <View key={item.id} style={styles.itemAlunoCard}>
+              <Text style={styles.itemAlunoNome}>👤 {item.nome_completo}</Text>
+              <Text style={styles.itemAlunoSub}>📚 Classe: {item.classe} {item.turma ? `(${item.turma})` : ''}</Text>
+              {item.num_bilhete ? <Text style={styles.itemAlunoSub}>🪪 BI: {item.num_bilhete}</Text> : null}
+              {item.nome_encarregado ? <Text style={styles.itemAlunoSub}>👨‍👦 Encarregado: {item.nome_encarregado} ({item.telefone_encarregado || 'S/N'})</Text> : null}
+            </View>
+          ))
+        )}
+      </View>
+    </View>
+  );
+}
+
 function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
   const [estadoAtual, setEstadoAtual] = useState(dados);
   const [carregando, setCarregando] = useState(false);
-  
   const [abaAtiva, setAbaAtiva] = useState('geral');
-  
-  const [nomeAluno, setNomeAluno] = useState('');
-  const [biAluno, setBiAluno] = useState('');
-  const [nomeEncarregado, setNomeEncarregado] = useState('');
-  const [telEncarregado, setTelEncarregado] = useState('');
-  const [salvandoAluno, setSalvandoAluno] = useState(false);
-
-  const [tituloComunicado, setTituloComunicado] = useState('');
-  const [textoComunicado, setTextoComunicado] = useState('');
-  const [listaComunicados, setListaComunicados] = useState([]);
 
   const checarEstadoDB = async () => {
     if (!estadoAtual?.email) return;
@@ -373,77 +384,24 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
     setCarregando(false);
   };
 
-  const cadastrarAlunoNaEscola = async () => {
-    if (!nomeAluno.trim() || !nomeEncarregado.trim() || !telEncarregado.trim()) {
-      alert('Preencha os campos obrigatórios (*)');
-      return;
-    }
-    setSalvandoAluno(true);
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/estudantes`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          nome_completo: nomeAluno.trim(),
-          num_bilhete: biAluno.trim(),
-          encarregado_nome: nomeEncarregado.trim(),
-          encarregado_telefone: telEncarregado.trim(),
-          escola_id: estadoAtual.id || null
-        })
-      });
-      if (res.ok) {
-        alert('✅ Aluno matriculado com sucesso!');
-        setNomeAluno('');
-        setBiAluno('');
-        setNomeEncarregado('');
-        setTelEncarregado('');
-      } else {
-        alert('Erro ao guardar aluno.');
-      }
-    } catch (err) {
-      alert('Falha na ligação de rede.');
-    } finally {
-      setSalvandoAluno(false);
-    }
-  };
-
-  const publicarComunicado = () => {
-    if (!tituloComunicado.trim() || !textoComunicado.trim()) return;
-    const novo = {
-      id: Date.now(),
-      titulo: tituloComunicado,
-      texto: textoComunicado,
-      data: new Date().toLocaleDateString()
-    };
-    setListaComunicados([novo, ...listaComunicados]);
-    setTituloComunicado('');
-    setTextoComunicado('');
-    alert('📢 Comunicado publicado no mural!');
-  };
-
   const isAprovado =
     estadoAtual.aprovado === true ||
-    estadoAtual.estado_aprovacao?.toLowerCase() === 'aprovado' ||
-    estadoAtual.status?.toLowerCase() === 'aprovado';
+    estadoAtual.estado_aprovacao?.toLowerCase() === 'aprovado';
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#f0f2f5' }}>
       <View style={styles.fbCover}>
         <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: 'bold' }}>
-          {tipo === 'escola' ? '🏛️ PERFIL INSTITUCIONAL' : '👨‍🏫 PERFIL DOCENTE'}
+          🏛️ PERFIL INSTITUCIONAL
         </Text>
       </View>
 
       <View style={styles.fbHeaderCard}>
         <View style={styles.fbAvatar}>
-          <Text style={{ fontSize: 32 }}>{tipo === 'escola' ? '🏫' : '👨‍🏫'}</Text>
+          <Text style={{ fontSize: 32 }}>🏫</Text>
         </View>
         <Text style={styles.fbName}>{estadoAtual.nome || estadoAtual.nome_completo}</Text>
-        <Text style={styles.fbSub}>{tipo === 'escola' ? `NIF: ${estadoAtual.nif}` : `Disciplina: ${estadoAtual.disciplina}`}</Text>
+        <Text style={styles.fbSub}>NIF: {estadoAtual.nif}</Text>
 
         <View style={[
           styles.badgePendenteContainer,
@@ -476,194 +434,72 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         </TouchableOpacity>
       </View>
 
-      {tipo === 'escola' && isAprovado && (
-        <View style={styles.abasContainer}>
-          <TouchableOpacity
-            style={[styles.btnAba, abaAtiva === 'geral' && styles.btnAbaAtiva]}
-            onPress={() => setAbaAtiva('geral')}
-          >
-            <Text style={[styles.txtAba, abaAtiva === 'geral' && styles.txtAbaAtiva]}>Geral</Text>
-          </TouchableOpacity>
+      {/* Navegação por Abas */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tabItem, abaAtiva === 'geral' && styles.tabItemAtiva]}
+          onPress={() => setAbaAtiva('geral')}
+        >
+          <Text style={[styles.tabTxt, abaAtiva === 'geral' && styles.tabTxtAtiva]}>Geral</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.btnAba, abaAtiva === 'alunos' && styles.btnAbaAtiva]}
-            onPress={() => setAbaAtiva('alunos')}
-          >
-            <Text style={[styles.txtAba, abaAtiva === 'alunos' && styles.txtAbaAtiva]}>+ Alunos</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabItem, abaAtiva === 'alunos' && styles.tabItemAtiva]}
+          onPress={() => setAbaAtiva('alunos')}
+        >
+          <Text style={[styles.tabTxt, abaAtiva === 'alunos' && styles.tabTxtAtiva]}>+ Alunos</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.btnAba, abaAtiva === 'pautas' && styles.btnAbaAtiva]}
-            onPress={() => setAbaAtiva('pautas')}
-          >
-            <Text style={[styles.txtAba, abaAtiva === 'pautas' && styles.txtAbaAtiva]}>Pautas</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabItem, abaAtiva === 'pautas' && styles.tabItemAtiva]}
+          onPress={() => setAbaAtiva('pautas')}
+        >
+          <Text style={[styles.tabTxt, abaAtiva === 'pautas' && styles.tabTxtAtiva]}>Pautas</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.btnAba, abaAtiva === 'comunicados' && styles.btnAbaAtiva]}
-            onPress={() => setAbaAtiva('comunicados')}
-          >
-            <Text style={[styles.txtAba, abaAtiva === 'comunicados' && styles.txtAbaAtiva]}>Mural</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        <TouchableOpacity
+          style={[styles.tabItem, abaAtiva === 'mural' && styles.tabItemAtiva]}
+          onPress={() => setAbaAtiva('mural')}
+        >
+          <Text style={[styles.tabTxt, abaAtiva === 'mural' && styles.tabTxtAtiva]}>Mural</Text>
+        </TouchableOpacity>
+      </View>
 
-      {abaAtiva === 'geral' && (
-        <View style={styles.fbInfoCard}>
-          <Text style={styles.fbSectionTitle}>📌 Informações Gravadas</Text>
-          <Text style={styles.fbInfoRow}>📧 Email: {estadoAtual.email}</Text>
-          <Text style={styles.fbInfoRow}>📞 Contacto: {estadoAtual.telefone || estadoAtual.nif}</Text>
-          <Text style={styles.fbInfoRow}>
-            Status no Sistema: {isAprovado ? 'Ativo / Publicado' : 'Aguardando Aprovação'}
-          </Text>
-        </View>
-      )}
-
-      {abaAtiva === 'alunos' && (
-        <View style={styles.fbInfoCard}>
-          <Text style={styles.fbSectionTitle}>📝 Matricular Novo Aluno</Text>
-          <Text style={styles.labelDark}>Nome do Estudante *</Text>
-          <TextInput style={styles.inputLight} value={nomeAluno} onChangeText={setNomeAluno} placeholder="Ex: Manuel António" />
-
-          <Text style={styles.labelDark}>Nº Bilhete de Identidade (BI)</Text>
-          <TextInput style={styles.inputLight} value={biAluno} onChangeText={setBiAluno} placeholder="Ex: 008271123LA031" />
-
-          <Text style={styles.labelDark}>Nome do Encarregado *</Text>
-          <TextInput style={styles.inputLight} value={nomeEncarregado} onChangeText={setNomeEncarregado} placeholder="Ex: João António" />
-
-          <Text style={styles.labelDark}>Telefone do Encarregado *</Text>
-          <TextInput style={styles.inputLight} value={telEncarregado} onChangeText={setTelEncarregado} keyboardType="phone-pad" placeholder="Ex: 923112233" />
-
-          <TouchableOpacity style={styles.btnSalvar} onPress={cadastrarAlunoNaEscola} disabled={salvandoAluno}>
-            {salvandoAluno ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Salvar Matrícula</Text>}
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {abaAtiva === 'pautas' && (
-        <View style={styles.fbInfoCard}>
-          <Text style={styles.fbSectionTitle}>📊 Pautas & Avaliações</Text>
-          <Text style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>
-            Pautas publicadas para consulta dos encarregados de educação:
-          </Text>
-          <View style={styles.cardItemPauta}>
-            <Text style={{ fontWeight: 'bold', color: '#0f172a' }}>1º Trimestre - Iniciação à 12ª Classe</Text>
-            <Text style={{ color: '#16a34a', fontSize: 12, marginTop: 4 }}>✅ Publicado e Atualizado</Text>
+      {/* Conteúdo das Abas */}
+      <View style={{ paddingHorizontal: 16 }}>
+        {abaAtiva === 'geral' && (
+          <View style={styles.fbInfoCard}>
+            <Text style={styles.fbSectionTitle}>📌 Informações Gravadas</Text>
+            <Text style={styles.fbInfoRow}>📧 Email: {estadoAtual.email}</Text>
+            <Text style={styles.fbInfoRow}>📞 Contacto: {estadoAtual.telefone || estadoAtual.nif}</Text>
+            <Text style={styles.fbInfoRow}>
+              Status no Sistema: {isAprovado ? 'Ativo / Publicado' : 'Aguardando Aprovação'}
+            </Text>
           </View>
-        </View>
-      )}
+        )}
 
-      {abaAtiva === 'comunicados' && (
-        <View style={styles.fbInfoCard}>
-          <Text style={styles.fbSectionTitle}>📢 Publicar Comunicado Geral</Text>
-          <TextInput style={styles.inputLight} value={tituloComunicado} onChangeText={setTituloComunicado} placeholder="Título do aviso (Ex: Reunião Geral)" />
-          <TextInput style={[styles.inputLight, { height: 70 }]} multiline value={textoComunicado} onChangeText={setTextoComunicado} placeholder="Escreva a mensagem do comunicado..." />
+        {abaAtiva === 'alunos' && (
+          <SeccaoAlunos escolaId={estadoAtual.id} />
+        )}
 
-          <TouchableOpacity style={[styles.btnBlueAction, { marginTop: 8 }]} onPress={publicarComunicado}>
-            <Text style={styles.txtBlueAction}>Publicar no Mural</Text>
-          </TouchableOpacity>
+        {abaAtiva === 'pautas' && (
+          <View style={styles.fbInfoCard}>
+            <Text style={styles.fbSectionTitle}>📊 Gestão de Pautas</Text>
+            <Text style={{ color: '#64748b', fontSize: 13 }}>Seção de publicação e consulta de pautas trimestrais.</Text>
+          </View>
+        )}
 
-          <Text style={[styles.fbSectionTitle, { marginTop: 20 }]}>Mural da Escola</Text>
-          {listaComunicados.length === 0 ? (
-            <Text style={{ color: '#94a3b8', fontSize: 12 }}>Nenum comunicado recente publicado.</Text>
-          ) : (
-            listaComunicados.map((item) => (
-              <View key={item.id} style={styles.cardItemPauta}>
-                <Text style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.titulo}</Text>
-                <Text style={{ color: '#334155', fontSize: 12, marginTop: 4 }}>{item.texto}</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 6 }}>📅 {item.data}</Text>
-              </View>
-            ))
-          )}
-        </View>
-      )}
+        {abaAtiva === 'mural' && (
+          <View style={styles.fbInfoCard}>
+            <Text style={styles.fbSectionTitle}>📢 Mural de Avisos</Text>
+            <Text style={{ color: '#64748b', fontSize: 13 }}>Publicações e convocatórias para encarregados de educação.</Text>
+          </View>
+        )}
+      </View>
 
       <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
       </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
-function TelaPainelAdmin({ onVoltar }) {
-  const [pendentes, setPendentes] = useState({ instituicoes: [], professores: [] });
-  const [carregando, setCarregando] = useState(true);
-
-  const carregarDados = async () => {
-    setCarregando(true);
-    const dados = await buscarPendentes();
-    setPendentes(dados);
-    setCarregando(false);
-  };
-
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  const handleAprovar = async (tabela, id, nome) => {
-    const ok = await aprovarRegisto(tabela, id);
-    if (ok) {
-      alert(`✅ ${nome} foi aprovado com sucesso!`);
-      carregarDados();
-    } else {
-      alert('❌ Erro ao aprovar o registo.');
-    }
-  };
-
-  return (
-    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={styles.formHeader}>
-        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onVoltar}>
-          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={styles.formTitle}>Painel de Gestão Admin ⚙️</Text>
-      </View>
-
-      {carregando ? (
-        <ActivityIndicator color="#38bdf8" size="large" style={{ marginTop: 20 }} />
-      ) : (
-        <>
-          <Text style={styles.secaoSubtitulo}>Instituições Pendentes ({pendentes.instituicoes.length})</Text>
-          {pendentes.instituicoes.length === 0 ? (
-            <Text style={{ color: '#94a3b8', marginBottom: 16 }}>Nenhuma instituição aguardando aprovação.</Text>
-          ) : (
-            pendentes.instituicoes.map((inst) => (
-              <View key={inst.id} style={styles.cardPublicidadeGeral}>
-                <Text style={styles.tituloPublicidadeGeral}>{inst.nome}</Text>
-                <Text style={{ color: '#cbd5e1', fontSize: 12 }}>NIF: {inst.nif}</Text>
-                <Text style={{ color: '#cbd5e1', fontSize: 12 }}>Email: {inst.email}</Text>
-
-                <TouchableOpacity
-                  style={[styles.btnSalvar, { marginTop: 10, padding: 10 }]}
-                  onPress={() => handleAprovar('instituicoes', inst.id, inst.nome)}
-                >
-                  <Text style={styles.txtSalvar}>Aprovar Instituição ✅</Text>
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
-
-          <Text style={[styles.secaoSubtitulo, { marginTop: 20 }]}>Professores Pendentes ({pendentes.professores.length})</Text>
-          {pendentes.professores.length === 0 ? (
-            <Text style={{ color: '#94a3b8' }}>Nenhum professor aguardando aprovação.</Text>
-          ) : (
-            pendentes.professores.map((prof) => (
-              <View key={prof.id} style={styles.cardPublicidadeGeral}>
-                <Text style={styles.tituloPublicidadeGeral}>{prof.nome_completo || prof.nome}</Text>
-                <Text style={{ color: '#cbd5e1', fontSize: 12 }}>Disciplina: {prof.disciplina}</Text>
-                <Text style={{ color: '#cbd5e1', fontSize: 12 }}>Contacto: {prof.telefone}</Text>
-
-                <TouchableOpacity
-                  style={[styles.btnSalvar, { marginTop: 10, padding: 10 }]}
-                  onPress={() => handleAprovar('professores', prof.id, prof.nome_completo || prof.nome)}
-                >
-                  <Text style={styles.txtSalvar}>Aprovar Professor ✅</Text>
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
-        </>
-      )}
     </ScrollView>
   );
 }
@@ -687,34 +523,30 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
 
   const [nomeFoto, setNomeFoto] = useState('');
   const [nomePdf, setNomePdf] = useState('');
-
+  
   const [loading, setLoading] = useState(false);
   const [erroForm, setErroForm] = useState('');
 
   const selecionarFoto = () => {
-    if (typeof document !== 'undefined') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) setNomeFoto(file.name);
-      };
-      input.click();
-    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) setNomeFoto(file.name);
+    };
+    input.click();
   };
 
   const selecionarPdf = () => {
-    if (typeof document !== 'undefined') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/pdf';
-      input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) setNomePdf(file.name);
-      };
-      input.click();
-    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) setNomePdf(file.name);
+    };
+    input.click();
   };
 
   const handleCadastrar = async () => {
@@ -866,7 +698,7 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
 
   const handleCadastrarProf = async () => {
     if (!nome.trim() || !disciplina.trim() || !telefone.trim()) {
-      setErroForm('Preencha os campos obrigatórios (*).');
+      setErroForm('Preencha Nome, Disciplina e Telefone.');
       return;
     }
 
@@ -877,9 +709,8 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
       nome_completo: nome.trim(),
       disciplina: disciplina.trim(),
       telefone: telefone.trim(),
-      bi: bi.trim(),
-      email: usuario?.email || '',
-      estado_aprovacao: 'pendente'
+      num_bilhete: bi.trim(),
+      email: usuario?.email || 'professor@escola.ao'
     };
 
     try {
@@ -897,7 +728,7 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
       const resData = await response.json();
 
       if (!response.ok) {
-        setErroForm(resData.message || 'Erro ao guardar dados do professor.');
+        setErroForm(resData.message || 'Erro ao gravar na base de dados.');
       } else {
         onConcluir(resData && resData.length > 0 ? resData[0] : objetoEnvio);
       }
@@ -909,27 +740,27 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   };
 
   return (
-    <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.formContainer}>
       <View style={styles.formHeader}>
         <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
           <Text style={styles.txtVoltarHeader}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.formTitle}>Cadastramento de Professor</Text>
+        <Text style={styles.formTitle}>Cadastrar Professor</Text>
       </View>
 
       {erroForm ? <Text style={styles.txtErroForm}>{erroForm}</Text> : null}
 
       <Text style={styles.label}>Nome Completo *</Text>
-      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Professor António Manuel" />
+      <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: João Manuel" />
 
-      <Text style={styles.label}>Disciplina Principal *</Text>
-      <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática / Física" />
+      <Text style={styles.label}>Disciplina / Especialidade *</Text>
+      <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática" />
 
-      <Text style={styles.label}>Telefone / WhatsApp *</Text>
-      <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Ex: 923112233" />
+      <Text style={styles.label}>Telefone *</Text>
+      <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" placeholder="Ex: 929500600" />
 
-      <Text style={styles.label}>Nº do Bilhete de Identidade (BI)</Text>
-      <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 009281721LA042" />
+      <Text style={styles.label}>Nº Bilhete de Identidade (BI)</Text>
+      <TextInput style={styles.input} value={bi} onChangeText={setBi} placeholder="Ex: 000000000LA000" />
 
       <TouchableOpacity style={styles.btnSalvar} onPress={handleCadastrarProf} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>Gravar Professor</Text>}
@@ -938,138 +769,159 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   );
 }
 
-export default function App() {
-  const [telaAtual, setTelaAtual] = useState('home'); 
-  const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
-  const [usuarioLogado, setUsuarioLogado] = useState(null);
-  const [dadosPerfil, setDadosPerfil] = useState(null);
-  const [tipoPerfil, setTipoPerfil] = useState('');
+function TelaPesquisaAlunos({ onCancelar }) {
+  const [busca, setBusca] = useState('');
 
-  const ligarParaPublicidade = () => {
+  return (
+    <ScrollView style={styles.formContainer}>
+      <View style={styles.formHeader}>
+        <TouchableOpacity style={styles.btnVoltarHeader} onPress={onCancelar}>
+          <Text style={styles.txtVoltarHeader}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.formTitle}>Pesquisa de Alunos e Encarregados</Text>
+      </View>
+
+      <Text style={styles.label}>Pesquisar por Nome ou BI</Text>
+      <TextInput
+        style={styles.input}
+        value={busca}
+        onChangeText={setBusca}
+        placeholder="Digite o nome do aluno ou encarregado..."
+      />
+
+      <TouchableOpacity style={styles.btnSalvar} onPress={() => {}}>
+        <Text style={styles.txtSalvar}>Pesquisar</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+function MenuPrincipalHome({ usuario, onOpenLogin, onNavegarCadastramentoInst, onNavegarCadastramentoProf, onNavegarPesquisa, onNavegarPublicidades, publicidadeLigar, dadosPerfilExistente, onVerPerfilPendente }) {
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <View style={styles.headerRowHome}>
+        <Text style={styles.homeTitleHeader}>Portal Escola</Text>
+        <TouchableOpacity style={styles.btnPillPubHeader} onPress={onNavegarPublicidades}>
+          <Text style={styles.txtPillPubHeader}>📢 Publicidade</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        <Text style={styles.secaoTitulo}>Menu Principal do Sistema</Text>
+        <Text style={styles.secaoSubtitulo}>Selecione a opção desejada para navegar:</Text>
+
+        <TouchableOpacity style={[styles.cardMenu, { backgroundColor: '#2563eb', borderColor: '#1d4ed8' }]} onPress={onOpenLogin}>
+          <Text style={styles.cardEmoji}>🔑</Text>
+          <Text style={[styles.cardMenuTitulo, { color: '#ffffff' }]}>
+            {usuario ? `Sessão Iniciada: ${usuario.email}` : 'Entrar / Iniciar Sessão'}
+          </Text>
+        </TouchableOpacity>
+
+        {dadosPerfilExistente && (
+          <TouchableOpacity style={[styles.cardMenu, { backgroundColor: '#eff6ff', borderColor: '#3b82f6' }]} onPress={onVerPerfilPendente}>
+            <Text style={styles.cardEmoji}>⏳</Text>
+            <Text style={[styles.cardMenuTitulo, { color: '#1d4ed8' }]}>Acompanhar Meu Registo / Estado de Aprovação</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoInst}>
+          <Text style={styles.cardEmoji}>🏫</Text>
+          <Text style={styles.cardMenuTitulo}>Cadastramento de Instituições</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarPesquisa}>
+          <Text style={styles.cardEmoji}>🔍</Text>
+          <Text style={styles.cardMenuTitulo}>Pesquisa de Alunos e Encarregados</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.cardMenu} onPress={onNavegarCadastramentoProf}>
+          <Text style={styles.cardEmoji}>👨‍🏫</Text>
+          <Text style={styles.cardMenuTitulo}>Cadastramento de Professores</Text>
+        </TouchableOpacity>
+
+        <CarrosselPublicidades publicidadeLigar={publicidadeLigar} onVerTodas={onNavegarPublicidades} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+export default function App() {
+  const [telaAtual, setTelaAtual] = useState('home');
+  const [modalLoginVisivel, setModalLoginVisivel] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+  const [acaoPendente, setAcaoPendente] = useState(null);
+  const [dadosPerfilCriado, setDadosPerfilCriado] = useState(null);
+  const [tipoPerfil, setTipoPerfil] = useState('escola');
+
+  const ligarParaSuporte = () => {
     Linking.openURL('tel:929500600');
   };
 
-  const handleLoginSucesso = (user, perfilPendente) => {
-    setUsuarioLogado(user);
-    if (perfilPendente) {
-      setDadosPerfil(perfilPendente.dados);
-      setTipoPerfil(perfilPendente.tipo);
-      setTelaAtual('perfil');
+  const solicitarAutenticacao = (destino) => {
+    if (!usuario) {
+      setAcaoPendente(destino);
+      setModalLoginVisivel(true);
+    } else {
+      setTelaAtual(destino);
     }
   };
 
-  const handleConcluirCadastro = (dados, tipo) => {
-    setDadosPerfil(dados);
-    setTipoPerfil(tipo);
-    setTelaAtual('perfil');
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <StatusBar style="dark" />
 
       {telaAtual === 'home' && (
-        <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-          <View style={styles.headerHomeLight}>
-            <Text style={styles.logoTitleLight}>Portal Escola</Text>
-
-            <TouchableOpacity style={styles.btnBadgePublicidade} onPress={() => setTelaAtual('todas_pubs')}>
-              <Text style={styles.txtBadgePublicidade}>📢 Publicidade</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.containerConteudo}>
-            <Text style={styles.tituloSecao}>Menu Principal do Sistema</Text>
-            <Text style={styles.subtituloSecao}>Selecione a opção desejada para navegar:</Text>
-
-            <View style={styles.menuGridLight}>
-              <TouchableOpacity
-                style={styles.menuCardLight}
-                onPress={() => {
-                  if (!usuarioLogado) setModalLoginVisivel(true);
-                  else setTelaAtual('cad_escola');
-                }}
-              >
-                <Text style={styles.menuEmojiLight}>🏫</Text>
-                <Text style={styles.menuTitleLight}>Cadastramento de Instituições</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuCardLight}
-                onPress={() => setTelaAtual('pesquisa_alunos')}
-              >
-                <Text style={styles.menuEmojiLight}>🔍</Text>
-                <Text style={styles.menuTitleLight}>Pesquisa de Alunos e Encarregados</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuCardLight}
-                onPress={() => {
-                  if (!usuarioLogado) setModalLoginVisivel(true);
-                  else setTelaAtual('cad_prof');
-                }}
-              >
-                <Text style={styles.menuEmojiLight}>👨‍🏫</Text>
-                <Text style={styles.menuTitleLight}>Cadastramento de Professores</Text>
-              </TouchableOpacity>
-
-              {usuarioLogado?.email === EMAIL_ADMIN && (
-                <TouchableOpacity
-                  style={[styles.menuCardLight, { borderColor: '#eab308', borderWidth: 2 }]}
-                  onPress={() => setTelaAtual('admin')}
-                >
-                  <Text style={styles.menuEmojiLight}>⚙️</Text>
-                  <Text style={styles.menuTitleLight}>Painel de Gestão Admin</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <CarrosselPublicidades
-              publicidadeLigar={ligarParaPublicidade}
-              onVerTodas={() => setTelaAtual('todas_pubs')}
-            />
-          </View>
-        </ScrollView>
+        <MenuPrincipalHome
+          usuario={usuario}
+          onOpenLogin={() => setModalLoginVisivel(true)}
+          onNavegarCadastramentoInst={() => solicitarAutenticacao('cadastramento')}
+          onNavegarCadastramentoProf={() => solicitarAutenticacao('cadastramento_prof')}
+          onNavegarPesquisa={() => setTelaAtual('pesquisa')}
+          onNavegarPublicidades={() => setTelaAtual('mural_publicidades')}
+          publicidadeLigar={ligarParaSuporte}
+          dadosPerfilExistente={dadosPerfilCriado}
+          onVerPerfilPendente={() => setTelaAtual('perfil_facebook')}
+        />
       )}
 
-      {telaAtual === 'todas_pubs' && (
+      {telaAtual === 'mural_publicidades' && (
         <TelaTodasPublicidades
           onVoltar={() => setTelaAtual('home')}
-          publicidadeLigar={ligarParaPublicidade}
+          publicidadeLigar={ligarParaSuporte}
         />
       )}
 
-      {telaAtual === 'pesquisa_alunos' && (
-        <TelaPesquisaAlunos
-          onVoltar={() => setTelaAtual('home')}
-        />
-      )}
-
-      {telaAtual === 'admin' && (
-        <TelaPainelAdmin
-          onVoltar={() => setTelaAtual('home')}
-        />
-      )}
-
-      {telaAtual === 'cad_escola' && (
+      {telaAtual === 'cadastramento' && (
         <FormCadastramentoInstituicao
-          usuario={usuarioLogado}
-          onConcluir={(dados) => handleConcluirCadastro(dados, 'escola')}
+          usuario={usuario}
+          onConcluir={(dados) => {
+            setDadosPerfilCriado(dados);
+            setTipoPerfil('escola');
+            setTelaAtual('perfil_facebook');
+          }}
           onCancelar={() => setTelaAtual('home')}
         />
       )}
 
-      {telaAtual === 'cad_prof' && (
+      {telaAtual === 'cadastramento_prof' && (
         <FormCadastramentoProfessor
-          usuario={usuarioLogado}
-          onConcluir={(dados) => handleConcluirCadastro(dados, 'professor')}
+          usuario={usuario}
+          onConcluir={(dados) => {
+            setDadosPerfilCriado(dados);
+            setTipoPerfil('professor');
+            setTelaAtual('perfil_facebook');
+          }}
           onCancelar={() => setTelaAtual('home')}
         />
       )}
 
-      {telaAtual === 'perfil' && dadosPerfil && (
+      {telaAtual === 'pesquisa' && (
+        <TelaPesquisaAlunos onCancelar={() => setTelaAtual('home')} />
+      )}
+
+      {telaAtual === 'perfil_facebook' && dadosPerfilCriado && (
         <PerfilEstiloFacebook
-          dados={dadosPerfil}
+          dados={dadosPerfilCriado}
           tipo={tipoPerfil}
           onVoltarHome={() => setTelaAtual('home')}
         />
@@ -1078,117 +930,97 @@ export default function App() {
       <ModalLogin
         visivel={modalLoginVisivel}
         onClose={() => setModalLoginVisivel(false)}
-        onLoginSucesso={handleLoginSucesso}
+        onLoginSucesso={(usr, perfilPendente) => {
+          setUsuario(usr);
+          if (perfilPendente) {
+            setDadosPerfilCriado(perfilPendente.dados);
+            setTipoPerfil(perfilPendente.tipo);
+            setTelaAtual('perfil_facebook');
+          } else if (acaoPendente) {
+            setTelaAtual(acaoPendente);
+            setAcaoPendente(null);
+          } else {
+            setTelaAtual('home');
+          }
+        }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  headerHomeLight: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff'
-  },
-  logoTitleLight: { color: '#0f172a', fontSize: 24, fontWeight: '800' },
-  btnBadgePublicidade: {
-    backgroundColor: '#e0e7ff',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20
-  },
-  txtBadgePublicidade: { color: '#4338ca', fontWeight: 'bold', fontSize: 13 },
-  containerConteudo: { paddingHorizontal: 20, paddingTop: 10 },
-  tituloSecao: { color: '#0f172a', fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  subtituloSecao: { color: '#64748b', fontSize: 14, marginBottom: 20 },
-  menuGridLight: { gap: 14, marginBottom: 24 },
-  menuCardLight: {
-    backgroundColor: '#ffffff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2
-  },
-  menuEmojiLight: { fontSize: 26, marginRight: 16 },
-  menuTitleLight: { color: '#0f172a', fontSize: 16, fontWeight: 'bold', flex: 1 },
-  cardPublicidade: {
-    backgroundColor: '#1b2537',
-    padding: 18,
-    borderRadius: 16,
-    marginTop: 8
-  },
-  pubBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  badgeCategoriaBox: { backgroundColor: '#2d3748', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  badgeCategoria: { color: '#90cdf4', fontSize: 12, fontWeight: '600' },
-  contadorPub: { color: '#e2e8f0', fontSize: 12, fontWeight: 'bold' },
-  tituloPublicidade: { color: '#ffffff', fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
-  corpoPublicidade: { color: '#cbd5e1', fontSize: 13, lineHeight: 20, marginBottom: 16 },
-  subCallPub: { color: '#94a3b8', fontSize: 12, marginBottom: 8 },
-  btnLigarPub: { backgroundColor: '#2b384e', padding: 12, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#3a4a63' },
-  telefonePublicidade: { color: '#f6ad55', fontWeight: 'bold', fontSize: 13 },
-  formContainer: { flex: 1, backgroundColor: '#0f172a', padding: 16 },
-  formHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  btnVoltarHeader: { backgroundColor: '#334155', padding: 8, borderRadius: 6 },
-  txtVoltarHeader: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
-  formTitle: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
-  label: { color: '#cbd5e1', fontSize: 13, marginTop: 12, marginBottom: 4, fontWeight: '600' },
-  input: { backgroundColor: '#1e293b', color: '#ffffff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155', fontSize: 14 },
+  headerRowHome: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 45, paddingBottom: 15, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  homeTitleHeader: { fontSize: 22, fontWeight: 'bold', color: '#0f172a' },
+  btnPillPubHeader: { backgroundColor: '#e0e7ff', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  txtPillPubHeader: { color: '#3730a3', fontSize: 13, fontWeight: 'bold' },
+  secaoTitulo: { fontSize: 20, fontWeight: 'bold', color: '#0f172a', marginTop: 4 },
+  secaoSubtitulo: { fontSize: 13, color: '#64748b', marginBottom: 16, marginTop: 2 },
+  cardMenu: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  cardEmoji: { fontSize: 24, marginBottom: 8 },
+  cardMenuTitulo: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
+  cardPublicidade: { backgroundColor: '#1e293b', borderRadius: 14, padding: 16, marginTop: 12 },
+  pubBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  badgeCategoria: { backgroundColor: 'rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 11, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  contadorPub: { color: '#fbbf24', fontSize: 12, fontWeight: 'bold' },
+  tituloPublicidade: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
+  corpoPublicidade: { color: '#94a3b8', fontSize: 13, marginTop: 6, lineHeight: 18 },
+  subCallPub: { color: '#cbd5e1', fontSize: 12, marginTop: 14 },
+  btnLigarPub: { marginTop: 6, backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8, alignItems: 'center' },
+  telefonePublicidade: { color: '#fbbf24', fontWeight: 'bold', fontSize: 13 },
+  cardPublicidadeGeral: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 16, marginBottom: 16 },
+  badgeCategoriaGeral: { alignSelf: 'flex-start', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: 11, fontWeight: 'bold', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 8 },
+  tituloPublicidadeGeral: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
+  corpoPublicidadeGeral: { fontSize: 13, color: '#475569', marginTop: 4, lineHeight: 18 },
+  btnLigarPubGeral: { marginTop: 12, backgroundColor: '#1e293b', padding: 10, borderRadius: 8, alignItems: 'center' },
+  formContainer: { flex: 1, padding: 16, backgroundColor: '#ffffff' },
+  formHeader: { flexDirection: 'row', alignItems: 'center', paddingTop: 40, paddingBottom: 20 },
+  btnVoltarHeader: { marginRight: 15 },
+  txtVoltarHeader: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
+  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
+  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginTop: 10, marginBottom: 4 },
+  input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, fontSize: 14, color: '#0f172a' },
   rowGrid: { flexDirection: 'row', justifyContent: 'space-between' },
-  boxDecreto: { backgroundColor: '#1e293b', padding: 14, borderRadius: 8, marginTop: 16, borderWidth: 1, borderColor: '#334155' },
-  tituloDecreto: { color: '#38bdf8', fontWeight: 'bold', fontSize: 13, marginBottom: 6 },
-  corpoDecreto: { color: '#94a3b8', fontSize: 12, marginBottom: 10 },
-  btnBlueAction: { backgroundColor: '#2563eb', padding: 10, borderRadius: 6, alignItems: 'center' },
-  txtBlueAction: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
-  btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 24 },
+  btnBlueAction: { backgroundColor: '#2563eb', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  txtBlueAction: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
+  boxDecreto: { backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 10, padding: 14, marginTop: 20 },
+  tituloDecreto: { fontSize: 14, fontWeight: 'bold', color: '#1e3a8a', marginBottom: 6 },
+  corpoDecreto: { fontSize: 12, color: '#1e40af', marginBottom: 12 },
+  btnSalvar: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16 },
   txtSalvar: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
-  txtErroForm: { color: '#ef4444', backgroundColor: '#450a0a', padding: 10, borderRadius: 6, marginBottom: 10 },
-  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  darkModalCard: { backgroundColor: '#1e293b', padding: 20, borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
-  darkModalTitle: { color: '#ffffff', fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
-  darkModalSubtitle: { color: '#94a3b8', fontSize: 12, textAlign: 'center', marginBottom: 16 },
-  darkInput: { backgroundColor: '#0f172a', color: '#ffffff', padding: 12, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#334155' },
-  btnEntrarDark: { backgroundColor: '#2563eb', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  txtErroForm: { color: '#dc2626', backgroundColor: '#fee2e2', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13 },
+  txtErroModal: { color: '#ef4444', backgroundColor: '#450a0a', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13, textAlign: 'center' },
+  darkModalOverlay: { flex: 1, backgroundColor: 'rgba(11, 19, 36, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  darkModalCard: { backgroundColor: '#1b253b', width: '100%', borderRadius: 16, padding: 24 },
+  darkModalTitle: { fontSize: 24, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
+  darkModalSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 20 },
+  darkInput: { backgroundColor: '#243049', borderWidth: 1, borderColor: '#334155', borderRadius: 10, padding: 12, color: '#ffffff', marginBottom: 12 },
+  btnEntrarDark: { backgroundColor: '#2563eb', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 8 },
   txtEntrarDark: { color: '#ffffff', fontWeight: 'bold' },
-  btnLinkDark: { padding: 10, alignItems: 'center' },
-  txtLinkDark: { color: '#38bdf8', fontSize: 12 },
-  btnFecharDark: { padding: 8, alignItems: 'center' },
-  txtFecharDark: { color: '#94a3b8', fontSize: 12 },
-  txtErroModal: { color: '#ef4444', fontSize: 12, textAlign: 'center', marginBottom: 10 },
-  fbCover: { height: 60, backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center' },
-  fbHeaderCard: { backgroundColor: '#ffffff', padding: 16, alignItems: 'center', marginBottom: 12 },
-  fbAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginTop: -32 },
-  fbName: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginTop: 8 },
+  btnLinkDark: { marginTop: 16, alignItems: 'center' },
+  txtLinkDark: { color: '#38bdf8', fontSize: 13 },
+  btnFecharDark: { marginTop: 16, alignItems: 'center' },
+  txtFecharDark: { color: '#64748b', fontSize: 13 },
+  fbCover: { height: 90, backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center' },
+  fbHeaderCard: { backgroundColor: '#ffffff', padding: 16, alignItems: 'center', marginHorizontal: 16, marginTop: -20, borderRadius: 12, elevation: 2 },
+  fbAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center', marginTop: -35, borderWidth: 3, borderColor: '#ffffff' },
+  fbName: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginTop: 6 },
   fbSub: { fontSize: 13, color: '#64748b' },
-  badgePendenteContainer: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginTop: 10 },
-  btnVerificarStatus: { marginTop: 12, backgroundColor: '#e2e8f0', padding: 10, borderRadius: 8, width: '100%', alignItems: 'center' },
-  fbInfoCard: { backgroundColor: '#ffffff', padding: 16, marginHorizontal: 12, borderRadius: 8, marginBottom: 12 },
+  badgePendenteContainer: { marginTop: 8, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  btnVerificarStatus: { marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: '#e2e8f0', borderRadius: 8, alignItems: 'center' },
+  tabsContainer: { flexDirection: 'row', backgroundColor: '#ffffff', marginHorizontal: 16, marginTop: 14, marginBottom: 10, borderRadius: 10, padding: 4, elevation: 1 },
+  tabItem: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  tabItemAtiva: { backgroundColor: '#2563eb' },
+  tabTxt: { fontSize: 13, fontWeight: 'bold', color: '#64748b' },
+  tabTxtAtiva: { color: '#ffffff' },
+  fbInfoCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12 },
   fbSectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#0f172a', marginBottom: 8 },
   fbInfoRow: { fontSize: 13, color: '#334155', marginBottom: 6 },
-  btnVoltarFb: { backgroundColor: '#334155', marginHorizontal: 12, padding: 12, borderRadius: 8, alignItems: 'center' },
+  btnVoltarFb: { backgroundColor: '#334155', padding: 14, marginHorizontal: 16, marginVertical: 20, borderRadius: 8, alignItems: 'center' },
   txtVoltarFb: { color: '#ffffff', fontWeight: 'bold' },
-  cardPublicidadeGeral: { backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#334155' },
-  badgeCategoriaGeral: { color: '#38bdf8', fontSize: 12, fontWeight: 'bold', marginBottom: 4 },
-  tituloPublicidadeGeral: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginBottom: 4 },
-  corpoPublicidadeGeral: { color: '#cbd5e1', fontSize: 13, marginBottom: 10 },
-  btnLigarPubGeral: { backgroundColor: '#16a34a', padding: 8, borderRadius: 6, alignItems: 'center' },
-  secaoSubtitulo: { color: '#94a3b8', fontSize: 13, marginBottom: 16 },
-  abasContainer: { flexDirection: 'row', backgroundColor: '#ffffff', marginHorizontal: 12, borderRadius: 8, padding: 4, marginBottom: 12 },
-  btnAba: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6 },
-  btnAbaAtiva: { backgroundColor: '#2563eb' },
-  txtAba: { color: '#64748b', fontSize: 12, fontWeight: 'bold' },
-  txtAbaAtiva: { color: '#ffffff' },
-  labelDark: { color: '#334155', fontSize: 12, marginTop: 10, marginBottom: 4, fontWeight: '600' },
-  inputLight: { backgroundColor: '#f8fafc', color: '#0f172a', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', fontSize: 13 },
-  cardItemPauta: { backgroundColor: '#f1f5f9', padding: 12, borderRadius: 8, marginTop: 8 }
+  cardFormAluno: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12 },
+  tituloSecaoAluno: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 8 },
+  txtStatusAluno: { fontSize: 13, color: '#16a34a', fontWeight: 'bold', marginBottom: 6 },
+  itemAlunoCard: { backgroundColor: '#ffffff', padding: 12, borderRadius: 10, marginTop: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+  itemAlunoNome: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
+  itemAlunoSub: { fontSize: 12, color: '#475569', marginTop: 2 }
 });
