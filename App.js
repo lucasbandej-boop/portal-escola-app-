@@ -223,6 +223,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 
 function SeccaoAlunos({ escolaId, emailEscola }) {
   const [nome, setNome] = useState('');
+  const [numProcesso, setNumProcesso] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [numBilhete, setNumBilhete] = useState('');
   const [classe, setClasse] = useState('');
@@ -236,7 +237,6 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
   const [msgStatus, setMsgStatus] = useState('');
   const [idEscolaValido, setIdEscolaValido] = useState(escolaId);
 
-  // Garante a busca do ID correto da instituição no Supabase
   const obterIdEscola = async () => {
     if (idEscolaValido) return idEscolaValido;
     if (!emailEscola) return null;
@@ -295,9 +295,13 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
     setLoading(true);
     setMsgStatus('');
 
+    const procValor = numProcesso.trim() || `PROC-${Date.now().toString().slice(-4)}`;
+
+    // Objeto limpo apenas com as colunas válidas da tabela
     const novoAluno = {
       escola_id: targetId || null,
       nome_completo: nome.trim(),
+      numero_processo: procValor,
       data_nascimento: dataNascimento.trim(),
       num_bilhete: numBilhete.trim(),
       classe: classe.trim(),
@@ -307,7 +311,7 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
     };
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/alunos`, {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/alunos`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
@@ -318,11 +322,30 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
         body: JSON.stringify(novoAluno)
       });
 
-      const resData = await res.json();
+      let resData = await res.json();
+
+      // Se der erro de coluna numero_processo, tenta re-enviar com num_processo
+      if (!res.ok && resData.message && resData.message.includes('numero_processo')) {
+        delete novoAluno.numero_processo;
+        novoAluno.num_processo = procValor;
+
+        res = await fetch(`${SUPABASE_URL}/rest/v1/alunos`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(novoAluno)
+        });
+        resData = await res.json();
+      }
 
       if (res.ok) {
         setMsgStatus('✅ Aluno cadastrado com sucesso!');
         setNome('');
+        setNumProcesso('');
         setDataNascimento('');
         setNumBilhete('');
         setClasse('');
@@ -349,6 +372,9 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
 
         <Text style={styles.label}>Nome Completo *</Text>
         <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Lucas Gabriel" />
+
+        <Text style={styles.label}>Nº de Processo / Matrícula</Text>
+        <TextInput style={styles.input} value={numProcesso} onChangeText={setNumProcesso} placeholder="Ex: 2026/045" />
 
         <Text style={styles.label}>Data de Nascimento</Text>
         <TextInput style={styles.input} value={dataNascimento} onChangeText={setDataNascimento} placeholder="Ex: 12/05/2012" />
@@ -388,6 +414,7 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
           alunos.map((item) => (
             <View key={item.id} style={styles.itemAlunoCard}>
               <Text style={styles.itemAlunoNome}>👤 {item.nome_completo}</Text>
+              <Text style={styles.itemAlunoSub}>🔢 Processo: {item.numero_processo || item.num_processo || 'N/A'}</Text>
               <Text style={styles.itemAlunoSub}>📚 Classe: {item.classe} {item.turma ? `(${item.turma})` : ''}</Text>
               {item.num_bilhete ? <Text style={styles.itemAlunoSub}>🪪 BI: {item.num_bilhete}</Text> : null}
               {item.nome_encarregado ? <Text style={styles.itemAlunoSub}>👨‍👦 Encarregado: {item.nome_encarregado} ({item.telefone_encarregado || 'S/N'})</Text> : null}
