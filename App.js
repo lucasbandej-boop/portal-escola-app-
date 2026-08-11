@@ -297,9 +297,10 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
 
     const procValor = numProcesso.trim() || `PROC-${Date.now().toString().slice(-4)}`;
 
-    // Objeto limpo apenas com as colunas válidas da tabela
+    // Mapeia tanto "nome" quanto "nome_completo" para satisfazer a constraint do Supabase
     const novoAluno = {
       escola_id: targetId || null,
+      nome: nome.trim(),
       nome_completo: nome.trim(),
       numero_processo: procValor,
       data_nascimento: dataNascimento.trim(),
@@ -324,7 +325,6 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
 
       let resData = await res.json();
 
-      // Se der erro de coluna numero_processo, tenta re-enviar com num_processo
       if (!res.ok && resData.message && resData.message.includes('numero_processo')) {
         delete novoAluno.numero_processo;
         novoAluno.num_processo = procValor;
@@ -413,7 +413,7 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
         ) : (
           alunos.map((item) => (
             <View key={item.id} style={styles.itemAlunoCard}>
-              <Text style={styles.itemAlunoNome}>👤 {item.nome_completo}</Text>
+              <Text style={styles.itemAlunoNome}>👤 {item.nome || item.nome_completo}</Text>
               <Text style={styles.itemAlunoSub}>🔢 Processo: {item.numero_processo || item.num_processo || 'N/A'}</Text>
               <Text style={styles.itemAlunoSub}>📚 Classe: {item.classe} {item.turma ? `(${item.turma})` : ''}</Text>
               {item.num_bilhete ? <Text style={styles.itemAlunoSub}>🪪 BI: {item.num_bilhete}</Text> : null}
