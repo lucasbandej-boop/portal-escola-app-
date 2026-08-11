@@ -221,7 +221,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
   );
 }
 
-function SeccaoAlunos({ escolaId }) {
+function SeccaoAlunos({ escolaId, emailEscola }) {
   const [nome, setNome] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [numBilhete, setNumBilhete] = useState('');
@@ -234,12 +234,38 @@ function SeccaoAlunos({ escolaId }) {
   const [loading, setLoading] = useState(false);
   const [carregandoLista, setCarregandoLista] = useState(false);
   const [msgStatus, setMsgStatus] = useState('');
+  const [idEscolaValido, setIdEscolaValido] = useState(escolaId);
+
+  // Garante a busca do ID correto da instituição no Supabase
+  const obterIdEscola = async () => {
+    if (idEscolaValido) return idEscolaValido;
+    if (!emailEscola) return null;
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/instituicoes?email=eq.${encodeURIComponent(emailEscola)}&select=id`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.length > 0) {
+        setIdEscolaValido(data[0].id);
+        return data[0].id;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  };
 
   const carregarAlunos = async () => {
-    if (!escolaId) return;
+    const targetId = await obterIdEscola();
+    if (!targetId) return;
+
     setCarregandoLista(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/alunos?escola_id=eq.${escolaId}&select=*`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/alunos?escola_id=eq.${targetId}&select=*`, {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
@@ -256,19 +282,21 @@ function SeccaoAlunos({ escolaId }) {
 
   useEffect(() => {
     carregarAlunos();
-  }, [escolaId]);
+  }, [escolaId, emailEscola]);
 
   const handleCadastrarAluno = async () => {
     if (!nome.trim() || !classe.trim()) {
-      setMsgStatus('Preencha Nome Completo e Classe/Turma.');
+      setMsgStatus('⚠️ Preencha Nome Completo e Classe/Turma.');
       return;
     }
+
+    const targetId = await obterIdEscola();
 
     setLoading(true);
     setMsgStatus('');
 
     const novoAluno = {
-      escola_id: escolaId,
+      escola_id: targetId || null,
       nome_completo: nome.trim(),
       data_nascimento: dataNascimento.trim(),
       num_bilhete: numBilhete.trim(),
@@ -290,6 +318,8 @@ function SeccaoAlunos({ escolaId }) {
         body: JSON.stringify(novoAluno)
       });
 
+      const resData = await res.json();
+
       if (res.ok) {
         setMsgStatus('✅ Aluno cadastrado com sucesso!');
         setNome('');
@@ -301,10 +331,10 @@ function SeccaoAlunos({ escolaId }) {
         setTelefoneEncarregado('');
         carregarAlunos();
       } else {
-        setMsgStatus('Erro ao gravar aluno no banco.');
+        setMsgStatus(`❌ Erro: ${resData.message || 'Falha ao gravar aluno no banco.'}`);
       }
     } catch (e) {
-      setMsgStatus('Erro de ligação de rede.');
+      setMsgStatus('❌ Erro de ligação de rede.');
     } finally {
       setLoading(false);
     }
@@ -434,7 +464,6 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         </TouchableOpacity>
       </View>
 
-      {/* Navegação por Abas */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
           style={[styles.tabItem, abaAtiva === 'geral' && styles.tabItemAtiva]}
@@ -465,7 +494,6 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         </TouchableOpacity>
       </View>
 
-      {/* Conteúdo das Abas */}
       <View style={{ paddingHorizontal: 16 }}>
         {abaAtiva === 'geral' && (
           <View style={styles.fbInfoCard}>
@@ -479,7 +507,7 @@ function PerfilEstiloFacebook({ dados, tipo, onVoltarHome }) {
         )}
 
         {abaAtiva === 'alunos' && (
-          <SeccaoAlunos escolaId={estadoAtual.id} />
+          <SeccaoAlunos escolaId={estadoAtual.id} emailEscola={estadoAtual.email} />
         )}
 
         {abaAtiva === 'pautas' && (
@@ -1019,7 +1047,7 @@ const styles = StyleSheet.create({
   txtVoltarFb: { color: '#ffffff', fontWeight: 'bold' },
   cardFormAluno: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12 },
   tituloSecaoAluno: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 8 },
-  txtStatusAluno: { fontSize: 13, color: '#16a34a', fontWeight: 'bold', marginBottom: 6 },
+  txtStatusAluno: { fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
   itemAlunoCard: { backgroundColor: '#ffffff', padding: 12, borderRadius: 10, marginTop: 8, borderWidth: 1, borderColor: '#e2e8f0' },
   itemAlunoNome: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
   itemAlunoSub: { fontSize: 12, color: '#475569', marginTop: 2 }
