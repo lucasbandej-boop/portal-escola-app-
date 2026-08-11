@@ -10,7 +10,8 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
-  Linking
+  Linking,
+  Image
 } from 'react-native';
 
 const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
@@ -231,12 +232,32 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
   const [turma, setTurma] = useState('');
   const [nomeEncarregado, setNomeEncarregado] = useState('');
   const [telefoneEncarregado, setTelefoneEncarregado] = useState('');
+  const [fotoUrl, setFotoUrl] = useState('');
 
   const [alunos, setAlunos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [carregandoLista, setCarregandoLista] = useState(false);
   const [msgStatus, setMsgStatus] = useState('');
   const [idEscolaValido, setIdEscolaValido] = useState(escolaId);
+
+  const selecionarFotoAluno = () => {
+    if (typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setFotoUrl(event.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
+    }
+  };
 
   const obterIdEscola = async () => {
     if (idEscolaValido) return idEscolaValido;
@@ -309,7 +330,9 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
       classe: classe.trim(),
       turma: turma.trim(),
       nome_encarregado: nomeEncarregado.trim(),
-      telefone_encarregado: telefoneEncarregado.trim()
+      telefone_encarregado: telefoneEncarregado.trim(),
+      foto: fotoUrl || null,
+      foto_url: fotoUrl || null
     };
 
     try {
@@ -354,6 +377,7 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
         setTurma('');
         setNomeEncarregado('');
         setTelefoneEncarregado('');
+        setFotoUrl('');
         carregarAlunos();
       } else {
         setMsgStatus(`❌ Erro: ${resData.message || 'Falha ao gravar aluno no banco.'}`);
@@ -371,6 +395,19 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
         <Text style={styles.tituloSecaoAluno}>🎓 Cadastrar Novo Aluno</Text>
 
         {msgStatus ? <Text style={styles.txtStatusAluno}>{msgStatus}</Text> : null}
+
+        <Text style={styles.label}>Fotografia do Aluno</Text>
+        <TouchableOpacity style={styles.btnBlueAction} onPress={selecionarFotoAluno}>
+          <Text style={styles.txtBlueAction}>
+            {fotoUrl ? '✅ Fotografia Selecionada' : '📷 Carregar Fotografia do Aluno'}
+          </Text>
+        </TouchableOpacity>
+
+        {fotoUrl ? (
+          <View style={{ alignItems: 'center', marginVertical: 8 }}>
+            <Image source={{ uri: fotoUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} />
+          </View>
+        ) : null}
 
         <Text style={styles.label}>Nome Completo *</Text>
         <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Lucas Gabriel" />
@@ -418,9 +455,18 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
         ) : (
           alunos.map((item) => (
             <View key={item.id} style={styles.itemAlunoCard}>
-              <Text style={styles.itemAlunoNome}>👤 {item.nome || item.nome_completo}</Text>
-              <Text style={styles.itemAlunoSub}>🔢 Processo: {item.numero_processo || item.num_processo || 'N/A'}</Text>
-              <Text style={styles.itemAlunoSub}>📚 Curso: {item.curso || 'Geral'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {item.foto || item.foto_url ? (
+                  <Image source={{ uri: item.foto || item.foto_url }} style={{ width: 45, height: 45, borderRadius: 22.5, marginRight: 10 }} />
+                ) : (
+                  <Text style={{ fontSize: 24, marginRight: 10 }}>👤</Text>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemAlunoNome}>{item.nome || item.nome_completo}</Text>
+                  <Text style={styles.itemAlunoSub}>🔢 Processo: {item.numero_processo || item.num_processo || 'N/A'}</Text>
+                </View>
+              </View>
+              <Text style={[styles.itemAlunoSub, { marginTop: 6 }]}>📚 Curso: {item.curso || 'Geral'}</Text>
               <Text style={styles.itemAlunoSub}>🏫 Classe: {item.classe} {item.turma ? `(${item.turma})` : ''}</Text>
               {item.num_bilhete ? <Text style={styles.itemAlunoSub}>🪪 BI: {item.num_bilhete}</Text> : null}
               {item.nome_encarregado ? <Text style={styles.itemAlunoSub}>👨‍👦 Encarregado: {item.nome_encarregado} ({item.telefone_encarregado || 'S/N'})</Text> : null}
