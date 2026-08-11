@@ -898,23 +898,40 @@ function TelaPesquisaAlunos({ onCancelar }) {
     setPesquisou(true);
 
     try {
-      const url = `${SUPABASE_URL}/rest/v1/alunos?or=(nome.ilike.*${encodeURIComponent(termo)}*,nome_completo.ilike.*${encodeURIComponent(termo)}*,num_bilhete.ilike.*${encodeURIComponent(termo)}*,numero_processo.ilike.*${encodeURIComponent(termo)}*,num_processo.ilike.*${encodeURIComponent(termo)}*)&select=*`;
+      const termoEnc = encodeURIComponent(termo);
 
-      const res = await fetch(url, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
+      // Tenta a primeira busca flexível por NOME
+      let url = `${SUPABASE_URL}/rest/v1/alunos?select=*&nome=ilike.*${termoEnc}*`;
+      let res = await fetch(url, {
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
       });
+      let data = await res.json();
 
-      const data = await res.json();
-      if (res.ok) {
+      // Se não encontrou, tenta por BI
+      if (res.ok && (!data || data.length === 0)) {
+        url = `${SUPABASE_URL}/rest/v1/alunos?select=*&num_bilhete=ilike.*${termoEnc}*`;
+        res = await fetch(url, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+        });
+        data = await res.json();
+      }
+
+      // Se ainda não encontrou, tenta por Número de Processo
+      if (res.ok && (!data || data.length === 0)) {
+        url = `${SUPABASE_URL}/rest/v1/alunos?select=*&numero_processo=ilike.*${termoEnc}*`;
+        res = await fetch(url, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+        });
+        data = await res.json();
+      }
+
+      if (res.ok && Array.isArray(data)) {
         setResultados(data);
       } else {
         setResultados([]);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Erro na pesquisa:', e);
       setResultados([]);
     } finally {
       setLoading(false);
@@ -1065,7 +1082,7 @@ export default function App() {
       {telaAtual === 'home' && (
         <MenuPrincipalHome
           usuario={usuario}
-          onOpenLogin={() => setModalLoginVisivel(true)}
+          onOpenLogin={() => setModalLoginVisivel(false)}
           onNavegarCadastramentoInst={() => solicitarAutenticacao('cadastramento')}
           onNavegarCadastramentoProf={() => solicitarAutenticacao('cadastramento_prof')}
           onNavegarPesquisa={() => setTelaAtual('pesquisa')}
