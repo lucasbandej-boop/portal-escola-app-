@@ -224,6 +224,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 function SeccaoAlunos({ escolaId, emailEscola }) {
   const [nome, setNome] = useState('');
   const [numProcesso, setNumProcesso] = useState('');
+  const [curso, setCurso] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [numBilhete, setNumBilhete] = useState('');
   const [classe, setClasse] = useState('');
@@ -297,12 +298,12 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
 
     const procValor = numProcesso.trim() || `PROC-${Date.now().toString().slice(-4)}`;
 
-    // Mapeia tanto "nome" quanto "nome_completo" para satisfazer a constraint do Supabase
     const novoAluno = {
       escola_id: targetId || null,
       nome: nome.trim(),
       nome_completo: nome.trim(),
       numero_processo: procValor,
+      curso: curso.trim() || 'Geral',
       data_nascimento: dataNascimento.trim(),
       num_bilhete: numBilhete.trim(),
       classe: classe.trim(),
@@ -346,6 +347,7 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
         setMsgStatus('✅ Aluno cadastrado com sucesso!');
         setNome('');
         setNumProcesso('');
+        setCurso('');
         setDataNascimento('');
         setNumBilhete('');
         setClasse('');
@@ -375,6 +377,9 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
 
         <Text style={styles.label}>Nº de Processo / Matrícula</Text>
         <TextInput style={styles.input} value={numProcesso} onChangeText={setNumProcesso} placeholder="Ex: 2026/045" />
+
+        <Text style={styles.label}>Curso</Text>
+        <TextInput style={styles.input} value={curso} onChangeText={setCurso} placeholder="Ex: Máquinas e Motores / Ensino Geral" />
 
         <Text style={styles.label}>Data de Nascimento</Text>
         <TextInput style={styles.input} value={dataNascimento} onChangeText={setDataNascimento} placeholder="Ex: 12/05/2012" />
@@ -415,7 +420,8 @@ function SeccaoAlunos({ escolaId, emailEscola }) {
             <View key={item.id} style={styles.itemAlunoCard}>
               <Text style={styles.itemAlunoNome}>👤 {item.nome || item.nome_completo}</Text>
               <Text style={styles.itemAlunoSub}>🔢 Processo: {item.numero_processo || item.num_processo || 'N/A'}</Text>
-              <Text style={styles.itemAlunoSub}>📚 Classe: {item.classe} {item.turma ? `(${item.turma})` : ''}</Text>
+              <Text style={styles.itemAlunoSub}>📚 Curso: {item.curso || 'Geral'}</Text>
+              <Text style={styles.itemAlunoSub}>🏫 Classe: {item.classe} {item.turma ? `(${item.turma})` : ''}</Text>
               {item.num_bilhete ? <Text style={styles.itemAlunoSub}>🪪 BI: {item.num_bilhete}</Text> : null}
               {item.nome_encarregado ? <Text style={styles.itemAlunoSub}>👨‍👦 Encarregado: {item.nome_encarregado} ({item.telefone_encarregado || 'S/N'})</Text> : null}
             </View>
