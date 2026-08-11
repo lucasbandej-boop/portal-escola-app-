@@ -881,18 +881,24 @@ function TelaPesquisaAlunos({ onCancelar }) {
   const [resultados, setResultados] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pesquisou, setPesquisou] = useState(false);
+  const [msgAviso, setMsgAviso] = useState('');
 
   const executarPesquisa = async () => {
+    const termo = busca.trim();
+
+    if (!termo) {
+      setMsgAviso('⚠️ Digite o Nome, Nº de BI ou Nº de Processo para pesquisar.');
+      setResultados([]);
+      setPesquisou(false);
+      return;
+    }
+
+    setMsgAviso('');
     setLoading(true);
     setPesquisou(true);
-    
-    try {
-      let url = `${SUPABASE_URL}/rest/v1/alunos?select=*`;
-      const termo = busca.trim();
 
-      if (termo) {
-        url += `&or=(nome.ilike.*${encodeURIComponent(termo)}*,nome_completo.ilike.*${encodeURIComponent(termo)}*,num_bilhete.ilike.*${encodeURIComponent(termo)}*,numero_processo.ilike.*${encodeURIComponent(termo)}*,num_processo.ilike.*${encodeURIComponent(termo)}*)`;
-      }
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/alunos?or=(nome.ilike.*${encodeURIComponent(termo)}*,nome_completo.ilike.*${encodeURIComponent(termo)}*,num_bilhete.ilike.*${encodeURIComponent(termo)}*,numero_processo.ilike.*${encodeURIComponent(termo)}*,num_processo.ilike.*${encodeURIComponent(termo)}*)&select=*`;
 
       const res = await fetch(url, {
         headers: {
@@ -915,10 +921,6 @@ function TelaPesquisaAlunos({ onCancelar }) {
     }
   };
 
-  useEffect(() => {
-    executarPesquisa();
-  }, []);
-
   return (
     <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={styles.formHeader}>
@@ -932,24 +934,31 @@ function TelaPesquisaAlunos({ onCancelar }) {
       <TextInput
         style={styles.input}
         value={busca}
-        onChangeText={setBusca}
+        onChangeText={(txt) => {
+          setBusca(txt);
+          if (msgAviso) setMsgAviso('');
+        }}
         placeholder="Digite o nome, nº de BI ou processo..."
       />
+
+      {msgAviso ? <Text style={{ color: '#d97706', fontSize: 13, marginTop: 6, fontWeight: 'bold' }}>{msgAviso}</Text> : null}
 
       <TouchableOpacity style={styles.btnSalvar} onPress={executarPesquisa} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.txtSalvar}>🔍 Pesquisar</Text>}
       </TouchableOpacity>
 
       <View style={{ marginTop: 20 }}>
-        <Text style={styles.tituloSecaoAluno}>
-          {pesquisou ? `Resultados Encontrados (${resultados.length})` : 'Resultados'}
-        </Text>
+        {pesquisou && (
+          <Text style={styles.tituloSecaoAluno}>
+            Resultados Encontrados ({resultados.length})
+          </Text>
+        )}
 
         {loading ? (
           <ActivityIndicator color="#2563eb" style={{ marginTop: 15 }} />
-        ) : resultados.length === 0 ? (
+        ) : pesquisou && resultados.length === 0 ? (
           <Text style={{ color: '#64748b', fontSize: 13, marginTop: 10, textAlign: 'center' }}>
-            Nenhum aluno encontrado para a pesquisa.
+            Nenhum aluno encontrado para "{busca}".
           </Text>
         ) : (
           resultados.map((item) => (
