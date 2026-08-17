@@ -435,20 +435,26 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
 
 // --- FORMULÁRIO DE INSTITUIÇÃO ---
 function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
-  const [nome, setNome] = useState('Melhor saber');
-  const [numeroInst, setNumeroInst] = useState('002233445566');
-  const [email, setEmail] = useState('josuemizalakevp@gmail.com');
-  const [logotipo, setLogotipo] = useState({ name: '1000076977.jpg' });
-  const [ficheiroPdf, setFicheiroPdf] = useState({ name: 'Certf Afonso.pdf' });
+  const [nome, setNome] = useState('');
+  const [numeroInst, setNumeroInst] = useState('');
+  const [email, setEmail] = useState(usuario?.email || '');
+  const [logotipo, setLogotipo] = useState(null);
+  const [ficheiroPdf, setFicheiroPdf] = useState(null);
 
-  const [director, setDirector] = useState('Luís Silva');
-  const [viceDirector, setViceDirector] = useState('Maria dembo');
-  const [numProfessores, setNumProfessores] = useState('10');
-  const [numEstudantes, setNumEstudantes] = useState('25');
-  const [classes, setClasses] = useState('Iniciação até 13 classe');
-  const [localizacao, setLocalizacao] = useState('Luanda camama');
+  const [director, setDirector] = useState('');
+  const [viceDirector, setViceDirector] = useState('');
+  const [numProfessores, setNumProfessores] = useState('');
+  const [numEstudantes, setNumEstudantes] = useState('');
+  const [classes, setClasses] = useState('');
+  const [localizacao, setLocalizacao] = useState('');
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (usuario?.email) {
+      setEmail(usuario.email);
+    }
+  }, [usuario]);
 
   const selecionarLogotipo = async () => {
     try {
@@ -505,14 +511,12 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         nome: nome.trim(),
         nif: numeroInst.trim(),
         email: email.trim().toLowerCase(),
-        sobre: JSON.stringify(dadosSobre),
+        sobre: JSON.stringify(dadosSobre)
       };
 
       if (usuario?.id) {
         payload.user_id = usuario.id;
       }
-
-      console.log('Enviando para Supabase:', payload);
 
       const { data, error } = await supabase
         .from('instituicoes')
@@ -520,8 +524,11 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         .select();
 
       if (error) {
-        console.error('Erro detalhado Supabase:', error);
-        Alert.alert('Erro Supabase', `${error.message}\nCódigo: ${error.code || 'N/A'}`);
+        if (error.code === '23505') {
+          Alert.alert('Aviso', 'Este NIF ou E-mail já se encontra registado.');
+        } else {
+          Alert.alert('Erro Supabase', `${error.message}`);
+        }
         return;
       }
 
@@ -534,7 +541,6 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         id: data && data[0] ? data[0].id : null
       });
     } catch (err) {
-      console.error('Erro de captura:', err);
       Alert.alert('Erro de Execução', err.message || 'Falha geral ao tentar salvar.');
     } finally {
       setLoading(false);
@@ -608,6 +614,12 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
   const [foto, setFoto] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (usuario?.email) {
+      setEmail(usuario.email);
+    }
+  }, [usuario]);
+
   const selecionarFoto = async () => {
     try {
       const res = await DocumentPicker.getDocumentAsync({
@@ -636,15 +648,19 @@ function FormCadastramentoProfessor({ usuario, onConcluir, onCancelar }) {
         foto_nome: foto ? foto.name : null,
       };
 
-      const { data, error } = await supabase.from('professores').insert([
-        {
-          nome_completo: nome.trim(),
-          disciplina: disciplina.trim(),
-          telefone: telefone.trim(),
-          email: email.trim().toLowerCase(),
-          sobre: JSON.stringify(dadosSobre)
-        }
-      ]).select();
+      const payload = {
+        nome_completo: nome.trim(),
+        disciplina: disciplina.trim(),
+        telefone: telefone.trim(),
+        email: email.trim().toLowerCase(),
+        sobre: JSON.stringify(dadosSobre)
+      };
+
+      if (usuario?.id) {
+        payload.user_id = usuario.id;
+      }
+
+      const { data, error } = await supabase.from('professores').insert([payload]).select();
 
       if (error) throw error;
 
@@ -795,14 +811,6 @@ export default function App() {
     Linking.openURL('tel:929561442');
   };
 
-  const abrirFormEscola = () => {
-    setTelaAtiva('form_escola');
-  };
-
-  const abrirFormProfessor = () => {
-    setTelaAtiva('form_professor');
-  };
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
@@ -840,7 +848,7 @@ export default function App() {
 
           {/* Opções Principais do Menu */}
           <View style={{ gap: 14, marginBottom: 20 }}>
-            <TouchableOpacity style={styles.menuOptionCard} onPress={abrirFormEscola}>
+            <TouchableOpacity style={styles.menuOptionCard} onPress={() => setTelaAtiva('form_escola')}>
               <Text style={{ fontSize: 28 }}>🏫</Text>
               <Text style={styles.menuOptionTxt}>Cadastramento de Instituições</Text>
             </TouchableOpacity>
@@ -850,7 +858,7 @@ export default function App() {
               <Text style={styles.menuOptionTxt}>Pesquisa de Alunos e Encarregados</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuOptionCard} onPress={abrirFormProfessor}>
+            <TouchableOpacity style={styles.menuOptionCard} onPress={() => setTelaAtiva('form_professor')}>
               <Text style={{ fontSize: 28 }}>👨‍🏫</Text>
               <Text style={styles.menuOptionTxt}>Cadastramento de Professores</Text>
             </TouchableOpacity>
