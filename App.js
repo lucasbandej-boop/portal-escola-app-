@@ -444,7 +444,7 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
   );
 }
 
-// --- FORMULÁRIO DE INSTITUIÇÃO ---
+// --- FORMULÁRIO DE INSTITUIÇÃO (CORRIGIDO PARA SALVAR) ---
 function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [nome, setNome] = useState('');
   const [numeroInst, setNumeroInst] = useState('');
@@ -456,14 +456,8 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
   const [viceDirector, setViceDirector] = useState('');
   const [numProfessores, setNumProfessores] = useState('');
   const [numEstudantes, setNumEstudantes] = useState('');
-  const [eventos, setEventos] = useState('');
   const [classes, setClasses] = useState('');
-  const [pauta, setPauta] = useState('');
-  const [convocatoria, setConvocatoria] = useState('');
   const [localizacao, setLocalizacao] = useState('');
-  const [alunosDestaque, setAlunosDestaque] = useState('');
-  const [guiaAluno, setGuiaAluno] = useState('');
-  const [planoEstudo, setPlanoEstudo] = useState('');
 
   const [loading, setLoading] = useState(false);
 
@@ -512,30 +506,33 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         vice_director: viceDirector,
         num_professores: numProfessores,
         num_estudantes: numEstudantes,
-        eventos,
         classes,
-        pauta,
-        convocatoria,
         localizacao,
-        alunos_destaque: alunosDestaque,
-        guia_aluno: guiaAluno,
-        plano_estudo: planoEstudo,
         logo_nome: logotipo ? logotipo.name : null,
         pdf_nome: ficheiroPdf ? ficheiroPdf.name : null,
       };
 
-      const { data, error } = await supabase.from('instituicoes').insert([
-        {
-          nome: nome.trim(),
-          nif: numeroInst.trim(),
-          email: email.trim().toLowerCase(),
-          sobre: JSON.stringify(dadosSobre)
-        }
-      ]).select();
+      const payload = {
+        nome: nome.trim(),
+        nif: numeroInst.trim(),
+        email: email.trim().toLowerCase(),
+        sobre: JSON.stringify(dadosSobre),
+      };
 
-      if (error) throw error;
+      if (usuario?.id) {
+        payload.user_id = usuario.id;
+      }
 
-      Alert.alert('Sucesso 🎉', 'Instituição cadastrada com sucesso!');
+      const { data, error } = await supabase
+        .from('instituicoes')
+        .insert([payload])
+        .select();
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao inserir dados no Supabase');
+      }
+
+      Alert.alert('Sucesso 🎉', 'Instituição cadastrada e salva com sucesso!');
       onConcluir({
         nome: nome.trim(),
         nif: numeroInst.trim(),
@@ -544,7 +541,7 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         id: data && data[0] ? data[0].id : null
       });
     } catch (err) {
-      Alert.alert('Erro no Cadastramento', err.message || 'Falha ao conectar com a base de dados.');
+      Alert.alert('Erro ao Salvar', err.message || 'Não foi possível salvar a instituição.');
     } finally {
       setLoading(false);
     }
@@ -598,7 +595,7 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.btnSubmit} onPress={submeter} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnSubmitTxt}>CONCLUIR CADASTRAMENTO</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnSubmitTxt}>CONCLUIR E SALVAR CADASTRAMENTO</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.btnCancel} onPress={onCancelar}>
