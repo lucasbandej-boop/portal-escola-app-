@@ -235,7 +235,7 @@ function ModalLogin({ visivel, onClose, onLoginSucesso }) {
 function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
   const [modalEditVisivel, setModalEditVisivel] = useState(false);
   const [modalCadAlunoVisivel, setModalCadAlunoVisivel] = useState(false);
-  
+
   const [nome, setNome] = useState(dados.nome || '');
   const [subCampo, setSubCampo] = useState(tipo === 'escola' ? (dados.nif || '') : (dados.disciplina || ''));
   const [telefone, setTelefone] = useState(dados.telefone || '');
@@ -355,7 +355,7 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
       <View style={styles.fbInfoCard}>
         <Text style={styles.fbSectionTitle}>📌 Informações Gerais</Text>
         <Text style={styles.fbInfoRow}>📧 Email: {dados.email}</Text>
-        <Text style={styles.fbInfoRow}>📞 Telefone / Contacto: {dados.telefone || dados.nif}</Text>
+        <Text style={styles.fbInfoRow}>📞 Contacto: {dados.telefone || dados.nif}</Text>
         {tipo === 'escola' ? (
           <>
             <Text style={styles.fbInfoRow}>👨‍💼 Director: {detalhesExtra.director || 'N/A'}</Text>
@@ -365,27 +365,15 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
             <Text style={styles.fbInfoRow}>📍 Localização: {detalhesExtra.localizacao || 'N/A'}</Text>
           </>
         ) : (
-          <Text style={styles.fbInfoRow}>📷 Fotografia / Foto de Perfil: {detalhesExtra.foto_nome || 'Foto Padrão'}</Text>
+          <Text style={styles.fbInfoRow}>📷 Fotografia: {detalhesExtra.foto_nome || 'Foto Padrão'}</Text>
         )}
       </View>
-
-      {tipo === 'escola' && (
-        <View style={styles.fbInfoCard}>
-          <Text style={styles.fbSectionTitle}>📋 Módulos Pedagógicos & Documentação</Text>
-          <Text style={styles.fbInfoRow}>➡️ Classes: {detalhesExtra.classes || 'Não informado'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Eventos: {detalhesExtra.eventos || 'Sem eventos cadastrados'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Pauta: {detalhesExtra.pauta || 'Pendente de publicação'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Convocatória: {detalhesExtra.convocatoria || 'Nenhuma convocatória ativa'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Alunos em Destaque: {detalhesExtra.alunos_destaque || 'N/A'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Guia do Aluno: {detalhesExtra.guia_aluno || 'Disponível na secretaria'}</Text>
-          <Text style={styles.fbInfoRow}>➡️ Plano de Estudo: {detalhesExtra.plano_estudo || 'Plano curricular aprovado'}</Text>
-        </View>
-      )}
 
       <TouchableOpacity style={styles.btnVoltarFb} onPress={onVoltarHome}>
         <Text style={styles.txtVoltarFb}>Voltar ao Menu Principal</Text>
       </TouchableOpacity>
 
+      {/* MODAL EDITAR PERFIL */}
       <Modal visible={modalEditVisivel} animationType="slide" transparent={true}>
         <View style={styles.darkModalOverlay}>
           <View style={styles.darkModalCard}>
@@ -412,6 +400,7 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
         </View>
       </Modal>
 
+      {/* MODAL INSCREVER ALUNO */}
       <Modal visible={modalCadAlunoVisivel} animationType="slide" transparent={true}>
         <View style={styles.darkModalOverlay}>
           <View style={styles.darkModalCard}>
@@ -444,20 +433,20 @@ function PerfilEstiloFacebook({ dados, tipo, onAtualizarDados, onVoltarHome }) {
   );
 }
 
-// --- FORMULÁRIO DE INSTITUIÇÃO (CORRIGIDO PARA SALVAR) ---
+// --- FORMULÁRIO DE INSTITUIÇÃO ---
 function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
-  const [nome, setNome] = useState('');
-  const [numeroInst, setNumeroInst] = useState('');
-  const [email, setEmail] = useState(usuario?.email || '');
-  const [logotipo, setLogotipo] = useState(null);
-  const [ficheiroPdf, setFicheiroPdf] = useState(null);
+  const [nome, setNome] = useState('Melhor saber');
+  const [numeroInst, setNumeroInst] = useState('002233445566');
+  const [email, setEmail] = useState('josuemizalakevp@gmail.com');
+  const [logotipo, setLogotipo] = useState({ name: '1000076977.jpg' });
+  const [ficheiroPdf, setFicheiroPdf] = useState({ name: 'Certf Afonso.pdf' });
 
-  const [director, setDirector] = useState('');
-  const [viceDirector, setViceDirector] = useState('');
-  const [numProfessores, setNumProfessores] = useState('');
-  const [numEstudantes, setNumEstudantes] = useState('');
-  const [classes, setClasses] = useState('');
-  const [localizacao, setLocalizacao] = useState('');
+  const [director, setDirector] = useState('Luís Silva');
+  const [viceDirector, setViceDirector] = useState('Maria dembo');
+  const [numProfessores, setNumProfessores] = useState('10');
+  const [numEstudantes, setNumEstudantes] = useState('25');
+  const [classes, setClasses] = useState('Iniciação até 13 classe');
+  const [localizacao, setLocalizacao] = useState('Luanda camama');
 
   const [loading, setLoading] = useState(false);
 
@@ -495,19 +484,19 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
 
   const submeter = async () => {
     if (!nome.trim() || !numeroInst.trim() || !email.trim()) {
-      Alert.alert('Campos Obrigatórios', 'Preencha o Nome, NIF/Nº de Registo e E-mail.');
+      Alert.alert('Campos Obrigatórios', 'Preencha o Nome, NIF/Nº de Licença e E-mail.');
       return;
     }
 
     setLoading(true);
     try {
       const dadosSobre = {
-        director,
-        vice_director: viceDirector,
-        num_professores: numProfessores,
-        num_estudantes: numEstudantes,
-        classes,
-        localizacao,
+        director: director.trim(),
+        vice_director: viceDirector.trim(),
+        num_professores: numProfessores.trim(),
+        num_estudantes: numEstudantes.trim(),
+        classes: classes.trim(),
+        localizacao: localizacao.trim(),
         logo_nome: logotipo ? logotipo.name : null,
         pdf_nome: ficheiroPdf ? ficheiroPdf.name : null,
       };
@@ -523,13 +512,17 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         payload.user_id = usuario.id;
       }
 
+      console.log('Enviando para Supabase:', payload);
+
       const { data, error } = await supabase
         .from('instituicoes')
         .insert([payload])
         .select();
 
       if (error) {
-        throw new Error(error.message || 'Erro ao inserir dados no Supabase');
+        console.error('Erro detalhado Supabase:', error);
+        Alert.alert('Erro Supabase', `${error.message}\nCódigo: ${error.code || 'N/A'}`);
+        return;
       }
 
       Alert.alert('Sucesso 🎉', 'Instituição cadastrada e salva com sucesso!');
@@ -541,7 +534,8 @@ function FormCadastramentoInstituicao({ usuario, onConcluir, onCancelar }) {
         id: data && data[0] ? data[0].id : null
       });
     } catch (err) {
-      Alert.alert('Erro ao Salvar', err.message || 'Não foi possível salvar a instituição.');
+      console.error('Erro de captura:', err);
+      Alert.alert('Erro de Execução', err.message || 'Falha geral ao tentar salvar.');
     } finally {
       setLoading(false);
     }
@@ -802,19 +796,11 @@ export default function App() {
   };
 
   const abrirFormEscola = () => {
-    if (!usuario) {
-      setModalLoginVisivel(true);
-    } else {
-      setTelaAtiva('form_escola');
-    }
+    setTelaAtiva('form_escola');
   };
 
   const abrirFormProfessor = () => {
-    if (!usuario) {
-      setModalLoginVisivel(true);
-    } else {
-      setTelaAtiva('form_professor');
-    }
+    setTelaAtiva('form_professor');
   };
 
   return (
