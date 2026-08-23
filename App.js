@@ -16,6 +16,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [instituicao, setInstituicao] = useState(null);
   const [modoEdicao, setModoEdicao] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState('sobre');
 
   // Auth
   const [emailAuth, setEmailAuth] = useState('');
@@ -31,6 +32,7 @@ export default function App() {
   const [instProfessores, setInstProfessores] = useState('');
   const [instLocalizacao, setInstLocalizacao] = useState('');
   const [instLogoUrl, setInstLogoUrl] = useState('');
+  const [instCapaUrl, setInstCapaUrl] = useState('');
 
   // Form Aluno
   const [alunoNome, setAlunoNome] = useState('');
@@ -53,9 +55,11 @@ export default function App() {
   const [profTel, setProfTel] = useState('');
   const [profFotoUrl, setProfFotoUrl] = useState('');
 
-  // Pesquisa
+  // Pesquisa & Listas
   const [numProcPesquisa, setNumProcPesquisa] = useState('');
   const [resultadoPesquisa, setResultadoPesquisa] = useState(null);
+  const [listaAlunos, setListaAlunos] = useState([]);
+  const [listaProfessores, setListaProfessores] = useState([]);
 
   // Transferência
   const [transfEmail, setTransfEmail] = useState('');
@@ -81,11 +85,23 @@ export default function App() {
       setInstProfessores(data.num_professores ? String(data.num_professores) : '');
       setInstLocalizacao(data.localizacao || '');
       setInstLogoUrl(data.logo_url || '');
+      setInstCapaUrl(data.capa_url || '');
       setModoEdicao(false);
+
+      // Carregar listas associadas à instituição
+      carregarListas(data.id);
     } else {
       setModoEdicao(true);
     }
     setLoading(false);
+  };
+
+  const carregarListas = async (instId) => {
+    const resAlumnos = await supabase.from('alunos').select('*').eq('instituicao_id', instId);
+    if (resAlumnos.data) setListaAlunos(resAlumnos.data);
+
+    const resProfs = await supabase.from('professores').select('*').eq('instituicao_id', instId);
+    if (resProfs.data) setListaProfessores(resProfs.data);
   };
 
   const handleUploadFoto = async (event, callbackUrl) => {
@@ -104,7 +120,7 @@ export default function App() {
       } else {
         const { data } = supabase.storage.from('midia').getPublicUrl(filePath);
         callbackUrl(data.publicUrl);
-        alert('Fotografia carregada com sucesso!');
+        alert('Imagem carregada com sucesso!');
       }
     } catch (e) {
       alert('Erro ao selecionar foto: ' + e.message);
@@ -148,7 +164,8 @@ export default function App() {
       num_estudantes: instEstudantes ? parseInt(instEstudantes) : null,
       num_professores: instProfessores ? parseInt(instProfessores) : null,
       localizacao: instLocalizacao,
-      logo_url: instLogoUrl
+      logo_url: instLogoUrl,
+      capa_url: instCapaUrl
     };
 
     let error;
@@ -176,7 +193,7 @@ export default function App() {
     if (!alunoNome) return alert('Nome do aluno é obrigatório');
     setLoading(true);
     const numProcesso = 'PROC-' + Math.floor(100000 + Math.random() * 900000);
-    
+
     const { error } = await supabase.from('alunos').insert([{
       instituicao_id: instituicao?.id || null,
       numero_processo: numProcesso,
@@ -195,8 +212,9 @@ export default function App() {
     if (error) {
       alert('Erro ao cadastrar aluno: ' + error.message);
     } else {
-      alert(`Aluno Cadastrado com Sucesso! 🎉\n\nNº de Processo do Aluno: ${numProcesso}`);
+      alert(`Aluno Cadastrado com Sucesso! 🎉\n\nNº de Processo: ${numProcesso}`);
       setAlunoNome(''); setAlunoBI(''); setAlunoCursoTurma(''); setAlunoFotoUrl('');
+      if (instituicao) carregarListas(instituicao.id);
       setTela('perfil_inst');
     }
   };
@@ -221,7 +239,8 @@ export default function App() {
     else {
       alert('Professor Cadastrado com Sucesso! 🎉');
       setProfNome(''); setProfBI(''); setProfFotoUrl('');
-      setTela('menu');
+      if (instituicao) carregarListas(instituicao.id);
+      setTela('perfil_inst');
     }
   };
 
@@ -237,9 +256,12 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
+      {/* HEADER DE NAVEGAÇÃO PRINCIPAL */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Portal Escola</Text>
+        <TouchableOpacity onPress={() => setTela('menu')}>
+          <Text style={styles.headerTitle}>Portal Escola</Text>
+        </TouchableOpacity>
         {session ? (
           <TouchableOpacity onPress={() => supabase.auth.signOut().then(() => { setSession(null); setInstituicao(null); setTela('menu'); })} style={styles.btnSair}>
             <Text style={styles.btnSairTxt}>Sair</Text>
@@ -247,17 +269,17 @@ export default function App() {
         ) : null}
       </View>
 
-      <ScrollView style={{ flex: 1, padding: 16 }}>
+      <ScrollView style={{ flex: 1 }}>
 
         {/* 1. MENU PRINCIPAL */}
         {tela === 'menu' && (
-          <View>
+          <View style={{ padding: 16 }}>
             <Text style={styles.menuSub}>Menu Principal do Sistema</Text>
             <Text style={styles.menuDesc}>Selecione a opção desejada para navegar:</Text>
 
             <TouchableOpacity style={styles.cardMenu} onPress={() => setTela(session ? 'perfil_inst' : 'login_inst')}>
               <Text style={styles.cardIcon}>🏫</Text>
-              <Text style={styles.cardTitle}>Cadastramento de Instituições</Text>
+              <Text style={styles.cardTitle}>Página da Instituição (Estilo Facebook)</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.cardMenu} onPress={() => setTela('pesquisa')}>
@@ -293,75 +315,90 @@ export default function App() {
 
         {/* 2. TELA LOGIN / REGISTO */}
         {tela === 'login_inst' && (
-          <View style={styles.formContainer}>
-            <Text style={styles.formTitle}>{modoRegistro ? 'Criar Conta de Instituição' : 'Entrar no Portal'}</Text>
-            <TextInput style={styles.input} placeholder="E-mail" value={emailAuth} onChangeText={setEmailAuth} autoCapitalize="none" />
-            <TextInput style={styles.input} placeholder="Palavra-passe" secureTextEntry value={senhaAuth} onChangeText={setSenhaAuth} />
-            
-            <TouchableOpacity style={styles.btnPrimary} onPress={handleAuth} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>{modoRegistro ? 'REGISTRAR' : 'ENTRAR'}</Text>}
-            </TouchableOpacity>
+          <View style={{ padding: 16 }}>
+            <View style={styles.formContainer}>
+              <Text style={styles.formTitle}>{modoRegistro ? 'Criar Conta de Instituição' : 'Entrar no Portal'}</Text>
+              <TextInput style={styles.input} placeholder="E-mail" value={emailAuth} onChangeText={setEmailAuth} autoCapitalize="none" />
+              <TextInput style={styles.input} placeholder="Palavra-passe" secureTextEntry value={senhaAuth} onChangeText={setSenhaAuth} />
 
-            <TouchableOpacity onPress={() => setModoRegistro(!modoRegistro)} style={{ marginTop: 15, alignItems: 'center' }}>
-              <Text style={{ color: '#2563eb' }}>{modoRegistro ? 'Já tem conta? Faça Login' : 'Não tem conta? Criar conta de Instituição'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setTela('menu')} style={{ marginTop: 15, alignItems: 'center' }}>
-              <Text style={{ color: '#64748b' }}>Voltar ao Menu</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.btnPrimary} onPress={handleAuth} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>{modoRegistro ? 'REGISTRAR' : 'ENTRAR'}</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setModoRegistro(!modoRegistro)} style={{ marginTop: 15, alignItems: 'center' }}>
+                <Text style={{ color: '#2563eb' }}>{modoRegistro ? 'Já tem conta? Faça Login' : 'Não tem conta? Criar conta de Instituição'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setTela('menu')} style={{ marginTop: 15, alignItems: 'center' }}>
+                <Text style={{ color: '#64748b' }}>Voltar ao Menu</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
-        {/* 3. TELA PERFIL DA INSTITUIÇÃO */}
+        {/* 3. TELA PERFIL DA INSTITUIÇÃO (ESTILO FACEBOOK PAGE) */}
         {tela === 'perfil_inst' && (
           <View>
-            <View style={styles.fbHeader}>
-              {instLogoUrl ? (
-                <Image source={{ uri: instLogoUrl }} style={{ width: 90, height: 90, borderRadius: 45, marginBottom: 10 }} />
+            {/* FOTO DE CAPA DA PÁGINA */}
+            <View style={styles.coverContainer}>
+              {instCapaUrl ? (
+                <Image source={{ uri: instCapaUrl }} style={styles.coverImage} />
               ) : (
-                <Text style={{ fontSize: 40 }}>🏫</Text>
+                <View style={styles.coverPlaceholder}>
+                  <Text style={{ color: '#94a3b8', fontWeight: 'bold' }}>FOTO DE CAPA DA INSTITUIÇÃO</Text>
+                </View>
               )}
-              <Text style={styles.fbTitle}>{instNome || 'Minha Instituição'}</Text>
-              <Text style={{ color: '#64748b' }}>NIF / BI: {instNif || 'Não informado'}</Text>
             </View>
 
-            {!modoEdicao && instituicao ? (
-              /* MODO VISUALIZAÇÃO DO PERFIL */
-              <View style={styles.profileCard}>
-                <Text style={styles.profileCardTitle}>📄 Ficha da Instituição</Text>
-                
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>👨‍💼 Director Geral:</Text>
-                  <Text style={styles.infoValue}>{instDirector || 'Não informado'}</Text>
-                </View>
+            {/* HEADER DO PERFIL (FOTO DE PERFIL E NOMES) */}
+            <View style={styles.fbProfileHeader}>
+              <View style={styles.avatarContainer}>
+                {instLogoUrl ? (
+                  <Image source={{ uri: instLogoUrl }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Text style={{ fontSize: 36 }}>🏫</Text>
+                  </View>
+                )}
+              </View>
 
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>📑 Secretaria:</Text>
-                  <Text style={styles.infoValue}>{instSecretaria || 'Não informada'}</Text>
-                </View>
+              <Text style={styles.fbPageName}>{instNome || 'Nome da Instituição'}</Text>
+              <Text style={styles.fbPageCategory}>🏫 Escola / Instituição de Ensino</Text>
+              <Text style={styles.fbPageSub}>NIF / BI: {instNif || 'Não informado'}</Text>
 
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>👨‍🎓 Nº de Estudantes:</Text>
-                  <Text style={styles.infoValue}>{instEstudantes || '0'}</Text>
+              {/* BARRA DE CONTADORES */}
+              <View style={styles.fbStatsRow}>
+                <View style={styles.fbStatBox}>
+                  <Text style={styles.fbStatNum}>{instEstudantes || '0'}</Text>
+                  <Text style={styles.fbStatLabel}>Estudantes</Text>
                 </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>👩‍🏫 Nº de Professores:</Text>
-                  <Text style={styles.infoValue}>{instProfessores || '0'}</Text>
+                <View style={styles.fbStatBox}>
+                  <Text style={styles.fbStatNum}>{instProfessores || '0'}</Text>
+                  <Text style={styles.fbStatLabel}>Professores</Text>
                 </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>📍 Localização:</Text>
-                  <Text style={styles.infoValue}>{instLocalizacao || 'Não informada'}</Text>
+                <View style={styles.fbStatBox}>
+                  <Text style={styles.fbStatNum}>Oficial</Text>
+                  <Text style={styles.fbStatLabel}>Verificado ✔️</Text>
                 </View>
+              </View>
 
-                <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#4b5563', marginTop: 15 }]} onPress={() => setModoEdicao(true)}>
-                  <Text style={styles.btnTxt}>✏️ EDITAR DADOS DA INSTITUIÇÃO</Text>
+              {/* BOTÕES DE AÇÃO PRINCIPAIS DA PÁGINA */}
+              <View style={styles.fbActionRow}>
+                <TouchableOpacity style={styles.fbBtnBlue} onPress={() => setTela('cad_aluno')}>
+                  <Text style={styles.fbBtnTxtWhite}>+ Cadastrar Aluno</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.fbBtnGray} onPress={() => setTela('cad_prof')}>
+                  <Text style={styles.fbBtnTxtDark}>+ Professor</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.fbBtnGray} onPress={() => setModoEdicao(!modoEdicao)}>
+                  <Text style={styles.fbBtnTxtDark}>{modoEdicao ? 'Fechar' : '✏️ Editar'}</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              /* MODO EDICÃO DO PERFIL */
-              <View style={styles.formContainer}>
-                <Text style={styles.sectionHeader}>Formulário do Perfil</Text>
+            </View>
+
+            {/* MODO DE EDIÇÃO DO PERFIL */}
+            {modoEdicao ? (
+              <View style={[styles.formContainer, { margin: 16 }]}>
+                <Text style={styles.sectionHeader}>Editar Dados da Página</Text>
                 <TextInput style={styles.input} placeholder="Nome Oficial da Instituição" value={instNome} onChangeText={setInstNome} />
                 <TextInput style={styles.input} placeholder="NIF / BI" value={instNif} onChangeText={setInstNif} />
                 <TextInput style={styles.input} placeholder="Director Geral" value={instDirector} onChangeText={setInstDirector} />
@@ -370,41 +407,114 @@ export default function App() {
                 <TextInput style={styles.input} placeholder="Nº de Professores" value={instProfessores} onChangeText={setInstProfessores} keyboardType="numeric" />
                 <TextInput style={styles.input} placeholder="Localização" value={instLocalizacao} onChangeText={setInstLocalizacao} />
 
-                <Text style={styles.label}>Logótipo / Imagem da Instituição:</Text>
-                <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setInstLogoUrl)} style={{ marginBottom: 15 }} />
+                <Text style={styles.label}>Fotografia do Logótipo (Perfil):</Text>
+                <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setInstLogoUrl)} style={{ marginBottom: 12 }} />
+
+                <Text style={styles.label}>Fotografia de Capa da Página:</Text>
+                <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setInstCapaUrl)} style={{ marginBottom: 15 }} />
 
                 <TouchableOpacity style={styles.btnPrimary} onPress={salvarInstituicao} disabled={loading}>
-                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>GUARDA/SALVAR DADOS</Text>}
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>SALVAR ALTERAÇÕES</Text>}
                 </TouchableOpacity>
-
-                {instituicao ? (
-                  <TouchableOpacity style={{ marginTop: 10, alignItems: 'center' }} onPress={() => setModoEdicao(false)}>
-                    <Text style={{ color: '#64748b' }}>Cancelar Edição</Text>
-                  </TouchableOpacity>
-                ) : null}
               </View>
-            )}
+            ) : null}
 
-            <View style={{ height: 1, backgroundColor: '#e2e8f0', marginVertical: 20 }} />
+            {/* BARRA DE ABAS DA PÁGINA (ESTILO FACEBOOK) */}
+            <View style={styles.fbTabsContainer}>
+              <TouchableOpacity style={[styles.fbTab, abaAtiva === 'sobre' && styles.fbTabActive]} onPress={() => setAbaAtiva('sobre')}>
+                <Text style={[styles.fbTabTxt, abaAtiva === 'sobre' && styles.fbTabTxtActive]}>Sobre</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.fbTab, abaAtiva === 'alunos' && styles.fbTabActive]} onPress={() => setAbaAtiva('alunos')}>
+                <Text style={[styles.fbTabTxt, abaAtiva === 'alunos' && styles.fbTabTxtActive]}>Alunos ({listaAlunos.length})</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.fbTab, abaAtiva === 'professores' && styles.fbTabActive]} onPress={() => setAbaAtiva('professores')}>
+                <Text style={[styles.fbTabTxt, abaAtiva === 'professores' && styles.fbTabTxtActive]}>Professores ({listaProfessores.length})</Text>
+              </TouchableOpacity>
+            </View>
 
-            <Text style={styles.sectionHeader}>Ações da Instituição</Text>
-            <TouchableOpacity style={styles.btnSecondary} onPress={() => setTela('cad_aluno')}>
-              <Text style={styles.btnSecTxt}>+ Cadastrar Aluno nesta Instituição</Text>
-            </TouchableOpacity>
+            {/* CONTEÚDO DAS ABAS */}
+            <View style={{ padding: 16 }}>
+              {abaAtiva === 'sobre' && (
+                <View style={styles.fbCard}>
+                  <Text style={styles.fbCardTitle}>📌 Informações da Instituição</Text>
 
-            <TouchableOpacity style={[styles.btnSecondary, { marginTop: 10, backgroundColor: '#059669' }]} onPress={() => setTela('transferencia')}>
-              <Text style={styles.btnSecTxt}>🔄 Transferência de Estudante</Text>
-            </TouchableOpacity>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>👨‍💼 Director Geral:</Text>
+                    <Text style={styles.infoValue}>{instDirector || 'Não informado'}</Text>
+                  </View>
 
-            <TouchableOpacity onPress={() => setTela('menu')} style={{ marginVertical: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#64748b' }}>Voltar ao Menu Principal</Text>
-            </TouchableOpacity>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>📑 Secretaria:</Text>
+                    <Text style={styles.infoValue}>{instSecretaria || 'Não informada'}</Text>
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>📍 Localização:</Text>
+                    <Text style={styles.infoValue}>{instLocalizacao || 'Não informada'}</Text>
+                  </View>
+
+                  <TouchableOpacity style={[styles.btnSecondary, { marginTop: 15, backgroundColor: '#059669' }]} onPress={() => setTela('transferencia')}>
+                    <Text style={styles.btnSecTxt}>🔄 Solicitar Transferência de Estudante</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {abaAtiva === 'alunos' && (
+                <View>
+                  {listaAlunos.length === 0 ? (
+                    <Text style={styles.emptyTxt}>Nenhum aluno cadastrado nesta instituição ainda.</Text>
+                  ) : (
+                    listaAlunos.map((item, index) => (
+                      <View key={index} style={styles.itemCard}>
+                        {item.foto_url ? (
+                          <Image source={{ uri: item.foto_url }} style={styles.itemThumb} />
+                        ) : (
+                          <View style={styles.itemThumbPlaceholder}><Text>🎒</Text></View>
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.itemTitle}>{item.nome_completo}</Text>
+                          <Text style={styles.itemSub}>Proc: {item.numero_processo}</Text>
+                          <Text style={styles.itemSub}>{item.curso_turma ? `Curso: ${item.curso_turma}` : `Nível: ${item.nivel_ensino}`}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
+
+              {abaAtiva === 'professores' && (
+                <View>
+                  {listaProfessores.length === 0 ? (
+                    <Text style={styles.emptyTxt}>Nenhum professor cadastrado nesta instituição ainda.</Text>
+                  ) : (
+                    listaProfessores.map((item, index) => (
+                      <View key={index} style={styles.itemCard}>
+                        {item.foto_url ? (
+                          <Image source={{ uri: item.foto_url }} style={styles.itemThumb} />
+                        ) : (
+                          <View style={styles.itemThumbPlaceholder}><Text>👨‍🏫</Text></View>
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.itemTitle}>{item.nome_completo}</Text>
+                          <Text style={styles.itemSub}>{item.disciplina ? `Disciplina: ${item.disciplina}` : 'Professor'}</Text>
+                          <Text style={styles.itemSub}>{item.grau_academico || 'Docente'}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
+
+              <TouchableOpacity onPress={() => setTela('menu')} style={{ marginVertical: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#64748b' }}>Voltar ao Menu Principal</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
         {/* 4. CADASTRO DE ALUNO */}
         {tela === 'cad_aluno' && (
-          <View>
+          <View style={{ padding: 16 }}>
             <Text style={styles.formTitle}>Cadastramento de Aluno 🎒</Text>
             <TextInput style={styles.input} placeholder="Nome Completo *" value={alunoNome} onChangeText={setAlunoNome} />
             <TextInput style={styles.input} placeholder="Data de Nascimento (AAAA-MM-DD)" value={alunoNasc} onChangeText={setAlunoNasc} />
@@ -437,14 +547,14 @@ export default function App() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => setTela('perfil_inst')} style={{ marginVertical: 15, alignItems: 'center' }}>
-              <Text style={{ color: '#64748b' }}>Voltar ao Perfil</Text>
+              <Text style={{ color: '#64748b' }}>Voltar à Página</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* 5. CADASTRO DE PROFESSOR */}
         {tela === 'cad_prof' && (
-          <View>
+          <View style={{ padding: 16 }}>
             <Text style={styles.formTitle}>Cadastramento de Professor 👨‍🏫</Text>
             <TextInput style={styles.input} placeholder="Nome Completo *" value={profNome} onChangeText={setProfNome} />
             <TextInput style={styles.input} placeholder="Data de Nascimento (AAAA-MM-DD)" value={profNasc} onChangeText={setProfNasc} />
@@ -471,15 +581,15 @@ export default function App() {
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>CADASTRAR PROFESSOR</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setTela('menu')} style={{ marginVertical: 15, alignItems: 'center' }}>
-              <Text style={{ color: '#64748b' }}>Voltar ao Menu</Text>
+            <TouchableOpacity onPress={() => setTela('perfil_inst')} style={{ marginVertical: 15, alignItems: 'center' }}>
+              <Text style={{ color: '#64748b' }}>Voltar à Página</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* 6. PESQUISA POR Nº DE PROCESSO */}
         {tela === 'pesquisa' && (
-          <View>
+          <View style={{ padding: 16 }}>
             <Text style={styles.formTitle}>Consulta de Perfil do Estudante 🔍</Text>
             <TextInput style={styles.input} placeholder="Ex: PROC-123456" value={numProcPesquisa} onChangeText={setNumProcPesquisa} autoCapitalize="characters" />
 
@@ -509,7 +619,7 @@ export default function App() {
 
         {/* 7. TRANSFERÊNCIA */}
         {tela === 'transferencia' && (
-          <View>
+          <View style={{ padding: 16 }}>
             <Text style={styles.formTitle}>Transferência de Estudante 🔄</Text>
             <TextInput style={styles.input} placeholder="Nº de Processo do Aluno" value={numProcPesquisa} onChangeText={setNumProcPesquisa} />
             <TextInput style={styles.input} placeholder="E-mail da Instituição de Destino" value={transfEmail} onChangeText={setTransfEmail} autoCapitalize="none" />
@@ -534,16 +644,56 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#0f172a' },
-  btnSair: { backgroundColor: '#e0e7ff', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-  btnSairTxt: { color: '#4338ca', fontWeight: 'bold' },
-  menuSub: { fontSize: 20, fontWeight: 'bold', color: '#1e293b', marginTop: 10 },
-  menuDesc: { fontSize: 13, color: '#64748b', marginBottom: 15 },
-  cardMenu: { backgroundColor: '#ffffff', padding: 18, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
+  container: { flex: 1, backgroundColor: '#f0f2f5' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e4e6eb' },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#1877f2' },
+  btnSair: { backgroundColor: '#e4e6eb', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
+  btnSairTxt: { color: '#050505', fontWeight: 'bold' },
+  menuSub: { fontSize: 20, fontWeight: 'bold', color: '#1c1e21', marginTop: 10 },
+  menuDesc: { fontSize: 13, color: '#65676b', marginBottom: 15 },
+  cardMenu: { backgroundColor: '#ffffff', padding: 18, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e4e6eb' },
   cardIcon: { fontSize: 26, marginRight: 15 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1c1e21' },
+
+  // ESTILOS ESTILO FACEBOOK PAGE
+  coverContainer: { width: '100%', height: 160, backgroundColor: '#cbd5e1' },
+  coverImage: { width: '100%', height: '100%' },
+  coverPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#e2e8f0' },
+  fbProfileHeader: { backgroundColor: '#ffffff', padding: 16, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e4e6eb' },
+  avatarContainer: { marginTop: -60, marginBottom: 10 },
+  avatarImage: { width: 110, height: 110, borderRadius: 55, borderWidth: 4, borderColor: '#ffffff' },
+  avatarPlaceholder: { width: 110, height: 110, borderRadius: 55, borderWidth: 4, borderColor: '#ffffff', backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
+  fbPageName: { fontSize: 22, fontWeight: 'bold', color: '#050505', textAlign: 'center' },
+  fbPageCategory: { fontSize: 14, color: '#65676b', marginTop: 2 },
+  fbPageSub: { fontSize: 12, color: '#65676b', marginTop: 2 },
+  fbStatsRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginVertical: 15, paddingVertical: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#f0f2f5' },
+  fbStatBox: { alignItems: 'center' },
+  fbStatNum: { fontSize: 16, fontWeight: 'bold', color: '#1877f2' },
+  fbStatLabel: { fontSize: 12, color: '#65676b' },
+  fbActionRow: { flexDirection: 'row', gap: 8, width: '100%', justifyContent: 'center' },
+  fbBtnBlue: { backgroundColor: '#1877f2', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flex: 1, alignItems: 'center' },
+  fbBtnGray: { backgroundColor: '#e4e6eb', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flex: 1, alignItems: 'center' },
+  fbBtnTxtWhite: { color: '#ffffff', fontWeight: 'bold' },
+  fbBtnTxtDark: { color: '#050505', fontWeight: 'bold' },
+
+  // ABAS ESTILO FACEBOOK
+  fbTabsContainer: { flexDirection: 'row', backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e4e6eb' },
+  fbTab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+  fbTabActive: { borderBottomWidth: 3, borderBottomColor: '#1877f2' },
+  fbTabTxt: { fontSize: 14, fontWeight: '600', color: '#65676b' },
+  fbTabTxtActive: { color: '#1877f2' },
+
+  fbCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#e4e6eb' },
+  fbCardTitle: { fontSize: 16, fontWeight: 'bold', color: '#050505', marginBottom: 12 },
+
+  // CARDS DE ALUNOS E PROFESSORES
+  itemCard: { backgroundColor: '#ffffff', padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#e4e6eb' },
+  itemThumb: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
+  itemThumbPlaceholder: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#f0f2f5', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  itemTitle: { fontSize: 15, fontWeight: 'bold', color: '#050505' },
+  itemSub: { fontSize: 12, color: '#65676b' },
+  emptyTxt: { textAlign: 'center', color: '#65676b', marginVertical: 20 },
+
   bannerAd: { backgroundColor: '#064e3b', borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 15 },
   adBadge: { backgroundColor: '#047857', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
   adBadgeTxt: { color: '#ffffff', fontSize: 12, fontWeight: 'bold' },
@@ -551,28 +701,24 @@ const styles = StyleSheet.create({
   adDesc: { color: '#a7f3d0', fontSize: 12, lineHeight: 18, marginBottom: 12 },
   adBtn: { backgroundColor: '#022c22', padding: 12, borderRadius: 8, alignItems: 'center' },
   adBtnTxt: { color: '#34d399', fontWeight: 'bold', fontSize: 13 },
-  suporteBox: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 30, alignItems: 'center' },
+  suporteBox: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e4e6eb', marginBottom: 30, alignItems: 'center' },
   suporteTitle: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
   btnSuporte: { backgroundColor: '#059669', width: '100%', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
-  formContainer: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  formContainer: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, borderWidth: 1, borderColor: '#e4e6eb' },
   formTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a', marginBottom: 15 },
-  input: { backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 10 },
-  btnPrimary: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  input: { backgroundColor: '#f0f2f5', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 10 },
+  btnPrimary: { backgroundColor: '#1877f2', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 10 },
   btnTxt: { color: '#ffffff', fontWeight: 'bold' },
-  btnSecondary: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center' },
+  btnSecondary: { backgroundColor: '#1877f2', padding: 14, borderRadius: 8, alignItems: 'center' },
   btnSecTxt: { color: '#ffffff', fontWeight: 'bold' },
   label: { fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6, marginTop: 8 },
   typeBtn: { flex: 1, padding: 10, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, alignItems: 'center', marginRight: 8 },
-  typeBtnActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  typeBtnActive: { backgroundColor: '#1877f2', borderColor: '#1877f2' },
   typeTxt: { color: '#334155' },
   typeTxtActive: { color: '#ffffff', fontWeight: 'bold' },
-  fbHeader: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, alignItems: 'center', marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0' },
-  fbTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a', marginTop: 8 },
   sectionHeader: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 10 },
   resultCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 15 },
-  profileCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginBottom: 15 },
-  profileCardTitle: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 6 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
-  infoLabel: { fontWeight: '600', color: '#475569' },
-  infoValue: { color: '#0f172a', fontWeight: 'bold' }
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f0f2f5' },
+  infoLabel: { fontWeight: '600', color: '#65676b' },
+  infoValue: { color: '#050505', fontWeight: 'bold' }
 });
