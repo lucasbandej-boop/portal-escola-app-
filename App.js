@@ -11,17 +11,18 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function App() {
-  const [tela, setTela] = useState('menu'); // 'menu', 'login_inst', 'perfil_inst', 'cad_aluno', 'cad_prof', 'pesquisa', 'transferencia'
+  const [tela, setTela] = useState('menu');
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState(null);
   const [instituicao, setInstituicao] = useState(null);
+  const [mensagemStatus, setMensagemStatus] = useState('');
 
-  // Form Login/Registro
+  // Auth
   const [emailAuth, setEmailAuth] = useState('');
   const [senhaAuth, setSenhaAuth] = useState('');
   const [modoRegistro, setModoRegistro] = useState(false);
 
-  // Form Instituição
+  // Instituição
   const [instNome, setInstNome] = useState('');
   const [instNif, setInstNif] = useState('');
   const [instDirector, setInstDirector] = useState('');
@@ -29,18 +30,20 @@ export default function App() {
   const [instEstudantes, setInstEstudantes] = useState('');
   const [instProfessores, setInstProfessores] = useState('');
   const [instLocalizacao, setInstLocalizacao] = useState('');
+  const [instLogoUrl, setInstLogoUrl] = useState('');
 
-  // Form Aluno
+  // Aluno
   const [alunoNome, setAlunoNome] = useState('');
   const [alunoNasc, setAlunoNasc] = useState('');
   const [alunoBI, setAlunoBI] = useState('');
-  const [alunoNivel, setAlunoNivel] = useState('medio'); // 'medio' ou 'iniciacao'
+  const [alunoNivel, setAlunoNivel] = useState('medio');
   const [alunoCursoTurma, setAlunoCursoTurma] = useState('');
   const [alunoProfResp, setAlunoProfResp] = useState('');
   const [alunoEncarregado, setAlunoEncarregado] = useState('');
   const [alunoTelEncarregado, setAlunoTelEncarregado] = useState('');
+  const [alunoFotoUrl, setAlunoFotoUrl] = useState('');
 
-  // Form Professor
+  // Professor
   const [profNome, setProfNome] = useState('');
   const [profNasc, setProfNasc] = useState('');
   const [profBI, setProfBI] = useState('');
@@ -48,6 +51,7 @@ export default function App() {
   const [profNivel, setProfNivel] = useState('medio');
   const [profDisciplina, setProfDisciplina] = useState('');
   const [profTel, setProfTel] = useState('');
+  const [profFotoUrl, setProfFotoUrl] = useState('');
 
   // Pesquisa
   const [numProcPesquisa, setNumProcPesquisa] = useState('');
@@ -56,7 +60,6 @@ export default function App() {
   // Transferência
   const [transfEmail, setTransfEmail] = useState('');
   const [transfMotivo, setTransfMotivo] = useState('');
-  const [alunoSelecionado, setAlunoSelecionado] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -67,30 +70,61 @@ export default function App() {
 
   const carregarPerfilInstituicao = async (userId) => {
     setLoading(true);
-    const { data, error } = await supabase.from('instituicoes').select('*').eq('user_id', userId).single();
+    const { data } = await supabase.from('instituicoes').select('*').eq('user_id', userId).maybeSingle();
     if (data) {
       setInstituicao(data);
-      setInstNome(data.nome);
-      setInstNif(data.nif);
-      setInstDirector(data.director);
-      setInstSecretaria(data.secretaria);
-      setInstEstudantes(data.num_estudantes);
-      setInstProfessores(data.num_professores);
-      setInstLocalizacao(data.localizacao);
+      setInstNome(data.nome || '');
+      setInstNif(data.nif || '');
+      setInstDirector(data.director || '');
+      setInstSecretaria(data.secretaria || '');
+      setInstEstudantes(data.num_estudantes || '');
+      setInstProfessores(data.num_professores || '');
+      setInstLocalizacao(data.localizacao || '');
+      setInstLogoUrl(data.logo_url || '');
     }
     setLoading(false);
   };
 
+  const handleUploadFoto = async (event, callbackUrl) => {
+    try {
+      const file = event.target.files[0];
+      if (!file) return;
+      setLoading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from('midia').upload(filePath, file);
+
+      if (uploadError) {
+        alert('Erro no carregamento da imagem: ' + uploadError.message);
+      } else {
+        const { data } = supabase.storage.from('midia').getPublicUrl(filePath);
+        callbackUrl(data.publicUrl);
+        alert('Fotografia carregada com sucesso!');
+      }
+    } catch (e) {
+      alert('Erro ao selecionar foto: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAuth = async () => {
-    if (!emailAuth || !senhaAuth) return Alert.alert('Erro', 'Preencha e-mail e palavra-passe');
+    if (!emailAuth || !senhaAuth) return alert('Preencha o e-mail e a palavra-passe.');
     setLoading(true);
+    setMensagemStatus('');
     if (modoRegistro) {
       const { data, error } = await supabase.auth.signUp({ email: emailAuth, password: senhaAuth });
-      if (error) Alert.alert('Erro ao registrar', error.message);
-      else Alert.alert('Sucesso', 'Conta criada! Preencha o perfil da instituição.');
+      if (error) alert('Erro ao registrar: ' + error.message);
+      else {
+        alert('Conta criada com sucesso! Preencha os dados da instituição.');
+        setSession(data.session);
+        setTela('perfil_inst');
+      }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email: emailAuth, password: senhaAuth });
-      if (error) Alert.alert('Erro de Login', error.message);
+      if (error) alert('Erro de Login: ' + error.message);
       else {
         setSession(data.session);
         carregarPerfilInstituicao(data.session.user.id);
@@ -101,7 +135,7 @@ export default function App() {
   };
 
   const salvarInstituicao = async () => {
-    if (!instNome) return Alert.alert('Erro', 'Nome da instituição é obrigatório');
+    if (!instNome) return alert('Nome da instituição é obrigatório');
     setLoading(true);
     const payload = {
       user_id: session?.user?.id,
@@ -111,7 +145,8 @@ export default function App() {
       secretaria: instSecretaria,
       num_estudantes: instEstudantes,
       num_professores: instProfessores,
-      localizacao: instLocalizacao
+      localizacao: instLocalizacao,
+      logo_url: instLogoUrl
     };
 
     let error;
@@ -125,16 +160,17 @@ export default function App() {
     }
 
     setLoading(false);
-    if (error) Alert.alert('Erro ao salvar', error.message);
-    else Alert.alert('Sucesso 🎉', 'Perfil da instituição atualizado!');
+    if (error) alert('Erro ao salvar: ' + error.message);
+    else alert('Perfil da instituição guardado com sucesso! 🎉');
   };
 
   const cadastrarAluno = async () => {
-    if (!alunoNome) return Alert.alert('Erro', 'Nome do aluno é obrigatório');
+    if (!alunoNome) return alert('Nome do aluno é obrigatório');
     setLoading(true);
     const numProcesso = 'PROC-' + Math.floor(100000 + Math.random() * 900000);
+    
     const { error } = await supabase.from('alunos').insert([{
-      instituicao_id: instituicao.id,
+      instituicao_id: instituicao?.id || null,
       numero_processo: numProcesso,
       nome_completo: alunoNome,
       data_nascimento: alunoNasc || null,
@@ -143,45 +179,50 @@ export default function App() {
       curso_turma: alunoCursoTurma,
       professor_responsavel: alunoProfResp,
       encarregado_nome: alunoEncarregado,
-      encarregado_telefone: alunoTelEncarregado
+      encarregado_telefone: alunoTelEncarregado,
+      foto_url: alunoFotoUrl
     }]);
+
     setLoading(false);
-    if (error) Alert.alert('Erro ao cadastrar', error.message);
-    else {
-      Alert.alert('Sucesso 🎉', `Aluno cadastrado! Nº de Processo gerado: ${numProcesso}`);
-      setAlunoNome(''); setAlunoBI(''); setAlunoCursoTurma('');
+    if (error) {
+      alert('Erro ao cadastrar aluno: ' + error.message);
+    } else {
+      alert(`Aluno Cadastrado com Sucesso! 🎉\n\nNº de Processo do Aluno: ${numProcesso}`);
+      setAlunoNome(''); setAlunoBI(''); setAlunoCursoTurma(''); setAlunoFotoUrl('');
       setTela('perfil_inst');
     }
   };
 
   const cadastrarProfessor = async () => {
-    if (!profNome) return Alert.alert('Erro', 'Nome do professor é obrigatório');
+    if (!profNome) return alert('Nome do professor é obrigatório');
     setLoading(true);
     const { error } = await supabase.from('professores').insert([{
-      instituicao_id: instituicao?.id,
+      instituicao_id: instituicao?.id || null,
       nome_completo: profNome,
       data_nascimento: profNasc || null,
       numero_bilhete: profBI,
       grau_academico: profGrau,
       nivel_ensino: profNivel,
       disciplina: profDisciplina,
-      telefone: profTel
+      telefone: profTel,
+      foto_url: profFotoUrl
     }]);
+
     setLoading(false);
-    if (error) Alert.alert('Erro ao cadastrar', error.message);
+    if (error) alert('Erro ao cadastrar professor: ' + error.message);
     else {
-      Alert.alert('Sucesso 🎉', 'Professor cadastrado com sucesso!');
-      setProfNome(''); setProfBI('');
+      alert('Professor Cadastrado com Sucesso! 🎉');
+      setProfNome(''); setProfBI(''); setProfFotoUrl('');
       setTela('menu');
     }
   };
 
   const pesquisarPorProcesso = async () => {
-    if (!numProcPesquisa) return Alert.alert('Erro', 'Introduza o Nº de Processo');
+    if (!numProcPesquisa) return alert('Introduza o Nº de Processo');
     setLoading(true);
     const { data, error } = await supabase.from('alunos').select('*, instituicoes(nome)').eq('numero_processo', numProcPesquisa.trim()).single();
     setLoading(false);
-    if (error || !data) Alert.alert('Não encontrado', 'Nenhum registo encontrado para este número de processo.');
+    if (error || !data) alert('Nenhum registo encontrado para este número de processo.');
     else setResultadoPesquisa(data);
   };
 
@@ -189,7 +230,6 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* HEADER PRINCIPAL */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Portal Escola</Text>
         {session ? (
@@ -201,7 +241,7 @@ export default function App() {
 
       <ScrollView style={{ flex: 1, padding: 16 }}>
 
-        {/* 1. TELA MENU PRINCIPAL */}
+        {/* 1. MENU PRINCIPAL */}
         {tela === 'menu' && (
           <View>
             <Text style={styles.menuSub}>Menu Principal do Sistema</Text>
@@ -222,7 +262,7 @@ export default function App() {
               <Text style={styles.cardTitle}>Cadastramento de Professores</Text>
             </TouchableOpacity>
 
-            {/* QUADRO DE PUBLICIDADE */}
+            {/* BANNER PUBLICIDADE */}
             <View style={styles.bannerAd}>
               <View style={styles.adBadge}><Text style={styles.adBadgeTxt}>👕 Confecção de Uniformes (2 / 3)</Text></View>
               <Text style={styles.adTitle}>Uniformes & Fardamentos</Text>
@@ -243,7 +283,7 @@ export default function App() {
           </View>
         )}
 
-        {/* 2. TELA LOGIN / REGISTO INSTITUIÇÃO */}
+        {/* 2. TELA LOGIN / REGISTO */}
         {tela === 'login_inst' && (
           <View style={styles.formContainer}>
             <Text style={styles.formTitle}>{modoRegistro ? 'Criar Conta de Instituição' : 'Entrar no Portal'}</Text>
@@ -263,11 +303,15 @@ export default function App() {
           </View>
         )}
 
-        {/* 3. TELA PERFIL DA INSTITUIÇÃO (ESTILO PAGINA FACEBOOK / EDITÁVEL) */}
+        {/* 3. TELA PERFIL DA INSTITUIÇÃO */}
         {tela === 'perfil_inst' && (
           <View>
             <View style={styles.fbHeader}>
-              <Text style={{ fontSize: 40 }}>🏫</Text>
+              {instLogoUrl ? (
+                <Image source={{ uri: instLogoUrl }} style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 10 }} />
+              ) : (
+                <Text style={{ fontSize: 40 }}>🏫</Text>
+              )}
               <Text style={styles.fbTitle}>{instNome || 'Minha Instituição'}</Text>
               <Text style={{ color: '#64748b' }}>NIF: {instNif || 'Não informado'}</Text>
             </View>
@@ -280,6 +324,9 @@ export default function App() {
             <TextInput style={styles.input} placeholder="Nº de Estudantes" value={instEstudantes} onChangeText={setInstEstudantes} keyboardType="numeric" />
             <TextInput style={styles.input} placeholder="Nº de Professores" value={instProfessores} onChangeText={setInstProfessores} keyboardType="numeric" />
             <TextInput style={styles.input} placeholder="Localização" value={instLocalizacao} onChangeText={setInstLocalizacao} />
+
+            <Text style={styles.label}>Logótipo / Imagem da Instituição:</Text>
+            <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setInstLogoUrl)} style={{ marginBottom: 15 }} />
 
             <TouchableOpacity style={styles.btnPrimary} onPress={salvarInstituicao} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>SALVAR / ATUALIZAR PERFIL</Text>}
@@ -302,13 +349,16 @@ export default function App() {
           </View>
         )}
 
-        {/* 4. TELA CADASTRO DE ALUNO */}
+        {/* 4. CADASTRO DE ALUNO */}
         {tela === 'cad_aluno' && (
           <View>
             <Text style={styles.formTitle}>Cadastramento de Aluno 🎒</Text>
             <TextInput style={styles.input} placeholder="Nome Completo *" value={alunoNome} onChangeText={setAlunoNome} />
             <TextInput style={styles.input} placeholder="Data de Nascimento (AAAA-MM-DD)" value={alunoNasc} onChangeText={setAlunoNasc} />
             <TextInput style={styles.input} placeholder="Número do Bilhete de Identidade" value={alunoBI} onChangeText={setAlunoBI} />
+
+            <Text style={styles.label}>Fotografia Tipo Passe do Aluno:</Text>
+            <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setAlunoFotoUrl)} style={{ marginBottom: 15 }} />
 
             <Text style={styles.label}>Nível de Ensino:</Text>
             <View style={{ flexDirection: 'row', marginBottom: 12 }}>
@@ -339,15 +389,18 @@ export default function App() {
           </View>
         )}
 
-        {/* 5. TELA CADASTRO DE PROFESSOR */}
+        {/* 5. CADASTRO DE PROFESSOR */}
         {tela === 'cad_prof' && (
           <View>
             <Text style={styles.formTitle}>Cadastramento de Professor 👨‍🏫</Text>
             <TextInput style={styles.input} placeholder="Nome Completo *" value={profNome} onChangeText={setProfNome} />
             <TextInput style={styles.input} placeholder="Data de Nascimento (AAAA-MM-DD)" value={profNasc} onChangeText={setProfNasc} />
             <TextInput style={styles.input} placeholder="Número do Bilhete de Identidade" value={profBI} onChangeText={setProfBI} />
-            <TextInput style={styles.input} placeholder="Grau Académico (Ex: Licenciado, Bacharel)" value={profGrau} onChangeText={setProfGrau} />
-            
+            <TextInput style={styles.input} placeholder="Grau Académico (Ex: Licenciado)" value={profGrau} onChangeText={setProfGrau} />
+
+            <Text style={styles.label}>Fotografia do Professor:</Text>
+            <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setProfFotoUrl)} style={{ marginBottom: 15 }} />
+
             <Text style={styles.label}>Nível de Atuação:</Text>
             <View style={{ flexDirection: 'row', marginBottom: 12 }}>
               <TouchableOpacity style={[styles.typeBtn, profNivel === 'iniciacao' && styles.typeBtnActive]} onPress={() => setProfNivel('iniciacao')}>
@@ -371,12 +424,10 @@ export default function App() {
           </View>
         )}
 
-        {/* 6. TELA PESQUISA SEGURA POR PROCESSO */}
+        {/* 6. PESQUISA POR Nº DE PROCESSO */}
         {tela === 'pesquisa' && (
           <View>
             <Text style={styles.formTitle}>Consulta de Perfil do Estudante 🔍</Text>
-            <Text style={{ color: '#64748b', marginBottom: 15 }}>Digite o Número de Processo fornecido pela Instituição:</Text>
-
             <TextInput style={styles.input} placeholder="Ex: PROC-123456" value={numProcPesquisa} onChangeText={setNumProcPesquisa} autoCapitalize="characters" />
 
             <TouchableOpacity style={styles.btnPrimary} onPress={pesquisarPorProcesso} disabled={loading}>
@@ -385,8 +436,11 @@ export default function App() {
 
             {resultadoPesquisa && (
               <View style={styles.resultCard}>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1e293b' }}>{resultadoPesquisa.nome_completo}</Text>
-                <Text style={{ color: '#2563eb', marginVertical: 4 }}>Nº de Processo: {resultadoPesquisa.numero_processo}</Text>
+                {resultadoPesquisa.foto_url ? (
+                  <Image source={{ uri: resultadoPesquisa.foto_url }} style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 10, alignSelf: 'center' }} />
+                ) : null}
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1e293b', textAlign: 'center' }}>{resultadoPesquisa.nome_completo}</Text>
+                <Text style={{ color: '#2563eb', marginVertical: 4, textAlign: 'center', fontWeight: 'bold' }}>Nº de Processo: {resultadoPesquisa.numero_processo}</Text>
                 <Text>🏫 Escola: {resultadoPesquisa.instituicoes?.nome || 'N/A'}</Text>
                 <Text>📚 Nível: {resultadoPesquisa.nivel_ensino === 'medio' ? 'Ensino Médio' : 'Iniciação'}</Text>
                 {resultadoPesquisa.curso_turma ? <Text>🎓 Curso/Turma: {resultadoPesquisa.curso_turma}</Text> : null}
@@ -400,7 +454,7 @@ export default function App() {
           </View>
         )}
 
-        {/* 7. TELA TRANSFERÊNCIA DE ESTUDANTE */}
+        {/* 7. TRANSFERÊNCIA */}
         {tela === 'transferencia' && (
           <View>
             <Text style={styles.formTitle}>Transferência de Estudante 🔄</Text>
@@ -409,7 +463,7 @@ export default function App() {
             <TextInput style={[styles.input, { height: 80 }]} placeholder="Motivo da Transferência" multiline value={transfMotivo} onChangeText={setTransfMotivo} />
 
             <TouchableOpacity style={styles.btnPrimary} onPress={() => {
-              Alert.alert('Transferência Enviada', `Solicitação enviada por e-mail para ${transfEmail}`);
+              alert(`Solicitação de transferência enviada com sucesso para ${transfEmail}`);
               setTela('perfil_inst');
             }}>
               <Text style={styles.btnTxt}>ENVIAR PEDIDO DE TRANSFERÊNCIA</Text>
@@ -454,7 +508,7 @@ const styles = StyleSheet.create({
   btnTxt: { color: '#ffffff', fontWeight: 'bold' },
   btnSecondary: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center' },
   btnSecTxt: { color: '#ffffff', fontWeight: 'bold' },
-  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6, marginTop: 8 },
   typeBtn: { flex: 1, padding: 10, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, alignItems: 'center', marginRight: 8 },
   typeBtnActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
   typeTxt: { color: '#334155' },
