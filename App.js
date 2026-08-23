@@ -15,14 +15,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState(null);
   const [instituicao, setInstituicao] = useState(null);
-  const [mensagemStatus, setMensagemStatus] = useState('');
+  const [modoEdicao, setModoEdicao] = useState(false);
 
   // Auth
   const [emailAuth, setEmailAuth] = useState('');
   const [senhaAuth, setSenhaAuth] = useState('');
   const [modoRegistro, setModoRegistro] = useState(false);
 
-  // Instituição
+  // Form Instituição
   const [instNome, setInstNome] = useState('');
   const [instNif, setInstNif] = useState('');
   const [instDirector, setInstDirector] = useState('');
@@ -32,7 +32,7 @@ export default function App() {
   const [instLocalizacao, setInstLocalizacao] = useState('');
   const [instLogoUrl, setInstLogoUrl] = useState('');
 
-  // Aluno
+  // Form Aluno
   const [alunoNome, setAlunoNome] = useState('');
   const [alunoNasc, setAlunoNasc] = useState('');
   const [alunoBI, setAlunoBI] = useState('');
@@ -43,7 +43,7 @@ export default function App() {
   const [alunoTelEncarregado, setAlunoTelEncarregado] = useState('');
   const [alunoFotoUrl, setAlunoFotoUrl] = useState('');
 
-  // Professor
+  // Form Professor
   const [profNome, setProfNome] = useState('');
   const [profNasc, setProfNasc] = useState('');
   const [profBI, setProfBI] = useState('');
@@ -77,10 +77,13 @@ export default function App() {
       setInstNif(data.nif || '');
       setInstDirector(data.director || '');
       setInstSecretaria(data.secretaria || '');
-      setInstEstudantes(data.num_estudantes || '');
-      setInstProfessores(data.num_professores || '');
+      setInstEstudantes(data.num_estudantes ? String(data.num_estudantes) : '');
+      setInstProfessores(data.num_professores ? String(data.num_professores) : '');
       setInstLocalizacao(data.localizacao || '');
       setInstLogoUrl(data.logo_url || '');
+      setModoEdicao(false);
+    } else {
+      setModoEdicao(true);
     }
     setLoading(false);
   };
@@ -113,7 +116,6 @@ export default function App() {
   const handleAuth = async () => {
     if (!emailAuth || !senhaAuth) return alert('Preencha o e-mail e a palavra-passe.');
     setLoading(true);
-    setMensagemStatus('');
     if (modoRegistro) {
       const { data, error } = await supabase.auth.signUp({ email: emailAuth, password: senhaAuth });
       if (error) alert('Erro ao registrar: ' + error.message);
@@ -143,8 +145,8 @@ export default function App() {
       nif: instNif,
       director: instDirector,
       secretaria: instSecretaria,
-      num_estudantes: instEstudantes,
-      num_professores: instProfessores,
+      num_estudantes: instEstudantes ? parseInt(instEstudantes) : null,
+      num_professores: instProfessores ? parseInt(instProfessores) : null,
       localizacao: instLocalizacao,
       logo_url: instLogoUrl
     };
@@ -160,8 +162,14 @@ export default function App() {
     }
 
     setLoading(false);
-    if (error) alert('Erro ao salvar: ' + error.message);
-    else alert('Perfil da instituição guardado com sucesso! 🎉');
+    if (error) {
+      alert('Erro ao salvar: ' + error.message);
+    } else {
+      alert('Perfil da instituição guardado com sucesso! 🎉');
+      if (session?.user?.id) {
+        carregarPerfilInstituicao(session.user.id);
+      }
+    }
   };
 
   const cadastrarAluno = async () => {
@@ -233,7 +241,7 @@ export default function App() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Portal Escola</Text>
         {session ? (
-          <TouchableOpacity onPress={() => supabase.auth.signOut().then(() => { setSession(null); setTela('menu'); })} style={styles.btnSair}>
+          <TouchableOpacity onPress={() => supabase.auth.signOut().then(() => { setSession(null); setInstituicao(null); setTela('menu'); })} style={styles.btnSair}>
             <Text style={styles.btnSairTxt}>Sair</Text>
           </TouchableOpacity>
         ) : null}
@@ -308,29 +316,74 @@ export default function App() {
           <View>
             <View style={styles.fbHeader}>
               {instLogoUrl ? (
-                <Image source={{ uri: instLogoUrl }} style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 10 }} />
+                <Image source={{ uri: instLogoUrl }} style={{ width: 90, height: 90, borderRadius: 45, marginBottom: 10 }} />
               ) : (
                 <Text style={{ fontSize: 40 }}>🏫</Text>
               )}
               <Text style={styles.fbTitle}>{instNome || 'Minha Instituição'}</Text>
-              <Text style={{ color: '#64748b' }}>NIF: {instNif || 'Não informado'}</Text>
+              <Text style={{ color: '#64748b' }}>NIF / BI: {instNif || 'Não informado'}</Text>
             </View>
 
-            <Text style={styles.sectionHeader}>Editar Dados da Instituição</Text>
-            <TextInput style={styles.input} placeholder="Nome Oficial da Instituição" value={instNome} onChangeText={setInstNome} />
-            <TextInput style={styles.input} placeholder="NIF" value={instNif} onChangeText={setInstNif} />
-            <TextInput style={styles.input} placeholder="Director Geral" value={instDirector} onChangeText={setInstDirector} />
-            <TextInput style={styles.input} placeholder="Secretaria" value={instSecretaria} onChangeText={setInstSecretaria} />
-            <TextInput style={styles.input} placeholder="Nº de Estudantes" value={instEstudantes} onChangeText={setInstEstudantes} keyboardType="numeric" />
-            <TextInput style={styles.input} placeholder="Nº de Professores" value={instProfessores} onChangeText={setInstProfessores} keyboardType="numeric" />
-            <TextInput style={styles.input} placeholder="Localização" value={instLocalizacao} onChangeText={setInstLocalizacao} />
+            {!modoEdicao && instituicao ? (
+              /* MODO VISUALIZAÇÃO DO PERFIL */
+              <View style={styles.profileCard}>
+                <Text style={styles.profileCardTitle}>📄 Ficha da Instituição</Text>
+                
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>👨‍💼 Director Geral:</Text>
+                  <Text style={styles.infoValue}>{instDirector || 'Não informado'}</Text>
+                </View>
 
-            <Text style={styles.label}>Logótipo / Imagem da Instituição:</Text>
-            <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setInstLogoUrl)} style={{ marginBottom: 15 }} />
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>📑 Secretaria:</Text>
+                  <Text style={styles.infoValue}>{instSecretaria || 'Não informada'}</Text>
+                </View>
 
-            <TouchableOpacity style={styles.btnPrimary} onPress={salvarInstituicao} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>SALVAR / ATUALIZAR PERFIL</Text>}
-            </TouchableOpacity>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>👨‍🎓 Nº de Estudantes:</Text>
+                  <Text style={styles.infoValue}>{instEstudantes || '0'}</Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>👩‍🏫 Nº de Professores:</Text>
+                  <Text style={styles.infoValue}>{instProfessores || '0'}</Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>📍 Localização:</Text>
+                  <Text style={styles.infoValue}>{instLocalizacao || 'Não informada'}</Text>
+                </View>
+
+                <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#4b5563', marginTop: 15 }]} onPress={() => setModoEdicao(true)}>
+                  <Text style={styles.btnTxt}>✏️ EDITAR DADOS DA INSTITUIÇÃO</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              /* MODO EDICÃO DO PERFIL */
+              <View style={styles.formContainer}>
+                <Text style={styles.sectionHeader}>Formulário do Perfil</Text>
+                <TextInput style={styles.input} placeholder="Nome Oficial da Instituição" value={instNome} onChangeText={setInstNome} />
+                <TextInput style={styles.input} placeholder="NIF / BI" value={instNif} onChangeText={setInstNif} />
+                <TextInput style={styles.input} placeholder="Director Geral" value={instDirector} onChangeText={setInstDirector} />
+                <TextInput style={styles.input} placeholder="Secretaria" value={instSecretaria} onChangeText={setInstSecretaria} />
+                <TextInput style={styles.input} placeholder="Nº de Estudantes" value={instEstudantes} onChangeText={setInstEstudantes} keyboardType="numeric" />
+                <TextInput style={styles.input} placeholder="Nº de Professores" value={instProfessores} onChangeText={setInstProfessores} keyboardType="numeric" />
+                <TextInput style={styles.input} placeholder="Localização" value={instLocalizacao} onChangeText={setInstLocalizacao} />
+
+                <Text style={styles.label}>Logótipo / Imagem da Instituição:</Text>
+                <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, setInstLogoUrl)} style={{ marginBottom: 15 }} />
+
+                <TouchableOpacity style={styles.btnPrimary} onPress={salvarInstituicao} disabled={loading}>
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTxt}>GUARDA/SALVAR DADOS</Text>}
+                </TouchableOpacity>
+
+                {instituicao ? (
+                  <TouchableOpacity style={{ marginTop: 10, alignItems: 'center' }} onPress={() => setModoEdicao(false)}>
+                    <Text style={{ color: '#64748b' }}>Cancelar Edição</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            )}
 
             <View style={{ height: 1, backgroundColor: '#e2e8f0', marginVertical: 20 }} />
 
@@ -501,7 +554,7 @@ const styles = StyleSheet.create({
   suporteBox: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 30, alignItems: 'center' },
   suporteTitle: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
   btnSuporte: { backgroundColor: '#059669', width: '100%', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
-  formContainer: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, marginTop: 20 },
+  formContainer: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   formTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a', marginBottom: 15 },
   input: { backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 10 },
   btnPrimary: { backgroundColor: '#2563eb', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 10 },
@@ -516,5 +569,10 @@ const styles = StyleSheet.create({
   fbHeader: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, alignItems: 'center', marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0' },
   fbTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a', marginTop: 8 },
   sectionHeader: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 10 },
-  resultCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 15 }
+  resultCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 15 },
+  profileCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginBottom: 15 },
+  profileCardTitle: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 6 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
+  infoLabel: { fontWeight: '600', color: '#475569' },
+  infoValue: { color: '#0f172a', fontWeight: 'bold' }
 });
