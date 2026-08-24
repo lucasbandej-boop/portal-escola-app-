@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView, View, Text, StyleSheet, TouchableOpacity, StatusBar,
-  ScrollView, TextInput, Alert, ActivityIndicator, Image, Linking
+  ScrollView, TextInput, ActivityIndicator, Image, Linking
 } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 
@@ -61,9 +61,43 @@ export default function App() {
   const [listaAlunos, setListaAlunos] = useState([]);
   const [listaProfessores, setListaProfessores] = useState([]);
 
+  // Pauta Trimestral Inteligente
+  const [trimestreAtivo, setTrimestreAtivo] = useState(1);
+  const [alunoSelecionadoPauta, setAlunoSelecionadoPauta] = useState(null);
+  const [notasPauta, setNotasPauta] = useState({ mac: '', npp: '', npt: '' });
+  const [pautaNotasGerais, setPautaNotasGerais] = useState({});
+
   // Transferência
   const [transfEmail, setTransfEmail] = useState('');
   const [transfMotivo, setTransfMotivo] = useState('');
+
+  // Lista de Publicidades com Imagem
+  const adsList = [
+    {
+      id: 1,
+      badge: '👕 Confecção de Uniformes (1 / 3)',
+      title: 'Uniformes & Fardamentos Escolares',
+      desc: 'Produção de fardas escolares para colégios e institutos. Batas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.',
+      img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&auto=format&fit=crop&q=60',
+      telefone: '929561442'
+    },
+    {
+      id: 2,
+      badge: '📚 Material Escolar & Livros (2 / 3)',
+      title: 'Kits de Material e Manuais',
+      desc: 'Fornecimento no grosso e a retalho de cadernos, manuais do ensino primário e secundário, com entrega ao domicílio.',
+      img: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=60',
+      telefone: '929561442'
+    },
+    {
+      id: 3,
+      badge: '💻 Sistemas & Software (3 / 3)',
+      title: 'Digitalização Escolar Portal Escola',
+      desc: 'Implemente o Portal Escola na sua instituição para gestão completa de alunos, professores, pautas digitais e transferências.',
+      img: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60',
+      telefone: '929561442'
+    }
+  ];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -88,7 +122,6 @@ export default function App() {
       setInstCapaUrl(data.capa_url || '');
       setModoEdicao(false);
 
-      // Carregar listas associadas à instituição
       carregarListas(data.id);
     } else {
       setModoEdicao(true);
@@ -150,6 +183,15 @@ export default function App() {
       }
     }
     setLoading(false);
+  };
+
+  const abrirPesquisaComAcesso = () => {
+    if (!session) {
+      alert('🔒 Acesso Restrito!\n\nPara pesquisar dados de alunos e encarregados é obrigatório fazer Login primeiro.');
+      setTela('login_inst');
+    } else {
+      setTela('pesquisa');
+    }
   };
 
   const salvarInstituicao = async () => {
@@ -253,6 +295,28 @@ export default function App() {
     else setResultadoPesquisa(data);
   };
 
+  // Cálculo da Média Trimestral Inteligente
+  const calcularMedia = (mac, npp, npt) => {
+    const vMac = parseFloat(mac) || 0;
+    const vNpp = parseFloat(npp) || 0;
+    const vNpt = parseFloat(npt) || 0;
+    if (!mac && !npp && !npt) return '-';
+    const media = (vMac + vNpp + vNpt) / 3;
+    return media.toFixed(1);
+  };
+
+  const salvarNotaAluno = (alunoId) => {
+    const media = calcularMedia(notasPauta.mac, notasPauta.npp, notasPauta.npt);
+    const chave = `${alunoId}_T${trimestreAtivo}`;
+    setPautaNotasGerais(prev => ({
+      ...prev,
+      [chave]: { mac: notasPauta.mac, npp: notasPauta.npp, npt: notasPauta.npt, media }
+    }));
+    setAlunoSelecionadoPauta(null);
+    setNotasPauta({ mac: '', npp: '', npt: '' });
+    alert(`Notas salvas com sucesso para o ${trimestreAtivo}º Trimestre!`);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -282,9 +346,9 @@ export default function App() {
               <Text style={styles.cardTitle}>Página da Instituição (Estilo Facebook)</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.cardMenu} onPress={() => setTela('pesquisa')}>
+            <TouchableOpacity style={styles.cardMenu} onPress={abrirPesquisaComAcesso}>
               <Text style={styles.cardIcon}>🔍</Text>
-              <Text style={styles.cardTitle}>Pesquisa de Alunos e Encarregados</Text>
+              <Text style={styles.cardTitle}>Pesquisa de Alunos e Encarregados 🔒</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.cardMenu} onPress={() => setTela('cad_prof')}>
@@ -292,13 +356,22 @@ export default function App() {
               <Text style={styles.cardTitle}>Cadastramento de Professores</Text>
             </TouchableOpacity>
 
-            {/* BANNER PUBLICIDADE */}
+            {/* BANNER DE PUBLICIDADE COM IMAGEM */}
             <View style={styles.bannerAd}>
-              <View style={styles.adBadge}><Text style={styles.adBadgeTxt}>👕 Confecção de Uniformes (2 / 3)</Text></View>
-              <Text style={styles.adTitle}>Uniformes & Fardamentos</Text>
-              <Text style={styles.adDesc}>Produção de fardas escolares para colégios e institutos. Batas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.</Text>
-              <TouchableOpacity style={styles.adBtn} onPress={() => Linking.openURL('tel:929561442')}>
-                <Text style={styles.adBtnTxt}>📞 929561442 (Clique para Ligar)</Text>
+              <View style={styles.adBadge}><Text style={styles.adBadgeTxt}>{adsList[0].badge}</Text></View>
+              <Text style={styles.adTitle}>{adsList[0].title}</Text>
+
+              <Image source={{ uri: adsList[0].img }} style={styles.adImage} />
+
+              <Text style={styles.adDesc}>{adsList[0].desc}</Text>
+              
+              <TouchableOpacity style={styles.adBtn} onPress={() => Linking.openURL(`tel:${adsList[0].telefone}`)}>
+                <Text style={styles.adBtnTxt}>📞 {adsList[0].telefone} (Clique para Ligar)</Text>
+              </TouchableOpacity>
+
+              {/* BOTÃO PARA TODAS AS PUBLICIDADES */}
+              <TouchableOpacity style={styles.btnVerTodasAds} onPress={() => setTela('painel_ads')}>
+                <Text style={styles.btnVerTodasAdsTxt}>📢 Ver todas as publicidades →</Text>
               </TouchableOpacity>
             </View>
 
@@ -310,6 +383,27 @@ export default function App() {
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>📞 Ligar para o Suporte: 929561442</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        )}
+
+        {/* PAINEL COMPLETO DE PUBLICIDADES */}
+        {tela === 'painel_ads' && (
+          <View style={{ padding: 16 }}>
+            <Text style={styles.formTitle}>📢 Todas as Publicidades & Parceiros</Text>
+            {adsList.map((ad) => (
+              <View key={ad.id} style={[styles.bannerAd, { marginBottom: 20 }]}>
+                <View style={styles.adBadge}><Text style={styles.adBadgeTxt}>{ad.badge}</Text></View>
+                <Text style={styles.adTitle}>{ad.title}</Text>
+                <Image source={{ uri: ad.img }} style={styles.adImage} />
+                <Text style={styles.adDesc}>{ad.desc}</Text>
+                <TouchableOpacity style={styles.adBtn} onPress={() => Linking.openURL(`tel:${ad.telefone}`)}>
+                  <Text style={styles.adBtnTxt}>📞 Contactar: {ad.telefone}</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity onPress={() => setTela('menu')} style={{ marginVertical: 15, alignItems: 'center' }}>
+              <Text style={{ color: '#64748b', fontWeight: 'bold' }}>← Voltar ao Menu Principal</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -349,7 +443,7 @@ export default function App() {
               )}
             </View>
 
-            {/* HEADER DO PERFIL (FOTO DE PERFIL E NOMES) */}
+            {/* HEADER DO PERFIL */}
             <View style={styles.fbProfileHeader}>
               <View style={styles.avatarContainer}>
                 {instLogoUrl ? (
@@ -381,7 +475,7 @@ export default function App() {
                 </View>
               </View>
 
-              {/* BOTÕES DE AÇÃO PRINCIPAIS DA PÁGINA */}
+              {/* BOTÕES DE AÇÃO PRINCIPAIS */}
               <View style={styles.fbActionRow}>
                 <TouchableOpacity style={styles.fbBtnBlue} onPress={() => setTela('cad_aluno')}>
                   <Text style={styles.fbBtnTxtWhite}>+ Cadastrar Aluno</Text>
@@ -419,10 +513,13 @@ export default function App() {
               </View>
             ) : null}
 
-            {/* BARRA DE ABAS DA PÁGINA (ESTILO FACEBOOK) */}
+            {/* BARRA DE ABAS DA PÁGINA */}
             <View style={styles.fbTabsContainer}>
               <TouchableOpacity style={[styles.fbTab, abaAtiva === 'sobre' && styles.fbTabActive]} onPress={() => setAbaAtiva('sobre')}>
                 <Text style={[styles.fbTabTxt, abaAtiva === 'sobre' && styles.fbTabTxtActive]}>Sobre</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.fbTab, abaAtiva === 'pauta' && styles.fbTabActive]} onPress={() => setAbaAtiva('pauta')}>
+                <Text style={[styles.fbTabTxt, abaAtiva === 'pauta' && styles.fbTabTxtActive]}>📊 Pauta Trimestral</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.fbTab, abaAtiva === 'alunos' && styles.fbTabActive]} onPress={() => setAbaAtiva('alunos')}>
                 <Text style={[styles.fbTabTxt, abaAtiva === 'alunos' && styles.fbTabTxtActive]}>Alunos ({listaAlunos.length})</Text>
@@ -456,6 +553,131 @@ export default function App() {
                   <TouchableOpacity style={[styles.btnSecondary, { marginTop: 15, backgroundColor: '#059669' }]} onPress={() => setTela('transferencia')}>
                     <Text style={styles.btnSecTxt}>🔄 Solicitar Transferência de Estudante</Text>
                   </TouchableOpacity>
+                </View>
+              )}
+
+              {/* ABA TABELA DE PAUTA INTELIGENTE & EDITÁVEL */}
+              {abaAtiva === 'pauta' && (
+                <View style={styles.fbCard}>
+                  <Text style={styles.fbCardTitle}>📊 Pauta de Classificação Trimestral</Text>
+
+                  {/* SELETOR DE TRIMESTRE */}
+                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 15 }}>
+                    {[1, 2, 3].map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.btnTrimestre, trimestreAtivo === t && styles.btnTrimestreActive]}
+                        onPress={() => setTrimestreAtivo(t)}
+                      >
+                        <Text style={[styles.txtTrimestre, trimestreAtivo === t && styles.txtTrimestreActive]}>
+                          {t}º Trimestre
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* FORMULÁRIO DE EDIÇÃO DE NOTA DO ALUNO SELECIONADO */}
+                  {alunoSelecionadoPauta ? (
+                    <View style={styles.boxEdicaoNota}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 15, marginBottom: 8, color: '#1877f2' }}>
+                        ✏️ Lançar Notas para: {alunoSelecionadoPauta.nome_completo} ({trimestreAtivo}º Trimestre)
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.labelNota}>MAC:</Text>
+                          <TextInput
+                            style={styles.inputNota}
+                            placeholder="0-20"
+                            keyboardType="numeric"
+                            value={notasPauta.mac}
+                            onChangeText={(v) => setNotasPauta({ ...notasPauta, mac: v })}
+                          />
+                        </View>
+
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.labelNota}>NPP:</Text>
+                          <TextInput
+                            style={styles.inputNota}
+                            placeholder="0-20"
+                            keyboardType="numeric"
+                            value={notasPauta.npp}
+                            onChangeText={(v) => setNotasPauta({ ...notasPauta, npp: v })}
+                          />
+                        </View>
+
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.labelNota}>NPT:</Text>
+                          <TextInput
+                            style={styles.inputNota}
+                            placeholder="0-20"
+                            keyboardType="numeric"
+                            value={notasPauta.npt}
+                            onChangeText={(v) => setNotasPauta({ ...notasPauta, npt: v })}
+                          />
+                        </View>
+                      </View>
+
+                      <Text style={{ marginVertical: 8, fontWeight: 'bold', color: '#334155' }}>
+                        Média Calculada (MT): <Text style={{ color: '#1877f2', fontSize: 16 }}>{calcularMedia(notasPauta.mac, notasPauta.npp, notasPauta.npt)}</Text>
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity style={[styles.btnPrimary, { flex: 1 }]} onPress={() => salvarNotaAluno(alunoSelecionadoPauta.id)}>
+                          <Text style={styles.btnTxt}>Guardar Nota</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.fbBtnGray, { flex: 1 }]} onPress={() => setAlunoSelecionadoPauta(null)}>
+                          <Text style={styles.fbBtnTxtDark}>Cancelar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {/* TABELA DE NOTAS */}
+                  <ScrollView horizontal>
+                    <View>
+                      <View style={styles.tableHeaderRow}>
+                        <Text style={[styles.th, { width: 130 }]}>Nome do Aluno</Text>
+                        <Text style={[styles.th, { width: 50 }]}>MAC</Text>
+                        <Text style={[styles.th, { width: 50 }]}>NPP</Text>
+                        <Text style={[styles.th, { width: 50 }]}>NPT</Text>
+                        <Text style={[styles.th, { width: 50 }]}>MT</Text>
+                        <Text style={[styles.th, { width: 90 }]}>Ação</Text>
+                      </View>
+
+                      {listaAlunos.length === 0 ? (
+                        <Text style={styles.emptyTxt}>Nenhum aluno cadastrado para gerar pauta.</Text>
+                      ) : (
+                        listaAlunos.map((aluno) => {
+                          const chave = `${aluno.id}_T${trimestreAtivo}`;
+                          const dadosNota = pautaNotasGerais[chave] || {};
+                          const media = dadosNota.media || '-';
+                          const aprovado = parseFloat(media) >= 10;
+
+                          return (
+                            <View key={aluno.id} style={styles.tableDataRow}>
+                              <Text style={[styles.td, { width: 130, fontWeight: 'bold' }]} numberOfLines={1}>{aluno.nome_completo}</Text>
+                              <Text style={[styles.td, { width: 50 }]}>{dadosNota.mac || '-'}</Text>
+                              <Text style={[styles.td, { width: 50 }]}>{dadosNota.npp || '-'}</Text>
+                              <Text style={[styles.td, { width: 50 }]}>{dadosNota.npt || '-'}</Text>
+                              <Text style={[styles.td, { width: 50, fontWeight: 'bold', color: media === '-' ? '#000' : (aprovado ? '#059669' : '#dc2626') }]}>
+                                {media}
+                              </Text>
+                              <TouchableOpacity
+                                style={[styles.btnEditNota, { width: 90 }]}
+                                onPress={() => {
+                                  setAlunoSelecionadoPauta(aluno);
+                                  setNotasPauta({ mac: dadosNota.mac || '', npp: dadosNota.npp || '', npt: dadosNota.npt || '' });
+                                }}
+                              >
+                                <Text style={styles.btnEditNotaTxt}>✏️ Editar</Text>
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+                  </ScrollView>
                 </View>
               )}
 
@@ -587,7 +809,7 @@ export default function App() {
           </View>
         )}
 
-        {/* 6. PESQUISA POR Nº DE PROCESSO */}
+        {/* 6. PESQUISA POR Nº DE PROCESSO (RESTRITA COM LOGIN) */}
         {tela === 'pesquisa' && (
           <View style={{ padding: 16 }}>
             <Text style={styles.formTitle}>Consulta de Perfil do Estudante 🔍</Text>
@@ -655,7 +877,7 @@ const styles = StyleSheet.create({
   cardIcon: { fontSize: 26, marginRight: 15 },
   cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1c1e21' },
 
-  // ESTILOS ESTILO FACEBOOK PAGE
+  // FACEBOOK PAGE STYLES
   coverContainer: { width: '100%', height: 160, backgroundColor: '#cbd5e1' },
   coverImage: { width: '100%', height: '100%' },
   coverPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#e2e8f0' },
@@ -676,31 +898,43 @@ const styles = StyleSheet.create({
   fbBtnTxtWhite: { color: '#ffffff', fontWeight: 'bold' },
   fbBtnTxtDark: { color: '#050505', fontWeight: 'bold' },
 
-  // ABAS ESTILO FACEBOOK
+  // ABAS FACEBOOK
   fbTabsContainer: { flexDirection: 'row', backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e4e6eb' },
   fbTab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   fbTabActive: { borderBottomWidth: 3, borderBottomColor: '#1877f2' },
-  fbTabTxt: { fontSize: 14, fontWeight: '600', color: '#65676b' },
+  fbTabTxt: { fontSize: 13, fontWeight: '600', color: '#65676b' },
   fbTabTxtActive: { color: '#1877f2' },
 
   fbCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#e4e6eb' },
   fbCardTitle: { fontSize: 16, fontWeight: 'bold', color: '#050505', marginBottom: 12 },
 
-  // CARDS DE ALUNOS E PROFESSORES
-  itemCard: { backgroundColor: '#ffffff', padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#e4e6eb' },
-  itemThumb: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
-  itemThumbPlaceholder: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#f0f2f5', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  itemTitle: { fontSize: 15, fontWeight: 'bold', color: '#050505' },
-  itemSub: { fontSize: 12, color: '#65676b' },
-  emptyTxt: { textAlign: 'center', color: '#65676b', marginVertical: 20 },
+  // PAUTA ESTILOS
+  btnTrimestre: { flex: 1, paddingVertical: 8, borderRadius: 6, backgroundColor: '#f0f2f5', alignItems: 'center', borderWidth: 1, borderColor: '#cbd5e1' },
+  btnTrimestreActive: { backgroundColor: '#1877f2', borderColor: '#1877f2' },
+  txtTrimestre: { fontSize: 12, fontWeight: 'bold', color: '#65676b' },
+  txtTrimestreActive: { color: '#ffffff' },
+  boxEdicaoNota: { backgroundColor: '#eff6ff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#bfdbfe', marginBottom: 15 },
+  labelNota: { fontSize: 11, fontWeight: 'bold', color: '#1e40af', marginBottom: 4 },
+  inputNota: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#93c5fd', borderRadius: 6, padding: 8, textAlign: 'center', fontWeight: 'bold' },
+  tableHeaderRow: { flexDirection: 'row', backgroundColor: '#f1f5f9', paddingVertical: 8, borderBottomWidth: 1, borderColor: '#cbd5e1' },
+  th: { fontSize: 12, fontWeight: 'bold', color: '#334155', textAlign: 'center' },
+  tableDataRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' },
+  td: { fontSize: 12, color: '#0f172a', textAlign: 'center' },
+  btnEditNota: { backgroundColor: '#e0e7ff', paddingVertical: 6, borderRadius: 4, alignItems: 'center' },
+  btnEditNotaTxt: { fontSize: 11, color: '#3730a3', fontWeight: 'bold' },
 
+  // PUBLICIDADE ESTILOS
   bannerAd: { backgroundColor: '#064e3b', borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 15 },
   adBadge: { backgroundColor: '#047857', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
   adBadgeTxt: { color: '#ffffff', fontSize: 12, fontWeight: 'bold' },
   adTitle: { fontSize: 18, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 },
+  adImage: { width: '100%', height: 140, borderRadius: 10, marginVertical: 10 },
   adDesc: { color: '#a7f3d0', fontSize: 12, lineHeight: 18, marginBottom: 12 },
   adBtn: { backgroundColor: '#022c22', padding: 12, borderRadius: 8, alignItems: 'center' },
   adBtnTxt: { color: '#34d399', fontWeight: 'bold', fontSize: 13 },
+  btnVerTodasAds: { backgroundColor: '#047857', padding: 10, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  btnVerTodasAdsTxt: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
+
   suporteBox: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e4e6eb', marginBottom: 30, alignItems: 'center' },
   suporteTitle: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
   btnSuporte: { backgroundColor: '#059669', width: '100%', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
@@ -720,5 +954,11 @@ const styles = StyleSheet.create({
   resultCard: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 15 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f0f2f5' },
   infoLabel: { fontWeight: '600', color: '#65676b' },
-  infoValue: { color: '#050505', fontWeight: 'bold' }
+  infoValue: { color: '#050505', fontWeight: 'bold' },
+  itemCard: { backgroundColor: '#ffffff', padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#e4e6eb' },
+  itemThumb: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
+  itemThumbPlaceholder: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#f0f2f5', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  itemTitle: { fontSize: 15, fontWeight: 'bold', color: '#050505' },
+  itemSub: { fontSize: 12, color: '#65676b' },
+  emptyTxt: { textAlign: 'center', color: '#65676b', marginVertical: 20 }
 });
