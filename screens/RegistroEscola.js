@@ -1,164 +1,217 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  Platform,
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  ScrollView, 
+  StyleSheet, 
+  Modal, 
+  Alert, 
+  ActivityIndicator 
 } from 'react-native';
-import { supabase } from '../supabase';
+import * as DocumentPicker from 'expo-document-picker';
+import { supabase } from '../../supabase';
 
 export default function RegistroEscola({ navigation }) {
+  const [modalVisivel, setModalVisivel] = useState(true);
+  const [aceitouRequisitos, setAceitouRequisitos] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+
   const [nome, setNome] = useState('');
-  const [licenca, setLicenca] = useState('');
-  const [numEstudantes, setNumEstudantes] = useState('');
-  const [numProfessores, setNumProfessores] = useState('');
-  const [cursos, setCursos] = useState('');
-  const [nivelEnsino, setNivelEnsino] = useState('Médio');
-  const [director, setDirector] = useState('');
-  const [viceDirector, setViceDirector] = useState('');
-  const [tipoInstituicao, setTipoInstituicao] = useState('Privada');
+  const [nif, setNif] = useState('');
   const [localizacao, setLocalizacao] = useState('');
-  const [senha, setSenha] = useState('');
+  const [documentoPDF, setDocumentoPDF] = useState(null);
 
-  const [loading, setLoading] = useState(false);
+  // Selecionar o documento PDF do telemóvel
+  const selecionarPDF = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
 
-  const showAlert = (title, message) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}: ${message}`);
-    } else {
-      Alert.alert(title, message);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setDocumentoPDF(result.assets[0]);
+      }
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível selecionar o ficheiro.');
     }
   };
 
-  const handleSalvarEscola = async () => {
-    if (!nome.trim() || !licenca.trim() || !director.trim() || !localizacao.trim() || !senha.trim()) {
-      showAlert('Atenção', 'Por favor, preencha os campos obrigatórios (Nome, Licença, Director, Localização e Senha).');
+  // Enviar os dados para o Supabase
+  const handleRegistro = async () => {
+    if (!nome || !nif || !localizacao) {
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
     }
 
-    setLoading(true);
+    if (!documentoPDF) {
+      Alert.alert('Aviso', 'É obrigatório anexar o documento PDF do processo.');
+      return;
+    }
+
+    setCarregando(true);
 
     try {
-      const { data, error } = await supabase
-        .from('escolas')
+      // 1. Preparar o ficheiro para Upload
+      const fileName = `doc_${Date.now()}_${documentoPDF.name.replace(/\s+/g, '_')}`;
+      const response = await fetch(documentoPDF.uri);
+      const blob = await response.blob();
+
+      // 2. Upload para o Supabase Storage
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('documentos-instituicoes')
+        .upload(fileName, blob, {
+          contentType: 'application/pdf',
+        });
+
+      if (storageError) throw storageError;
+
+      // 3. Pegar a URL pública
+      const { data: publicUrlData } = supabase.storage
+        .from('documentos-instituicoes')
+        .getPublicUrl(fileName);
+
+      const pdfUrl = publicUrlData.publicUrl;
+
+      // 4. Salvar na tabela 'instituicoes'
+      const { error: dbError } = await supabase
+        .from('instituicoes')
         .insert([
           {
             nome,
-            numero_licenca: licenca,
-            num_estudantes: parseInt(numEstudantes) || 0,
-            num_professores: parseInt(numProfessores) || 0,
-            cursos_disponiveis: cursos,
-            nivel_ensino: nivelEnsino,
-            director,
-            vice_director: viceDirector,
-            tipo_instituicao: tipoInstituicao,
-            localizacao,
-            senha_acesso: senha,
+            nif,
+            provincias_municipios: localizacao,
+            documentacao_url: pdfUrl,
           },
-        ])
-        .select();
+        ]);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      showAlert('Sucesso', 'Instituição cadastrada com sucesso! Já pode realizar o login da Secretaria.');
-      
-      setNome(''); setLicenca(''); setNumEstudantes(''); setNumProfessores('');
-      setCursos(''); setDirector(''); setViceDirector(''); setLocalizacao(''); setSenha('');
+      Alert.alert('Sucesso', 'Instituição e documentação registadas com sucesso!');
+      if (navigation && navigation.goBack) navigation.goBack();
 
-      if (navigation && navigation.navigate) {
-        navigation.navigate('LoginEscola');
-      }
-    } catch (err) {
-      console.error('Erro ao cadastrar:', err.message);
-      showAlert('Erro no Cadastro', err.message || 'Não foi possível salvar os dados.');
+    } catch (error) {
+      Alert.alert('Erro ao registar', error.message);
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Cadastrar Instituição</Text>
-        <Text style={styles.subtitle}>Fase 1: Dados Gerais da Escola</Text>
+    <View style={styles.container}>
+      {/* MODAL COM OS REQUISITOS DO DECRETO PRESIENCIAL N.º 37/23 */}
+      <Modal visible={modalVisivel} animationType="slide" transparent={false}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitulo}>Requisitos de Licenciamento</Text>
+          <Text style={styles.modalSubtitulo}>
+            Decreto Presidencial n.º 37/23 (Regime Jurídico das Instituições Privadas de Educação em Angola)
+          </Text>
 
-        <Text style={styles.label}>Nome da Escola *</Text>
-        <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Colégio Puniv Viana" placeholderTextColor="#999" />
+          <ScrollView style={styles.modalScroll}>
+            <Text style={styles.secaoTitulo}>➡️ Documentos Jurídicos da Entidade Promotora:</Text>
+            <Text style={styles.itemTexto}>• Certidão de Registo Comercial ou Pacto Social</Text>
+            <Text style={styles.itemTexto}>• Certificado de Admissibilidade (GUE)</Text>
+            <Text style={styles.itemTexto}>• Número de Identificação Fiscal (NIF)</Text>
+            <Text style={styles.itemTexto}>• Cópia do B.I. e Registo Criminal dos promotores</Text>
 
-        <Text style={styles.label}>Número de Licença *</Text>
-        <TextInput style={styles.input} value={licenca} onChangeText={setLicenca} placeholder="Nº do Ministério da Educação" placeholderTextColor="#999" />
+            <Text style={styles.secaoTitulo}>➡️ Documentação Pedagógica e Administrativa:</Text>
+            <Text style={styles.itemTexto}>• Requerimento dirigido à entidade licenciadora</Text>
+            <Text style={styles.itemTexto}>• Projeto Educativo e Regulamento Interno</Text>
+            <Text style={styles.itemTexto}>• Planos de Estudos e Programas Curriculares (MED)</Text>
+            <Text style={styles.itemTexto}>• Mapa de pessoal docente/administrativo e certificados</Text>
+            <Text style={styles.itemTexto}>• Proposta do Preçário (propinas/comparticipações)</Text>
 
-        <View style={styles.row}>
-          <View style={{ flex: 1, marginRight: 6 }}>
-            <Text style={styles.label}>Nº Estudantes</Text>
-            <TextInput style={styles.input} value={numEstudantes} onChangeText={setNumEstudantes} keyboardType="numeric" placeholder="Ex: 500" placeholderTextColor="#999" />
-          </View>
-          <View style={{ flex: 1, marginLeft: 6 }}>
-            <Text style={styles.label}>Nº Professores</Text>
-            <TextInput style={styles.input} value={numProfessores} onChangeText={setNumProfessores} keyboardType="numeric" placeholder="Ex: 35" placeholderTextColor="#999" />
-          </View>
+            <Text style={styles.secaoTitulo}>➡️ Documentos Técnicos da Infraestrutura:</Text>
+            <Text style={styles.itemTexto}>• Título de propriedade ou Contrato de Arrendamento</Text>
+            <Text style={styles.itemTexto}>• Planta de arquitetura aprovada pela Administração</Text>
+            <Text style={styles.itemTexto}>• Parecer da Saúde, Alvará e Certificado dos Bombeiros</Text>
+          </ScrollView>
+
+          <TouchableOpacity 
+            style={styles.btnContinuar}
+            onPress={() => {
+              setAceitouRequisitos(true);
+              setModalVisivel(false);
+            }}
+          >
+            <Text style={styles.btnTexto}>Compreendo os Requisitos — Prosseguir</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* FORMULÁRIO DE REGISTO */}
+      <ScrollView contentContainerStyle={styles.formContainer}>
+        <Text style={styles.tituloForm}>Inscrição da Instituição</Text>
+
+        <Text style={styles.label}>Nome da Instituição *</Text>
+        <TextInput 
+          style={styles.input} 
+          value={nome} 
+          onChangeText={setNome} 
+          placeholder="Ex: Colégio A" 
+        />
+
+        <Text style={styles.label}>NIF *</Text>
+        <TextInput 
+          style={styles.input} 
+          value={nif} 
+          onChangeText={setNif} 
+          placeholder="Número de Identificação Fiscal" 
+        />
+
+        <Text style={styles.label}>Localização (Província, Município) *</Text>
+        <TextInput 
+          style={styles.input} 
+          value={localizacao} 
+          onChangeText={setLocalizacao} 
+          placeholder="Ex: Benguela, Lobito" 
+        />
+
+        {/* CAMPO DE SELEÇÃO DE PDF */}
+        <View style={styles.pdfContainer}>
+          <Text style={styles.labelPdf}>Documentação Completa (PDF) *</Text>
+          <TouchableOpacity style={styles.btnPdf} onPress={selecionarPDF}>
+            <Text style={styles.btnPdfTexto}>
+              {documentoPDF ? `Ficheiro: ${documentoPDF.name}` : 'Selecionar Documento PDF'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>Cursos Disponíveis</Text>
-        <TextInput style={styles.input} value={cursos} onChangeText={setCursos} placeholder="Ex: Ciências Físicas, Puniv..." placeholderTextColor="#999" />
-
-        <Text style={styles.label}>Nível de Ensino</Text>
-        <View style={styles.rowSelector}>
-          {['Primário', 'Médio', 'Superior'].map((item) => (
-            <TouchableOpacity key={item} style={[styles.selectBtn, nivelEnsino === item && styles.selectBtnActive]} onPress={() => setNivelEnsino(item)}>
-              <Text style={[styles.selectText, nivelEnsino === item && styles.selectTextActive]}>{item}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Tipo de Instituição</Text>
-        <View style={styles.rowSelector}>
-          {['Privada', 'Estatal'].map((item) => (
-            <TouchableOpacity key={item} style={[styles.selectBtn, tipoInstituicao === item && styles.selectBtnActive]} onPress={() => setTipoInstituicao(item)}>
-              <Text style={[styles.selectText, tipoInstituicao === item && styles.selectTextActive]}>{item}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Director(a) Geral *</Text>
-        <TextInput style={styles.input} value={director} onChangeText={setDirector} placeholder="Nome do Director" placeholderTextColor="#999" />
-
-        <Text style={styles.label}>Vice-Director(a)</Text>
-        <TextInput style={styles.input} value={viceDirector} onChangeText={setViceDirector} placeholder="Nome do Vice-Director" placeholderTextColor="#999" />
-
-        <Text style={styles.label}>Localização da Escola *</Text>
-        <TextInput style={styles.input} value={localizacao} onChangeText={setLocalizacao} placeholder="Ex: Luanda, Viana, Km 12" placeholderTextColor="#999" />
-
-        <Text style={styles.label}>Senha para Login da Secretaria *</Text>
-        <TextInput style={styles.input} value={senha} onChangeText={setSenha} secureTextEntry placeholder="Crie uma senha de acesso" placeholderTextColor="#999" />
-
-        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSalvarEscola} disabled={loading}>
-          {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Salvar Instituição</Text>}
+        <TouchableOpacity 
+          style={styles.btnSubmeter} 
+          onPress={handleRegistro}
+          disabled={carregando}
+        >
+          {carregando ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.btnTexto}>Submeter Inscrição</Text>
+          )}
         </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: '#E2E8F0', flexGrow: 1, justifyContent: 'center' },
-  card: { backgroundColor: '#FFF', padding: 20, borderRadius: 12, maxWidth: 500, width: '100%', alignSelf: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#1E293B', textAlign: 'center' },
-  subtitle: { fontSize: 13, color: '#64748B', textAlign: 'center', marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginTop: 10, marginBottom: 4 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, fontSize: 14, color: '#0F172A' },
-  row: { flexDirection: 'row' },
-  rowSelector: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  selectBtn: { flex: 1, paddingVertical: 8, marginHorizontal: 2, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 6, alignItems: 'center', backgroundColor: '#F8FAFC' },
-  selectBtnActive: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
-  selectText: { fontSize: 12, color: '#334155', fontWeight: '500' },
-  selectTextActive: { color: '#FFF', fontWeight: 'bold' },
-  button: { backgroundColor: '#10B981', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
-  buttonDisabled: { backgroundColor: '#A7F3D0' },
-  buttonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  modalContainer: { flex: 1, padding: 20, backgroundColor: '#FFF', justifyContent: 'space-between' },
+  modalTitulo: { fontSize: 20, fontWeight: 'bold', color: '#1E3A8A', marginTop: 20 },
+  modalSubtitulo: { fontSize: 12, color: '#D97706', marginBottom: 15, marginTop: 5 },
+  modalScroll: { flex: 1, backgroundColor: '#F9FAFB', padding: 10, borderRadius: 8, marginBottom: 15 },
+  secaoTitulo: { fontWeight: 'bold', fontSize: 14, color: '#1F2937', marginTop: 10, marginBottom: 5 },
+  itemTexto: { fontSize: 12, color: '#4B5563', marginLeft: 10, marginBottom: 3 },
+  btnContinuar: { backgroundColor: '#2563EB', padding: 15, borderRadius: 8, alignItems: 'center' },
+  formContainer: { padding: 20 },
+  tituloForm: { fontSize: 22, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 20, textAlign: 'center' },
+  label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 5 },
+  input: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, marginBottom: 15 },
+  pdfContainer: { backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE', padding: 15, borderRadius: 8, marginBottom: 20 },
+  labelPdf: { fontSize: 14, fontWeight: 'bold', color: '#1E40AF', marginBottom: 8 },
+  btnPdf: { backgroundColor: '#2563EB', padding: 10, borderRadius: 6, alignItems: 'center' },
+  btnPdfTexto: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  btnSubmeter: { backgroundColor: '#059669', padding: 15, borderRadius: 8, alignItems: 'center' },
+  btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
 });
