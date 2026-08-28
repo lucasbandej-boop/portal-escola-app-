@@ -1,271 +1,230 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Modal, 
+  TextInput, 
+  Alert, 
+  ActivityIndicator 
 } from 'react-native';
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 
-export default function PerfilInstituicao({ instituicaoId, onNavegarCadastro }) {
+export default function PerfilInstituicao() {
   const [instituicao, setInstituicao] = useState(null);
-  const [estudantes, setEstudantes] = useState([]);
-  const [professores, setProfessores] = useState([]);
-  const [abaAtiva, setAbaAtiva] = useState('geral');
-  const [loading, setLoading] = useState(true);
+  const [carregando, setCarregando] = useState(true);
+
+  // Estados dos Modais
+  const [modalCurso, setModalCurso] = useState(false);
+  const [modalEvento, setModalEvento] = useState(false);
+  const [modalAluno, setModalAluno] = useState(false);
+
+  // Estados dos Formulários
+  const [nomeCurso, setNomeCurso] = useState('');
+  const [duracaoCurso, setDuracaoCurso] = useState('');
+  
+  const [tituloEvento, setTituloEvento] = useState('');
+  const [dataEvento, setDataEvento] = useState('');
+
+  const [nomeAluno, setNomeAluno] = useState('');
+  const [conquistaAluno, setConquistaAluno] = useState('');
+
+  // Listas de dados
+  const [cursos, setCursos] = useState([]);
+  const [eventos, setEventos] = useState([]);
+  const [alunosDestaque, setAlunosDestaque] = useState([]);
 
   useEffect(() => {
-    carregarDadosPerfil();
-  }, [instituicaoId]);
+    carregarPerfil();
+  }, []);
 
-  async function carregarDadosPerfil() {
-    setLoading(true);
+  const carregarPerfil = async () => {
+    setCarregando(true);
     try {
-      // 1. Dados da Instituição
-      const { data: dadosInst, error: errInst } = await supabase
-        .from('instituicoes')
-        .select('*')
-        .eq('id', instituicaoId)
-        .single();
-      
-      if (errInst) throw errInst;
-      setInstituicao(dadosInst);
+      // Buscar dados da primeira instituição ativa
+      const { data, error } = await supabase.from('instituicoes').select('*').limit(1).single();
+      if (data) setInstituicao(data);
 
-      // 2. Lista de Estudantes (Ordem alfabética)
-      const { data: dadosEst } = await supabase
-        .from('estudantes')
-        .select('*')
-        .eq('instituicao_id', instituicaoId)
-        .order('nome_completo', { ascending: true });
-      setEstudantes(dadosEst || []);
+      // Buscar Cursos, Eventos e Alunos em Destaque
+      const resCursos = await supabase.from('cursos').select('*');
+      if (resCursos.data) setCursos(resCursos.data);
 
-      // 3. Lista de Professores (Ordem alfabética)
-      const { data: dadosProf } = await supabase
-        .from('professores')
-        .select('*')
-        .eq('instituicao_id', instituicaoId)
-        .order('nome_completo', { ascending: true });
-      setProfessores(dadosProf || []);
+      const resEventos = await supabase.from('eventos').select('*');
+      if (resEventos.data) setEventos(resEventos.data);
 
-    } catch (error) {
-      console.error('Erro ao carregar dados do perfil:', error.message);
+      const resAlunos = await supabase.from('alunos_destaque').select('*');
+      if (resAlunos.data) setAlunosDestaque(resAlunos.data);
+
+    } catch (err) {
+      console.log('Erro ao carregar dados:', err);
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
-  }
+  };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1877f2" />
-        <Text style={{ marginTop: 10 }}>A carregar perfil...</Text>
-      </View>
-    );
-  }
+  // Salvar Novo Curso
+  const salvarCurso = async () => {
+    if (!nomeCurso) return Alert.alert('Aviso', 'Preencha o nome do curso.');
+    const { error } = await supabase.from('cursos').insert([{ nome: nomeCurso, duracao: duracaoCurso }]);
+    if (!error) {
+      Alert.alert('Sucesso', 'Curso adicionado!');
+      setNomeCurso(''); setDuracaoCurso(''); setModalCurso(false);
+      carregarPerfil();
+    }
+  };
 
-  if (!instituicao) {
-    return (
-      <View style={styles.center}>
-        <Text>Nenhuma instituição encontrada.</Text>
-      </View>
-    );
-  }
+  // Salvar Novo Evento
+  const salvarEvento = async () => {
+    if (!tituloEvento) return Alert.alert('Aviso', 'Preencha o título do evento.');
+    const { error } = await supabase.from('eventos').insert([{ titulo: tituloEvento, data_evento: dataEvento }]);
+    if (!error) {
+      Alert.alert('Sucesso', 'Evento adicionado!');
+      setTituloEvento(''); setDataEvento(''); setModalEvento(false);
+      carregarPerfil();
+    }
+  };
 
-  // Ecrã de bloqueio se estiver pendente de aprovação
-  if (instituicao.estado_aprovacao === 'pendente') {
+  // Salvar Aluno em Destaque
+  const salvarAluno = async () => {
+    if (!nomeAluno) return Alert.alert('Aviso', 'Preencha o nome do aluno.');
+    const { error } = await supabase.from('alunos_destaque').insert([{ nome: nomeAluno, conquista: conquistaAluno }]);
+    if (!error) {
+      Alert.alert('Sucesso', 'Aluno em destaque adicionado!');
+      setNomeAluno(''); setConquistaAluno(''); setModalAluno(false);
+      carregarPerfil();
+    }
+  };
+
+  if (carregando) {
     return (
-      <View style={styles.avisoContainer}>
-        <Text style={styles.avisoTitulo}>⏳ Registo em Análise</Text>
-        <Text style={styles.avisoTexto}>
-          As informações da sua instituição foram enviadas com sucesso e aguardam confirmação da administração. Assim que forem aprovadas, o seu perfil ficará ativo.
-        </Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1E3A8A" />
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container}>
-      {/* CAPA E FOTO DE PERFIL (ESTILO FACEBOOK) */}
-      <View style={styles.capaContainer}>
-        <Image
-          source={{ uri: instituicao.foto_capa_url || 'https://via.placeholder.com/800x300' }}
-          style={styles.capa}
-        />
-        <View style={styles.logoContainer}>
-          <Image
-            source={{ uri: instituicao.logo_url || 'https://via.placeholder.com/150' }}
-            style={styles.logo}
-          />
+      {/* CABEÇALHO DO PERFIL */}
+      <View style={styles.header}>
+        <Text style={styles.nomeInstituicao}>{instituicao?.nome || 'Perfil da Instituição'}</Text>
+        <Text style={styles.subtitulo}>{instituicao?.provincias_municipios || 'Angola'}</Text>
+      </View>
+
+      {/* PAINEL DE BOTÕES DE AÇÃO RÁPIDA */}
+      <Text style={styles.secaoTitulo}>Gestão da Instituição</Text>
+      <View style={styles.gridBotoes}>
+        <TouchableOpacity style={[styles.cardBotao, { backgroundColor: '#2563EB' }]} onPress={() => setModalCurso(true)}>
+          <Text style={styles.textoBotao}>+ Adicionar Curso</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.cardBotao, { backgroundColor: '#D97706' }]} onPress={() => setModalEvento(true)}>
+          <Text style={styles.textoBotao}>+ Criar Evento</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.cardBotao, { backgroundColor: '#059669' }]} onPress={() => setModalAluno(true)}>
+          <Text style={styles.textoBotao}>+ Aluno Destaque</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* SECÇÃO: CURSOS MINISTRADOS */}
+      <Text style={styles.secaoTitulo}>Cursos Disponíveis</Text>
+      {cursos.length === 0 ? <Text style={styles.textoVazio}>Nenhum curso registado.</Text> : (
+        cursos.map(item => (
+          <View key={item.id} style={styles.cardItem}>
+            <Text style={styles.itemTitulo}>{item.nome}</Text>
+            {item.duracao ? <Text style={styles.itemSub}>Duração: {item.duracao}</Text> : null}
+          </View>
+        ))
+      )}
+
+      {/* SECÇÃO: EVENTOS DA ESCOLA */}
+      <Text style={styles.secaoTitulo}>Próximos Eventos</Text>
+      {eventos.length === 0 ? <Text style={styles.textoVazio}>Nenhum evento agendado.</Text> : (
+        eventos.map(item => (
+          <View key={item.id} style={styles.cardItem}>
+            <Text style={styles.itemTitulo}>{item.titulo}</Text>
+            {item.data_evento ? <Text style={styles.itemSub}>Data: {item.data_evento}</Text> : null}
+          </View>
+        ))
+      )}
+
+      {/* SECÇÃO: ALUNOS EM DESTAQUE */}
+      <Text style={styles.secaoTitulo}>Alunos em Destaque ⭐</Text>
+      {alunosDestaque.length === 0 ? <Text style={styles.textoVazio}>Nenhum aluno destacado ainda.</Text> : (
+        alunosDestaque.map(item => (
+          <View key={item.id} style={[styles.cardItem, { borderColor: '#F59E0B' }]}>
+            <Text style={styles.itemTitulo}>{item.nome}</Text>
+            {item.conquista ? <Text style={styles.itemSub}>{item.conquista}</Text> : null}
+          </View>
+        ))
+      )}
+
+      {/* MODAL: CURSO */}
+      <Modal visible={modalCurso} animationType="slide" transparent>
+        <View style={styles.modalBg}>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitulo}>Adicionar Curso</Text>
+            <TextInput style={styles.input} placeholder="Nome do Curso" value={nomeCurso} onChangeText={setNomeCurso} />
+            <TextInput style={styles.input} placeholder="Duração (ex: 3 Anos / 6 Meses)" value={duracaoCurso} onChangeText={setDuracaoCurso} />
+            <TouchableOpacity style={styles.btnSalvar} onPress={salvarCurso}><Text style={styles.btnTexto}>Salvar</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalCurso(false)}><Text style={styles.btnTextoFechar}>Cancelar</Text></TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </Modal>
 
-      {/* CABEÇALHO COM INFORMAÇÕES */}
-      <View style={styles.headerInfo}>
-        <Text style={styles.nomeInstituicao}>{instituicao.nome}</Text>
-        <Text style={styles.categoria}>
-          {instituicao.categoria_primaria} • {instituicao.localizacao || 'Localização não definida'}
-        </Text>
-
-        {/* BOTÃO PARA ADICIONAR PESSOAS */}
-        <TouchableOpacity style={styles.btnAdicionar} onPress={onNavegarCadastro}>
-          <Text style={styles.txtBtnAdicionar}>+ Adicionar Aluno ou Professor</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ABAS DE NAVEGAÇÃO */}
-      <View style={styles.abasContainer}>
-        <TouchableOpacity
-          style={[styles.aba, abaAtiva === 'geral' && styles.abaAtiva]}
-          onPageChange={() => setAbaAtiva('geral')}
-          onPress={() => setAbaAtiva('geral')}
-        >
-          <Text style={[styles.txtAba, abaAtiva === 'geral' && styles.txtAbaAtiva]}>Geral</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.aba, abaAtiva === 'estudantes' && styles.abaAtiva]}
-          onPress={() => setAbaAtiva('estudantes')}
-        >
-          <Text style={[styles.txtAba, abaAtiva === 'estudantes' && styles.txtAbaAtiva]}>
-            Estudantes ({estudantes.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.aba, abaAtiva === 'professores' && styles.abaAtiva]}
-          onPress={() => setAbaAtiva('professores')}
-        >
-          <Text style={[styles.txtAba, abaAtiva === 'professores' && styles.txtAbaAtiva]}>
-            Professores ({professores.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* CONTEÚDO DAS ABAS */}
-      <View style={styles.conteudo}>
-        {abaAtiva === 'geral' && (
-          <View style={styles.card}>
-            <Text style={styles.tituloCard}>Corpo Diretivo</Text>
-            <Text style={styles.textoItem}>• Diretor: {instituicao.director || 'Não informado'}</Text>
-            <Text style={styles.textoItem}>• Vice-Diretor: {instituicao.vice_director || 'Não informado'}</Text>
-            <Text style={styles.textoItem}>• Secretário(a): {instituicao.secretario || 'Não informado'}</Text>
-
-            <Text style={[styles.tituloCard, { marginTop: 15 }]}>Cursos Oferecidos</Text>
-            <Text style={styles.textoItem}>
-              {instituicao.cursos ? instituicao.cursos.join(', ') : 'Nenhum curso listado'}
-            </Text>
-
-            <Text style={[styles.tituloCard, { marginTop: 15 }]>Contacto Institucional</Text>
-            <Text style={styles.textoItem}>📧 {instituicao.email}</Text>
+      {/* MODAL: EVENTO */}
+      <Modal visible={modalEvento} animationType="slide" transparent>
+        <View style={styles.modalBg}>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitulo}>Criar Evento</Text>
+            <TextInput style={styles.input} placeholder="Título do Evento" value={tituloEvento} onChangeText={setTituloEvento} />
+            <TextInput style={styles.input} placeholder="Data (ex: 15 de Setembro)" value={dataEvento} onChangeText={setDataEvento} />
+            <TouchableOpacity style={styles.btnSalvar} onPress={salvarEvento}><Text style={styles.btnTexto}>Salvar</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalEvento(false)}><Text style={styles.btnTextoFechar}>Cancelar</Text></TouchableOpacity>
           </View>
-        )}
+        </View>
+      </Modal>
 
-        {abaAtiva === 'estudantes' && (
-          <View>
-            <Text style={styles.subTituloSecao}>Lista Organizada de Estudantes</Text>
-            {estudantes.length === 0 ? (
-              <Text style={styles.vazio}>Nenhum estudante cadastrado ainda.</Text>
-            ) : (
-              estudantes.map((est) => (
-                <View key={est.id} style={styles.listItem}>
-                  <Image
-                    source={{ uri: est.foto_url || 'https://via.placeholder.com/50' }}
-                    style={styles.avatarList}
-                  />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.listNome}>{est.nome_completo}</Text>
-                    <Text style={styles.listDetalhe}>Curso: {est.curso || 'N/A'}</Text>
-                    <Text style={styles.listDetalhe}>Classe: {est.classe_ou_ano} | Turma: {est.turma}</Text>
-                  </View>
-                </View>
-              ))
-            )}
+      {/* MODAL: ALUNO */}
+      <Modal visible={modalAluno} animationType="slide" transparent>
+        <View style={styles.modalBg}>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitulo}>Aluno em Destaque</Text>
+            <TextInput style={styles.input} placeholder="Nome do Aluno" value={nomeAluno} onChangeText={setNomeAluno} />
+            <TextInput style={styles.input} placeholder="Conquista/Motivo do Destaque" value={conquistaAluno} onChangeText={setConquistaAluno} />
+            <TouchableOpacity style={styles.btnSalvar} onPress={salvarAluno}><Text style={styles.btnTexto}>Salvar</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalAluno(false)}><Text style={styles.btnTextoFechar}>Cancelar</Text></TouchableOpacity>
           </View>
-        )}
+        </View>
+      </Modal>
 
-        {abaAtiva === 'professores' && (
-          <View>
-            <Text style={styles.subTituloSecao}>Corpo Docente</Text>
-            {professores.length === 0 ? (
-              <Text style={styles.vazio}>Nenhum professor cadastrado ainda.</Text>
-            ) : (
-              professores.map((prof) => (
-                <View key={prof.id} style={styles.listItem}>
-                  <Image
-                    source={{ uri: prof.foto_url || 'https://via.placeholder.com/50' }}
-                    style={styles.avatarList}
-                  />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.listNome}>{prof.nome_completo}</Text>
-                    <Text style={styles.listDetalhe}>Disciplina: {prof.disciplina || 'N/A'}</Text>
-                    <Text style={styles.listDetalhe}>Formação: {prof.formacao_academica}</Text>
-                  </View>
-                </View>
-              ))
-            )}
-          </View>
-        )}
-      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f5' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  capaContainer: { height: 180, backgroundColor: '#ddd', position: 'relative', marginBottom: 50 },
-  capa: { width: '100%', height: '100%' },
-  logoContainer: {
-    position: 'absolute',
-    bottom: -45,
-    left: 20,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: '#ffffff',
-    backgroundColor: '#fff',
-    overflow: 'hidden'
-  },
-  logo: { width: 100, height: 100 },
-  headerInfo: { backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 15 },
-  nomeInstituicao: { fontSize: 22, fontWeight: 'bold', color: '#050505' },
-  categoria: { fontSize: 13, color: '#65676b', marginTop: 2 },
-  btnAdicionar: {
-    backgroundColor: '#e4e6eb',
-    marginTop: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center'
-  },
-  txtBtnAdicionar: { fontWeight: 'bold', color: '#050505' },
-  abasContainer: { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e4e6eb', marginTop: 8 },
-  aba: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  abaAtiva: { borderBottomWidth: 3, borderBottomColor: '#1877f2' },
-  txtAba: { fontWeight: '600', color: '#65676b' },
-  txtAbaAtiva: { color: '#1877f2', fontWeight: 'bold' },
-  conteudo: { padding: 15 },
-  card: { backgroundColor: '#fff', padding: 15, borderRadius: 8 },
-  tituloCard: { fontSize: 16, fontWeight: 'bold', color: '#050505', marginBottom: 6 },
-  textoItem: { fontSize: 14, color: '#333', marginBottom: 4 },
-  subTituloSecao: { fontSize: 15, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  listItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    elevation: 1
-  },
-  avatarList: { width: 50, height: 50, borderRadius: 25 },
-  listNome: { fontSize: 15, fontWeight: 'bold', color: '#050505' },
-  listDetalhe: { fontSize: 12, color: '#65676b', marginTop: 2 },
-  vazio: { textAlign: 'center', color: '#65676b', marginTop: 20 },
-  avisoContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30, backgroundColor: '#fff' },
-  avisoTitulo: { fontSize: 20, fontWeight: 'bold', color: '#e67e22', marginBottom: 12, textAlign: 'center' },
-  avisoTexto: { fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 22 }
+  container: { flex: 1, backgroundColor: '#F3F4F6', padding: 15 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { backgroundColor: '#1E3A8A', padding: 20, borderRadius: 10, alignItems: 'center', marginBottom: 20 },
+  nomeInstituicao: { fontSize: 20, fontWeight: 'bold', color: '#FFF' },
+  subtitulo: { fontSize: 13, color: '#BFDBFE', marginTop: 4 },
+  secaoTitulo: { fontSize: 16, fontWeight: 'bold', color: '#1F2937', marginTop: 15, marginBottom: 10 },
+  gridBotoes: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  cardBotao: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 3 },
+  textoBotao: { color: '#FFF', fontWeight: 'bold', fontSize: 11, textAlign: 'center' },
+  cardItem: { backgroundColor: '#FFF', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 8 },
+  itemTitulo: { fontSize: 15, fontWeight: 'bold', color: '#111827' },
+  itemSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  textoVazio: { fontSize: 12, color: '#9CA3AF', italic: 'italic', marginBottom: 10 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 10 },
+  modalTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 15, textAlign: 'center' },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 10, marginBottom: 12 },
+  btnSalvar: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 5 },
+  btnTexto: { color: '#FFF', fontWeight: 'bold' },
+  btnFechar: { padding: 10, alignItems: 'center', marginTop: 5 },
+  btnTextoFechar: { color: '#DC2626', fontWeight: '600' }
 });
