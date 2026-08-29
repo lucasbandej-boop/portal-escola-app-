@@ -5,90 +5,52 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  Modal, 
-  TextInput, 
-  Alert, 
-  ActivityIndicator 
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { supabase } from './supabase';
 
 export default function PerfilInstituicao() {
+  const [abaAtiva, setAbaAtiva] = useState('geral'); // 'geral', 'pauta', 'alunos', 'professores', 'classes', 'eventos', 'destaque'
   const [instituicao, setInstituicao] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
-  // Estados dos Modais
-  const [modalCurso, setModalCurso] = useState(false);
-  const [modalEvento, setModalEvento] = useState(false);
-  const [modalAluno, setModalAluno] = useState(false);
-
-  // Estados dos Formulários
-  const [nomeCurso, setNomeCurso] = useState('');
-  const [duracaoCurso, setDuracaoCurso] = useState('');
-  
-  const [tituloEvento, setTituloEvento] = useState('');
-  const [dataEvento, setDataEvento] = useState('');
-
-  const [nomeAluno, setNomeAluno] = useState('');
-  const [conquistaAluno, setConquistaAluno] = useState('');
-
-  // Listas de dados
-  const [cursos, setCursos] = useState([]);
+  // Estados de Listas
+  const [alunos, setAlunos] = useState([]);
+  const [professores, setProfessores] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [alunosDestaque, setAlunosDestaque] = useState([]);
 
   useEffect(() => {
-    carregarPerfil();
+    carregarDados();
   }, []);
 
-  const carregarPerfil = async () => {
+  const carregarDados = async () => {
     setCarregando(true);
     try {
-      const { data, error } = await supabase.from('instituicoes').select('*').limit(1).single();
+      const { data } = await supabase.from('instituicoes').select('*').limit(1).single();
       if (data) setInstituicao(data);
 
-      const resCursos = await supabase.from('cursos').select('*');
-      if (resCursos.data) setCursos(resCursos.data);
+      const resAlunos = await supabase.from('alunos').select('*');
+      if (resAlunos.data) setAlunos(resAlunos.data);
+
+      const resProf = await supabase.from('professores').select('*');
+      if (resProf.data) setProfessores(resProf.data);
+
+      const resClasses = await supabase.from('classes').select('*');
+      if (resClasses.data) setClasses(resClasses.data);
 
       const resEventos = await supabase.from('eventos').select('*');
       if (resEventos.data) setEventos(resEventos.data);
 
-      const resAlunos = await supabase.from('alunos_destaque').select('*');
-      if (resAlunos.data) setAlunosDestaque(resAlunos.data);
+      const resDestaques = await supabase.from('alunos_destaque').select('*');
+      if (resDestaques.data) setAlunosDestaque(resDestaques.data);
 
     } catch (err) {
-      console.log('Erro ao carregar dados:', err);
+      console.log('Erro ao carregar:', err);
     } finally {
       setCarregando(false);
-    }
-  };
-
-  const salvarCurso = async () => {
-    if (!nomeCurso) return Alert.alert('Aviso', 'Preencha o nome do curso.');
-    const { error } = await supabase.from('cursos').insert([{ nome: nomeCurso, duracao: duracaoCurso }]);
-    if (!error) {
-      Alert.alert('Sucesso', 'Curso adicionado!');
-      setNomeCurso(''); setDuracaoCurso(''); setModalCurso(false);
-      carregarPerfil();
-    }
-  };
-
-  const salvarEvento = async () => {
-    if (!tituloEvento) return Alert.alert('Aviso', 'Preencha o título do evento.');
-    const { error } = await supabase.from('eventos').insert([{ titulo: tituloEvento, data_evento: dataEvento }]);
-    if (!error) {
-      Alert.alert('Sucesso', 'Evento adicionado!');
-      setTituloEvento(''); setDataEvento(''); setModalEvento(false);
-      carregarPerfil();
-    }
-  };
-
-  const salvarAluno = async () => {
-    if (!nomeAluno) return Alert.alert('Aviso', 'Preencha o nome do aluno.');
-    const { error } = await supabase.from('alunos_destaque').insert([{ nome: nomeAluno, conquista: conquistaAluno }]);
-    if (!error) {
-      Alert.alert('Sucesso', 'Aluno em destaque adicionado!');
-      setNomeAluno(''); setConquistaAluno(''); setModalAluno(false);
-      carregarPerfil();
     }
   };
 
@@ -101,132 +63,153 @@ export default function PerfilInstituicao() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* CABEÇALHO ATUALIZADO */}
+    <View style={styles.mainContainer}>
+      {/* CABEÇALHO DA INSTITUIÇÃO */}
       <View style={styles.header}>
         <Text style={styles.nomeInstituicao}>{instituicao?.nome || 'Colégio baú'}</Text>
         <Text style={styles.categoria}>🏫 Escola / Instituição de Ensino</Text>
         
         <View style={styles.infoBox}>
           <Text style={styles.infoTexto}>NIF: {instituicao?.nif || '0082506071LA40'}</Text>
-          <Text style={styles.infoTexto}>📞 Contacto: {instituicao?.telefone || instituicao?.contacto || '+244 9XX XXX XXX'}</Text>
+          <Text style={styles.infoTexto}>📞 Contacto: {instituicao?.contacto || '+244 9XX XXX XXX'}</Text>
           <Text style={styles.infoTexto}>✉️ Email: {instituicao?.email || 'contacto@escola.ao'}</Text>
         </View>
       </View>
 
-      <View style={styles.divisor} />
-
-      {/* PAINEL DE BOTÕES DE AÇÃO RÁPIDA */}
-      <Text style={styles.secaoTitulo}>Gestão da Instituição</Text>
-      <View style={styles.gridBotoes}>
-        <TouchableOpacity style={[styles.cardBotao, { backgroundColor: '#2563EB' }]} onPress={() => setModalCurso(true)}>
-          <Text style={styles.textoBotao}>+ Adicionar Curso</Text>
+      {/* BARRA DE ABAS DE NAVEGAÇÃO SUPERIOR */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.menuAbas}>
+        <TouchableOpacity 
+          style={[styles.btnAba, abaAtiva === 'geral' && styles.btnAbaAtiva]} 
+          onPress={() => setAbaAtiva('geral')}
+        >
+          <Text style={[styles.textoAba, abaAtiva === 'geral' && styles.textoAbaAtiva]}>Geral</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.cardBotao, { backgroundColor: '#D97706' }]} onPress={() => setModalEvento(true)}>
-          <Text style={styles.textoBotao}>+ Criar Evento</Text>
+        <TouchableOpacity 
+          style={[styles.btnAba, abaAtiva === 'pauta' && styles.btnAbaAtiva]} 
+          onPress={() => setAbaAtiva('pauta')}
+        >
+          <Text style={[styles.textoAba, abaAtiva === 'pauta' && styles.textoAbaAtiva]}>📊 Pauta Trimestral</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.cardBotao, { backgroundColor: '#059669' }]} onPress={() => setModalAluno(true)}>
-          <Text style={styles.textoBotao}>+ Aluno Destaque</Text>
+        <TouchableOpacity 
+          style={[styles.btnAba, abaAtiva === 'alunos' && styles.btnAbaAtiva]} 
+          onPress={() => setAbaAtiva('alunos')}
+        >
+          <Text style={[styles.textoAba, abaAtiva === 'alunos' && styles.textoAbaAtiva]}>Alunos ({alunos.length})</Text>
         </TouchableOpacity>
-      </View>
 
-      {/* SECÇÕES */}
-      <Text style={styles.secaoTitulo}>Cursos Disponíveis</Text>
-      {cursos.length === 0 ? <Text style={styles.textoVazio}>Nenhum curso registado.</Text> : (
-        cursos.map(item => (
-          <View key={item.id} style={styles.cardItem}>
-            <Text style={styles.itemTitulo}>{item.nome}</Text>
-            {item.duracao ? <Text style={styles.itemSub}>Duração: {item.duracao}</Text> : null}
+        <TouchableOpacity 
+          style={[styles.btnAba, abaAtiva === 'professores' && styles.btnAbaAtiva]} 
+          onPress={() => setAbaAtiva('professores')}
+        >
+          <Text style={[styles.textoAba, abaAtiva === 'professores' && styles.textoAbaAtiva]}>Professores ({professores.length})</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.btnAba, abaAtiva === 'classes' && styles.btnAbaAtiva]} 
+          onPress={() => setAbaAtiva('classes')}
+        >
+          <Text style={[styles.textoAba, abaAtiva === 'classes' && styles.textoAbaAtiva]}>📚 Classes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.btnAba, abaAtiva === 'eventos' && styles.btnAbaAtiva]} 
+          onPress={() => setAbaAtiva('eventos')}
+        >
+          <Text style={[styles.textoAba, abaAtiva === 'eventos' && styles.textoAbaAtiva]}>📅 Eventos</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.btnAba, abaAtiva === 'destaque' && styles.btnAbaAtiva]} 
+          onPress={() => setAbaAtiva('destaque')}
+        >
+          <Text style={[styles.textoAba, abaAtiva === 'destaque' && styles.textoAbaAtiva]}>⭐ Alunos em Destaque</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* CONTEÚDO DAS ABAS */}
+      <ScrollView style={styles.conteudo}>
+        {abaAtiva === 'geral' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Visão Geral da Instituição</Text>
+            <Text style={styles.descricao}>{instituicao?.descricao || 'Bem-vindo ao painel geral da instituição de ensino.'}</Text>
           </View>
-        ))
-      )}
+        )}
 
-      <Text style={styles.secaoTitulo}>Próximos Eventos</Text>
-      {eventos.length === 0 ? <Text style={styles.textoVazio}>Nenhum evento agendado.</Text> : (
-        eventos.map(item => (
-          <View key={item.id} style={styles.cardItem}>
-            <Text style={styles.itemTitulo}>{item.titulo}</Text>
-            {item.data_evento ? <Text style={styles.itemSub}>Data: {item.data_evento}</Text> : null}
+        {abaAtiva === 'pauta' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Pauta Trimestral</Text>
+            <Text style={styles.textoVazio}>Nenhuma pauta lançada para este trimestre.</Text>
           </View>
-        ))
-      )}
+        )}
 
-      <Text style={styles.secaoTitulo}>Alunos em Destaque ⭐</Text>
-      {alunosDestaque.length === 0 ? <Text style={styles.textoVazio}>Nenhum aluno destacado ainda.</Text> : (
-        alunosDestaque.map(item => (
-          <View key={item.id} style={[styles.cardItem, { borderColor: '#F59E0B' }]}>
-            <Text style={styles.itemTitulo}>{item.nome}</Text>
-            {item.conquista ? <Text style={styles.itemSub}>{item.conquista}</Text> : null}
+        {abaAtiva === 'alunos' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Lista de Alunos</Text>
+            {alunos.length === 0 ? <Text style={styles.textoVazio}>Nenhum aluno registado.</Text> : (
+              alunos.map(item => <Text key={item.id} style={styles.itemLista}>• {item.nome}</Text>)
+            )}
           </View>
-        ))
-      )}
+        )}
 
-      {/* MODAIS */}
-      <Modal visible={modalCurso} animationType="slide" transparent>
-        <View style={styles.modalBg}>
-          <View style={styles.modalBody}>
-            <Text style={styles.modalTitulo}>Adicionar Curso</Text>
-            <TextInput style={styles.input} placeholder="Nome do Curso" value={nomeCurso} onChangeText={setNomeCurso} />
-            <TextInput style={styles.input} placeholder="Duração (ex: 3 Anos / 6 Meses)" value={duracaoCurso} onChangeText={setDuracaoCurso} />
-            <TouchableOpacity style={styles.btnSalvar} onPress={salvarCurso}><Text style={styles.btnTexto}>Salvar</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalCurso(false)}><Text style={styles.btnTextoFechar}>Cancelar</Text></TouchableOpacity>
+        {abaAtiva === 'professores' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Corpo Docente</Text>
+            {professores.length === 0 ? <Text style={styles.textoVazio}>Nenhum professor registado.</Text> : (
+              professores.map(item => <Text key={item.id} style={styles.itemLista}>• {item.nome}</Text>)
+            )}
           </View>
-        </View>
-      </Modal>
+        )}
 
-      <Modal visible={modalEvento} animationType="slide" transparent>
-        <View style={styles.modalBg}>
-          <View style={styles.modalBody}>
-            <Text style={styles.modalTitulo}>Criar Evento</Text>
-            <TextInput style={styles.input} placeholder="Título do Evento" value={tituloEvento} onChangeText={setTituloEvento} />
-            <TextInput style={styles.input} placeholder="Data (ex: 15 de Setembro)" value={dataEvento} onChangeText={setDataEvento} />
-            <TouchableOpacity style={styles.btnSalvar} onPress={salvarEvento}><Text style={styles.btnTexto}>Salvar</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalEvento(false)}><Text style={styles.btnTextoFechar}>Cancelar</Text></TouchableOpacity>
+        {abaAtiva === 'classes' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Classes / Turmas</Text>
+            {classes.length === 0 ? <Text style={styles.textoVazio}>Nenhuma classe criada.</Text> : (
+              classes.map(item => <Text key={item.id} style={styles.itemLista}>• {item.nome}</Text>)
+            )}
           </View>
-        </View>
-      </Modal>
+        )}
 
-      <Modal visible={modalAluno} animationType="slide" transparent>
-        <View style={styles.modalBg}>
-          <View style={styles.modalBody}>
-            <Text style={styles.modalTitulo}>Aluno em Destaque</Text>
-            <TextInput style={styles.input} placeholder="Nome do Aluno" value={nomeAluno} onChangeText={setNomeAluno} />
-            <TextInput style={styles.input} placeholder="Conquista/Motivo do Destaque" value={conquistaAluno} onChangeText={setConquistaAluno} />
-            <TouchableOpacity style={styles.btnSalvar} onPress={salvarAluno}><Text style={styles.btnTexto}>Salvar</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalAluno(false)}><Text style={styles.btnTextoFechar}>Cancelar</Text></TouchableOpacity>
+        {abaAtiva === 'eventos' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Próximos Eventos</Text>
+            {eventos.length === 0 ? <Text style={styles.textoVazio}>Nenhum evento agendado.</Text> : (
+              eventos.map(item => <Text key={item.id} style={styles.itemLista}>📅 {item.titulo} ({item.data_evento})</Text>)
+            )}
           </View>
-        </View>
-      </Modal>
+        )}
 
-    </ScrollView>
+        {abaAtiva === 'destaque' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Alunos em Destaque ⭐</Text>
+            {alunosDestaque.length === 0 ? <Text style={styles.textoVazio}>Nenhum aluno em destaque registado.</Text> : (
+              alunosDestaque.map(item => <Text key={item.id} style={styles.itemLista}>⭐ {item.nome} - {item.conquista}</Text>)
+            )}
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', padding: 15 },
+  mainContainer: { flex: 1, backgroundColor: '#FFFFFF' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { alignItems: 'center', marginTop: 10, marginBottom: 15 },
-  nomeInstituicao: { fontSize: 24, fontWeight: 'bold', color: '#000', textAlign: 'center' },
-  categoria: { fontSize: 15, color: '#555', marginTop: 4, textAlign: 'center' },
-  infoBox: { marginTop: 8, alignItems: 'center' },
+  header: { alignItems: 'center', paddingTop: 15, paddingHorizontal: 15, paddingBottom: 10 },
+  nomeInstituicao: { fontSize: 22, fontWeight: 'bold', color: '#000', textAlign: 'center' },
+  categoria: { fontSize: 14, color: '#555', marginTop: 3, textAlign: 'center' },
+  infoBox: { marginTop: 6, alignItems: 'center' },
   infoTexto: { fontSize: 13, color: '#666', marginTop: 2, textAlign: 'center' },
-  divisor: { height: 1, backgroundColor: '#E5E7EB', width: '100%', marginVertical: 10 },
-  secaoTitulo: { fontSize: 16, fontWeight: 'bold', color: '#1F2937', marginTop: 15, marginBottom: 10 },
-  gridBotoes: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  cardBotao: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 3 },
-  textoBotao: { color: '#FFF', fontWeight: 'bold', fontSize: 11, textAlign: 'center' },
-  cardItem: { backgroundColor: '#F9FAFB', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 8 },
-  itemTitulo: { fontSize: 15, fontWeight: 'bold', color: '#111827' },
-  itemSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  textoVazio: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 10 },
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 10 },
-  modalTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 15, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 10, marginBottom: 12 },
-  btnSalvar: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 5 },
-  btnTexto: { color: '#FFF', fontWeight: 'bold' },
-  btnFechar: { padding: 10, alignItems: 'center', marginTop: 5 },
-  btnTextoFechar: { color: '#DC2626', fontWeight: '600' }
+  menuAbas: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#E5E7EB', maxHeight: 50 },
+  btnAba: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+  btnAbaAtiva: { borderBottomColor: '#2563EB' },
+  textoAba: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
+  textoAbaAtiva: { color: '#2563EB', fontWeight: 'bold' },
+  conteudo: { flex: 1, padding: 15 },
+  boxConteudo: { backgroundColor: '#F9FAFB', padding: 15, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
+  subTitulo: { fontSize: 16, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 10 },
+  descricao: { fontSize: 14, color: '#374151', lineHeight: 20 },
+  textoVazio: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' },
+  itemLista: { fontSize: 14, color: '#1F2937', marginVertical: 4 }
 });
