@@ -17,28 +17,14 @@ import { supabase } from './supabase';
 const { width } = Dimensions.get('window');
 
 export default function PerfilInstituicao() {
-  const [abaAtiva, setAbaAtiva] = useState('alunos');
+  const [abaAtiva, setAbaAtiva] = useState('geral');
   const [instituicao, setInstituicao] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
-  // Modal Curso
+  // Modal
   const [modalCurso, setModalCurso] = useState(false);
   const [nomeCurso, setNomeCurso] = useState('');
   const [duracaoCurso, setDuracaoCurso] = useState('');
-
-  // Modal Perfil do Aluno & Edição
-  const [modalAluno, setModalAluno] = useState(false);
-  const [alunoSelecionado, setAlunoSelecionado] = useState(null);
-  const [modoEdicaoAluno, setModoEdicaoAluno] = useState(false);
-  const [formAluno, setFormAluno] = useState({
-    nome: '',
-    processo: '',
-    curso: '',
-    nivel: '',
-    classe: '',
-    encarregado: '',
-    contacto: ''
-  });
 
   // Listas de Dados
   const [alunos, setAlunos] = useState([]);
@@ -77,6 +63,7 @@ export default function PerfilInstituicao() {
       const resCursos = await supabase.from('cursos').select('*');
       if (resCursos.data) setCursos(resCursos.data);
 
+      // Carregar Publicidades ativas
       const resPub = await supabase.from('publicidades').select('*').eq('ativo', true);
       if (resPub.data) setPublicidades(resPub.data);
 
@@ -84,51 +71,6 @@ export default function PerfilInstituicao() {
       console.log('Erro ao carregar:', err);
     } finally {
       setCarregando(false);
-    }
-  };
-
-  const abrirPerfilAluno = (aluno) => {
-    setAlunoSelecionado(aluno);
-    setFormAluno({
-      nome: aluno.nome || '',
-      processo: aluno.processo || aluno.proc || '',
-      curso: aluno.curso || '',
-      nivel: aluno.nivel || '',
-      classe: aluno.classe || '',
-      encarregado: aluno.encarregado || '',
-      contacto: aluno.contacto || ''
-    });
-    setModoEdicaoAluno(false);
-    setModalAluno(true);
-  };
-
-  const salvarEdicaoAluno = async () => {
-    if (!alunoSelecionado) return;
-    
-    try {
-      const { error } = await supabase
-        .from('alunos')
-        .update({
-          nome: formAluno.nome,
-          processo: formAluno.processo,
-          curso: formAluno.curso,
-          nivel: formAluno.nivel,
-          classe: formAluno.classe,
-          encarregado: formAluno.encarregado,
-          contacto: formAluno.contacto
-        })
-        .eq('id', alunoSelecionado.id);
-
-      if (!error) {
-        Alert.alert('Sucesso', 'Dados do aluno atualizados!');
-        setModoEdicaoAluno(false);
-        setModalAluno(false);
-        carregarDados();
-      } else {
-        Alert.alert('Erro', 'Não foi possível atualizar os dados.');
-      }
-    } catch (e) {
-      Alert.alert('Erro', 'Ocorreu uma falha ao salvar.');
     }
   };
 
@@ -157,7 +99,7 @@ export default function PerfilInstituicao() {
   return (
     <View style={styles.mainContainer}>
       <ScrollView style={{ flex: 1 }}>
-        {/* CABEÇALHO */}
+        {/* CABEÇALHO DA INSTITUIÇÃO */}
         <View style={styles.header}>
           <Text style={styles.nomeInstituicao}>{instituicao?.nome || 'Colégio baú'}</Text>
           <Text style={styles.categoria}>🏫 Escola / Instituição de Ensino</Text>
@@ -169,7 +111,7 @@ export default function PerfilInstituicao() {
           </View>
         </View>
 
-        {/* BOTOES DE AÇÃO */}
+        {/* QUADROS / BOTÕES DE AÇÃO RÁPIDA */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.areaBotoes}>
           <TouchableOpacity style={[styles.quadroBtn, styles.quadroAzul]} onPress={() => Alert.alert('Aluno', 'Cadastrar Aluno')}>
             <Text style={styles.textoBtnAzul}>+ Cadastrar Aluno</Text>
@@ -188,7 +130,7 @@ export default function PerfilInstituicao() {
           </TouchableOpacity>
         </ScrollView>
 
-        {/* BANNER PUBLICIDADE */}
+        {/* QUADRO / CARROSSEL DE PUBLICIDADE (SUBSTITUINDO A TRANSFERÊNCIA) */}
         <View style={styles.containerPublicidade}>
           {publicidades.length > 0 ? (
             <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
@@ -200,7 +142,7 @@ export default function PerfilInstituicao() {
                     <View style={styles.bannerTextoContainer}>
                       <Text style={styles.tagPub}>📢 PUBLICIDADE</Text>
                       <Text style={styles.tituloPub}>{pub.titulo || 'Anuncie Aqui'}</Text>
-                      <Text style={styles.descPub}>{pub.descricao || 'Alcance milhares de alunos no Portal Escola.'}</Text>
+                      <Text style={styles.descPub}>{pub.descricao || 'Alcance milhares de alunos e professores na nossa plataforma.'}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -210,12 +152,12 @@ export default function PerfilInstituicao() {
             <View style={styles.bannerPadrao}>
               <Text style={styles.tagPub}>📢 PUBLICIDADE</Text>
               <Text style={styles.tituloPub}>Espaço Publicitário</Text>
-              <Text style={styles.descPub}>Promova os seus serviços e cursos em todos os perfis de instituições.</Text>
+              <Text style={styles.descPub}>Promova os seus serviços e cursos em todos os perfis de instituições do Portal Escola.</Text>
             </View>
           )}
         </View>
 
-        {/* MENU DE ABAS */}
+        {/* BARRA DE ABAS SUPERIOR */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.menuAbas}>
           <TouchableOpacity style={[styles.btnAba, abaAtiva === 'geral' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('geral')}>
             <Text style={[styles.textoAba, abaAtiva === 'geral' && styles.textoAbaAtiva]}>Geral</Text>
@@ -250,7 +192,7 @@ export default function PerfilInstituicao() {
           </TouchableOpacity>
         </ScrollView>
 
-        {/* CONTEÚDO */}
+        {/* CONTEÚDO DAS ABAS */}
         <View style={styles.conteudo}>
           {abaAtiva === 'geral' && (
             <View style={styles.boxConteudo}>
@@ -273,37 +215,18 @@ export default function PerfilInstituicao() {
             </View>
           )}
 
-          {abaAtiva === 'alunos' && (
-            <View>
-              {alunos.length === 0 ? (
-                <Text style={styles.textoVazio}>Nenhum aluno registado.</Text>
-              ) : (
-                alunos.map((item) => (
-                  <TouchableOpacity 
-                    key={item.id} 
-                    style={styles.cardAluno} 
-                    activeOpacity={0.7}
-                    onPress={() => abrirPerfilAluno(item)}
-                  >
-                    {item.foto_url ? (
-                      <Image source={{ uri: item.foto_url }} style={styles.fotoAluno} />
-                    ) : (
-                      <View style={styles.avatarPlaceholder}>
-                        <Text style={{ fontSize: 24 }}>🎒</Text>
-                      </View>
-                    )}
+          {abaAtiva === 'pauta' && (
+            <View style={styles.boxConteudo}>
+              <Text style={styles.subTitulo}>Pauta Trimestral</Text>
+              <Text style={styles.textoVazio}>Nenhuma pauta lançada para este trimestre.</Text>
+            </View>
+          )}
 
-                    <View style={styles.infoAlunoCard}>
-                      <Text style={styles.nomeAlunoCard}>{item.nome}</Text>
-                      <Text style={styles.detalheAlunoCard}>Proc: {item.processo || item.proc || 'PROC-000000'}</Text>
-                      {item.curso ? (
-                        <Text style={styles.detalheAlunoCard}>Curso: {item.curso}</Text>
-                      ) : (
-                        <Text style={styles.detalheAlunoCard}>Nível: {item.nivel || item.classe || 'Geral'}</Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))
+          {abaAtiva === 'alunos' && (
+            <View style={styles.boxConteudo}>
+              <Text style={styles.subTitulo}>Lista de Alunos</Text>
+              {alunos.length === 0 ? <Text style={styles.textoVazio}>Nenhum aluno registado.</Text> : (
+                alunos.map(item => <Text key={item.id} style={styles.itemLista}>• {item.nome}</Text>)
               )}
             </View>
           )}
@@ -346,84 +269,23 @@ export default function PerfilInstituicao() {
         </View>
       </ScrollView>
 
-      {/* MODAL PERFIL DO ESTUDANTE (COM EDIÇÃO) */}
-      <Modal visible={modalAluno} animationType="slide" transparent>
-        <View style={styles.modalBg}>
-          <ScrollView style={styles.modalPerfilBody}>
-            <Text style={styles.modalTitulo}>
-              {modoEdicaoAluno ? '✏️ Editar Dados do Aluno' : '👤 Perfil do Estudante'}
-            </Text>
-
-            {/* FOTO DO ALUNO */}
-            <View style={{ alignItems: 'center', marginBottom: 15 }}>
-              {alunoSelecionado?.foto_url ? (
-                <Image source={{ uri: alunoSelecionado.foto_url }} style={styles.fotoPerfilGrande} />
-              ) : (
-                <View style={styles.avatarPlaceholderGrande}>
-                  <Text style={{ fontSize: 40 }}>👤</Text>
-                </View>
-              )}
-            </View>
-
-            {modoEdicaoAluno ? (
-              /* FORMULÁRIO DE EDIÇÃO */
-              <View style={{ width: '100%' }}>
-                <Text style={styles.labelInput}>Nome Completo:</Text>
-                <TextInput style={styles.input} value={formAluno.nome} onChangeText={(t) => setFormAluno({...formAluno, nome: t})} />
-
-                <Text style={styles.labelInput}>Nº de Processo:</Text>
-                <TextInput style={styles.input} value={formAluno.processo} onChangeText={(t) => setFormAluno({...formAluno, processo: t})} />
-
-                <Text style={styles.labelInput}>Curso:</Text>
-                <TextInput style={styles.input} value={formAluno.curso} onChangeText={(t) => setFormAluno({...formAluno, curso: t})} />
-
-                <Text style={styles.labelInput}>Classe / Nível:</Text>
-                <TextInput style={styles.input} value={formAluno.nivel} onChangeText={(t) => setFormAluno({...formAluno, nivel: t})} />
-
-                <Text style={styles.labelInput}>Encarregado de Educação:</Text>
-                <TextInput style={styles.input} value={formAluno.encarregado} onChangeText={(t) => setFormAluno({...formAluno, encarregado: t})} />
-
-                <Text style={styles.labelInput}>Contacto do Encarregado:</Text>
-                <TextInput style={styles.input} value={formAluno.contacto} keyboardType="phone-pad" onChangeText={(t) => setFormAluno({...formAluno, contacto: t})} />
-
-                <TouchableOpacity style={styles.btnSalvar} onPress={salvarEdicaoAluno}>
-                  <Text style={styles.btnTexto}>💾 Guardar Alterações</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.btnCancelar} onPress={() => setModoEdicaoAluno(false)}>
-                  <Text style={{ color: '#4B5563', fontWeight: 'bold' }}>Cancelar Edição</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              /* VISUALIZAÇÃO DOS DADOS DO ALUNO */
-              <View style={{ width: '100%' }}>
-                <View style={styles.infoLinha}><Text style={styles.infoLabel}>Nome:</Text><Text style={styles.infoValor}>{alunoSelecionado?.nome}</Text></View>
-                <View style={styles.infoLinha}><Text style={styles.infoLabel}>Processo:</Text><Text style={styles.infoValor}>{alunoSelecionado?.processo || alunoSelecionado?.proc || 'N/A'}</Text></View>
-                <View style={styles.infoLinha}><Text style={styles.infoLabel}>Curso:</Text><Text style={styles.infoValor}>{alunoSelecionado?.curso || 'N/A'}</Text></View>
-                <View style={styles.infoLinha}><Text style={styles.infoLabel}>Nível / Classe:</Text><Text style={styles.infoValor}>{alunoSelecionado?.nivel || alunoSelecionado?.classe || 'N/A'}</Text></View>
-                <View style={styles.infoLinha}><Text style={styles.infoLabel}>Encarregado:</Text><Text style={styles.infoValor}>{alunoSelecionado?.encarregado || 'Não Registado'}</Text></View>
-                <View style={styles.infoLinha}><Text style={styles.infoLabel}>Contacto:</Text><Text style={styles.infoValor}>{alunoSelecionado?.contacto || 'Não Registado'}</Text></View>
-
-                <TouchableOpacity style={styles.btnEditarPerfil} onPress={() => setModoEdicaoAluno(true)}>
-                  <Text style={styles.btnTexto}>✏️ Editar Dados do Estudante</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalAluno(false)}>
-              <Text style={styles.btnTextoFechar}>Fechar</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </Modal>
-
-      {/* MODAL CURSO */}
+      {/* MODAL: ADICIONAR CURSO */}
       <Modal visible={modalCurso} animationType="slide" transparent>
         <View style={styles.modalBg}>
           <View style={styles.modalBody}>
             <Text style={styles.modalTitulo}>Adicionar Novo Curso</Text>
-            <TextInput style={styles.input} placeholder="Nome do Curso (ex: Informática)" value={nomeCurso} onChangeText={setNomeCurso} />
-            <TextInput style={styles.input} placeholder="Duração (ex: 3 Anos)" value={duracaoCurso} onChangeText={setDuracaoCurso} />
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nome do Curso (ex: Informática)" 
+              value={nomeCurso} 
+              onChangeText={setNomeCurso} 
+            />
+            <TextInput 
+              style={styles.input} 
+              placeholder="Duração (ex: 3 Anos)" 
+              value={duracaoCurso} 
+              onChangeText={setDuracaoCurso} 
+            />
             <TouchableOpacity style={styles.btnSalvar} onPress={salvarCurso}>
               <Text style={styles.btnTexto}>Salvar Curso</Text>
             </TouchableOpacity>
@@ -439,14 +301,15 @@ export default function PerfilInstituicao() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#F3F4F6' },
+  mainContainer: { flex: 1, backgroundColor: '#FFFFFF' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { alignItems: 'center', paddingTop: 15, paddingHorizontal: 15, paddingBottom: 10, backgroundColor: '#FFF' },
+  header: { alignItems: 'center', paddingTop: 15, paddingHorizontal: 15, paddingBottom: 10 },
   nomeInstituicao: { fontSize: 22, fontWeight: 'bold', color: '#000', textAlign: 'center' },
   categoria: { fontSize: 14, color: '#555', marginTop: 3, textAlign: 'center' },
   infoBox: { marginTop: 6, alignItems: 'center' },
   infoTexto: { fontSize: 13, color: '#666', marginTop: 2, textAlign: 'center' },
 
+  // BOTÕES EM QUADRO
   areaBotoes: { flexDirection: 'row', paddingHorizontal: 12, marginVertical: 10, maxHeight: 75 },
   quadroBtn: { 
     width: 105, 
@@ -462,6 +325,7 @@ const styles = StyleSheet.create({
   textoBtn: { color: '#000', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
   textoBtnAzul: { color: '#FFF', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
 
+  // QUADRO DE PUBLICIDADE
   containerPublicidade: { marginHorizontal: 12, marginVertical: 8, borderRadius: 12, overflow: 'hidden' },
   bannerPub: { width: width - 24, height: 110, borderRadius: 12, backgroundColor: '#EFF6FF', overflow: 'hidden' },
   imagemBanner: { width: '100%', height: '100%', borderRadius: 12 },
@@ -471,58 +335,31 @@ const styles = StyleSheet.create({
   tituloPub: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
   descPub: { fontSize: 12, color: '#E0E7FF', marginTop: 4 },
 
-  menuAbas: { flexDirection: 'row', backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', maxHeight: 45 },
+  // BARRA DE ABAS
+  menuAbas: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#E5E7EB', maxHeight: 45, marginTop: 5 },
   btnAba: { paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   btnAbaAtiva: { borderBottomColor: '#2563EB' },
   textoAba: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
   textoAbaAtiva: { color: '#2563EB', fontWeight: 'bold' },
 
-  conteudo: { padding: 12 },
-  boxConteudo: { backgroundColor: '#FFF', padding: 15, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB' },
+  // CONTEÚDO
+  conteudo: { padding: 15 },
+  boxConteudo: { backgroundColor: '#F9FAFB', padding: 15, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
   subTitulo: { fontSize: 16, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 10 },
   descricao: { fontSize: 14, color: '#374151', lineHeight: 20 },
-  textoVazio: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', marginVertical: 20 },
+  textoVazio: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' },
   itemLista: { fontSize: 14, color: '#1F2937', marginVertical: 4 },
+  cardItem: { marginBottom: 8 },
+  itemTitulo: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+  itemSub: { fontSize: 12, color: '#6B7280', marginLeft: 12 },
 
-  // CARD DE CADA ALUNO DA LISTA
-  cardAluno: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 3
-  },
-  fotoAluno: { width: 50, height: 50, borderRadius: 25 },
-  avatarPlaceholder: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
-  infoAlunoCard: { marginLeft: 12, flex: 1 },
-  nomeAlunoCard: { fontSize: 16, fontWeight: 'bold', color: '#1F2937' },
-  detalheAlunoCard: { fontSize: 13, color: '#6B7280', marginTop: 1 },
-
-  // MODAL DE PERFIL DO ALUNO
+  // MODAL
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 10 },
-  modalPerfilBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 12, maxHeight: '85%' },
   modalTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 15, textAlign: 'center' },
-  fotoPerfilGrande: { width: 80, height: 80, borderRadius: 40 },
-  avatarPlaceholderGrande: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' },
-  infoLinha: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  infoLabel: { fontWeight: 'bold', color: '#4B5563', fontSize: 14 },
-  infoValor: { color: '#111827', fontSize: 14, maxWidth: '60%', textAlign: 'right' },
-  
-  labelInput: { fontSize: 13, fontWeight: 'bold', color: '#374151', marginTop: 8, marginBottom: 2 },
-  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB' },
-  
-  btnEditarPerfil: { backgroundColor: '#2563EB', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 20 },
-  btnSalvar: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15 },
-  btnCancelar: { padding: 10, alignItems: 'center', marginTop: 5 },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 10, marginBottom: 12 },
+  btnSalvar: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 5 },
   btnTexto: { color: '#FFF', fontWeight: 'bold' },
-  btnFechar: { padding: 12, alignItems: 'center', marginTop: 10 },
+  btnFechar: { padding: 10, alignItems: 'center', marginTop: 5 },
   btnTextoFechar: { color: '#DC2626', fontWeight: '600' }
 });
