@@ -8,19 +8,21 @@ import {
   ScrollView,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 
 export default function PerfilInstituicao() {
   // Estado para controlar a aba ativa na visualização
   const [activeTab, setActiveTab] = useState('geral');
 
-  // Dados Gerais do Perfil
+  // Dados Gerais do Perfil (incluindo foto)
   const [perfil, setPerfil] = useState({
     nome: 'Colégio baú',
     categoria: 'Escola / Instituição de Ensino',
     nif: '0082506071LA40',
     contacto: '+244 9XX XXX XXX',
     email: 'contacto@escola.ao',
+    fotoUrl: 'https://via.placeholder.com/100', // URL da imagem padrão/logótipo
   });
 
   // Dados das outras seções do Perfil
@@ -33,9 +35,9 @@ export default function PerfilInstituicao() {
 
   // Modal Geral de Edição
   const [modalVisible, setModalVisible] = useState(false);
-  const [editSection, setEditSection] = useState('geral'); // 'geral', 'cursos', 'pautas', 'alunos', 'classes', 'eventos', 'professores'
+  const [editSection, setEditSection] = useState('geral');
 
-  // Copia temporária dos dados para edição no modal
+  // Cópias temporárias dos dados para edição no modal
   const [tempPerfil, setTempPerfil] = useState({ ...perfil });
   const [tempCursos, setTempCursos] = useState(cursos);
   const [tempPautas, setTempPautas] = useState(pautas);
@@ -81,7 +83,7 @@ export default function PerfilInstituicao() {
     { id: 'professores', label: `📚 Professores (${professores ? professores.split(',').length : 0})` },
   ];
 
-  // Renderizar o conteúdo da aba selecionada na tela principal
+  // Renderizar o conteúdo da aba selecionada
   const renderTabContent = () => {
     switch (activeTab) {
       case 'geral':
@@ -143,8 +145,9 @@ export default function PerfilInstituicao() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* --- CABEÇALHO DO PERFIL --- */}
+      {/* --- CABEÇALHO DO PERFIL COM FOTO --- */}
       <View style={styles.header}>
+        <Image source={{ uri: perfil.fotoUrl }} style={styles.profileImage} />
         <Text style={styles.schoolName}>{perfil.nome}</Text>
         <Text style={styles.schoolCategory}>🏫 {perfil.categoria}</Text>
         <Text style={styles.headerInfo}>NIF: {perfil.nif}</Text>
@@ -152,7 +155,7 @@ export default function PerfilInstituicao() {
         <Text style={styles.headerInfo}>✉️ Email: {perfil.email}</Text>
       </View>
 
-      {/* --- BARRAS DE BOTÕES SUPERIORES --- */}
+      {/* --- BOTÕES SUPERIORES --- */}
       <View style={styles.actionButtonsRow}>
         <TouchableOpacity style={styles.blueButton}>
           <Text style={styles.buttonText}>+ Cadastrar Aluno</Text>
@@ -162,20 +165,19 @@ export default function PerfilInstituicao() {
           <Text style={styles.grayButtonText}>+ Professor</Text>
         </TouchableOpacity>
 
-        {/* BOTÃO ÚNICO DE EDIÇÃO DO PERFIL */}
         <TouchableOpacity style={styles.grayButton} onPress={handleOpenEdit}>
           <Text style={styles.grayButtonText}>✏️ Editar</Text>
         </TouchableOpacity>
       </View>
 
-      {/* --- PAINEL DE PUBLICIDADE (NÃO EDITÁVEL PELO BOTÃO) --- */}
+      {/* --- PAINEL DE PUBLICIDADE --- */}
       <View style={styles.adBanner}>
         <Text style={styles.adTitle}>📢 PUBLICIDADE</Text>
         <Text style={styles.adBody}>💻 Informática & Tablets Educativos</Text>
         <Text style={styles.adSub}>Venda de computadores portáteis e tablets de estudo com suporte técnico.</Text>
       </View>
 
-      {/* --- MENU DE ABAS NAVEGÁVEIS --- */}
+      {/* --- MENU DE ABAS --- */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -197,16 +199,16 @@ export default function PerfilInstituicao() {
         })}
       </ScrollView>
 
-      {/* --- ÁREA DE CONTEÚDO DAS ABAS --- */}
+      {/* --- ÁREA DE CONTEÚDO --- */}
       <View style={styles.contentArea}>{renderTabContent()}</View>
 
-      {/* --- MODAL POPUP PARA EDITAR TODAS AS INFORMAÇÕES DO PERFIL --- */}
+      {/* --- MODAL POPUP PARA EDIÇÃO COMPLETA --- */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Perfil Completo</Text>
 
-            {/* Menu de Seções dentro do Modal */}
+            {/* Menu de Sub-abas do Modal */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalSubTabs}>
               {[
                 { id: 'geral', title: 'Dados Gerais' },
@@ -233,6 +235,8 @@ export default function PerfilInstituicao() {
             <ScrollView style={{ maxHeight: 300, marginTop: 10 }}>
               {editSection === 'geral' && (
                 <>
+                  <Text style={styles.label}>URL da Foto / Logótipo:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.fotoUrl} onChangeText={(t) => setTempPerfil({ ...tempPerfil, fotoUrl: t })} placeholder="URL da foto" />
                   <Text style={styles.label}>Nome da Instituição:</Text>
                   <TextInput style={styles.input} value={tempPerfil.nome} onChangeText={(t) => setTempPerfil({ ...tempPerfil, nome: t })} />
                   <Text style={styles.label}>Categoria:</Text>
@@ -289,7 +293,7 @@ export default function PerfilInstituicao() {
               )}
             </ScrollView>
 
-            {/* Botoes de acao do Modal */}
+            {/* Botões do Modal */}
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
@@ -308,6 +312,7 @@ export default function PerfilInstituicao() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingTop: 10 },
   header: { alignItems: 'center', marginBottom: 15 },
+  profileImage: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#e2e8f0', marginBottom: 10 },
   schoolName: { fontSize: 22, fontWeight: 'bold', color: '#000' },
   schoolCategory: { fontSize: 13, color: '#555', marginVertical: 2 },
   headerInfo: { fontSize: 13, color: '#666' },
