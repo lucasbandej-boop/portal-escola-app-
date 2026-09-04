@@ -1,365 +1,348 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator,
-  Modal,
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
   TextInput,
-  Image,
-  Dimensions,
-  Alert
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Modal,
 } from 'react-native';
-import { supabase } from './supabase';
-
-const { width } = Dimensions.get('window');
 
 export default function PerfilInstituicao() {
-  const [abaAtiva, setAbaAtiva] = useState('geral');
-  const [instituicao, setInstituicao] = useState(null);
-  const [carregando, setCarregando] = useState(true);
+  // Estado para controlar a aba ativa na visualização
+  const [activeTab, setActiveTab] = useState('geral');
 
-  // Modal
-  const [modalCurso, setModalCurso] = useState(false);
-  const [nomeCurso, setNomeCurso] = useState('');
-  const [duracaoCurso, setDuracaoCurso] = useState('');
+  // Dados Gerais do Perfil
+  const [perfil, setPerfil] = useState({
+    nome: 'Colégio baú',
+    categoria: 'Escola / Instituição de Ensino',
+    nif: '0082506071LA40',
+    contacto: '+244 9XX XXX XXX',
+    email: 'contacto@escola.ao',
+  });
 
-  // Listas de Dados
-  const [alunos, setAlunos] = useState([]);
-  const [professores, setProfessores] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [eventos, setEventos] = useState([]);
-  const [alunosDestaque, setAlunosDestaque] = useState([]);
-  const [cursos, setCursos] = useState([]);
-  const [publicidades, setPublicidades] = useState([]);
+  // Dados das outras seções do Perfil
+  const [cursos, setCursos] = useState('Ensino Geral, Técnico de Informática');
+  const [pautas, setPautas] = useState('Nenhuma pauta lançada para este trimestre.');
+  const [alunos, setAlunos] = useState('João Pedro (Méd. 18), Maria Mateus (Méd. 19)');
+  const [classes, setClasses] = useState('1ª Classe, 2ª Classe, 3ª Classe, 10ª Classe');
+  const [eventos, setEventos] = useState('Feira da Ciência - 15/10');
+  const [professores, setProfessores] = useState('Prof. Mateus, Profª Ana');
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
+  // Modal Geral de Edição
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editSection, setEditSection] = useState('geral'); // 'geral', 'cursos', 'pautas', 'alunos', 'classes', 'eventos', 'professores'
 
-  const carregarDados = async () => {
-    setCarregando(true);
-    try {
-      const { data } = await supabase.from('instituicoes').select('*').limit(1).single();
-      if (data) setInstituicao(data);
+  // Copia temporária dos dados para edição no modal
+  const [tempPerfil, setTempPerfil] = useState({ ...perfil });
+  const [tempCursos, setTempCursos] = useState(cursos);
+  const [tempPautas, setTempPautas] = useState(pautas);
+  const [tempAlunos, setTempAlunos] = useState(alunos);
+  const [tempClasses, setTempClasses] = useState(classes);
+  const [tempEventos, setTempEventos] = useState(eventos);
+  const [tempProfessores, setTempProfessores] = useState(professores);
 
-      const resAlunos = await supabase.from('alunos').select('*');
-      if (resAlunos.data) setAlunos(resAlunos.data);
-
-      const resProf = await supabase.from('professores').select('*');
-      if (resProf.data) setProfessores(resProf.data);
-
-      const resClasses = await supabase.from('classes').select('*');
-      if (resClasses.data) setClasses(resClasses.data);
-
-      const resEventos = await supabase.from('eventos').select('*');
-      if (resEventos.data) setEventos(resEventos.data);
-
-      const resDestaques = await supabase.from('alunos_destaque').select('*');
-      if (resDestaques.data) setAlunosDestaque(resDestaques.data);
-
-      const resCursos = await supabase.from('cursos').select('*');
-      if (resCursos.data) setCursos(resCursos.data);
-
-      // Carregar Publicidades ativas
-      const resPub = await supabase.from('publicidades').select('*').eq('ativo', true);
-      if (resPub.data) setPublicidades(resPub.data);
-
-    } catch (err) {
-      console.log('Erro ao carregar:', err);
-    } finally {
-      setCarregando(false);
-    }
+  // Abrir o modal com os dados atuais
+  const handleOpenEdit = () => {
+    setTempPerfil({ ...perfil });
+    setTempCursos(cursos);
+    setTempPautas(pautas);
+    setTempAlunos(alunos);
+    setTempClasses(classes);
+    setTempEventos(eventos);
+    setTempProfessores(professores);
+    setModalVisible(true);
   };
 
-  const salvarCurso = async () => {
-    if (!nomeCurso) return Alert.alert('Aviso', 'Escreva o nome do curso.');
-    const { error } = await supabase.from('cursos').insert([{ nome: nomeCurso, duracao: duracaoCurso }]);
-    if (!error) {
-      Alert.alert('Sucesso', 'Curso adicionado!');
-      setNomeCurso('');
-      setDuracaoCurso('');
-      setModalCurso(false);
-      carregarDados();
-    } else {
-      Alert.alert('Erro', 'Não foi possível salvar o curso.');
-    }
+  // Salvar todas as alterações feitas de uma vez
+  const handleSaveAll = () => {
+    setPerfil({ ...tempPerfil });
+    setCursos(tempCursos);
+    setPautas(tempPautas);
+    setAlunos(tempAlunos);
+    setClasses(tempClasses);
+    setEventos(tempEventos);
+    setProfessores(tempProfessores);
+
+    setModalVisible(false);
+    Alert.alert('Sucesso', 'Todas as informações do perfil foram atualizadas!');
   };
 
-  if (carregando) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1E3A8A" />
-      </View>
-    );
-  }
+  // Abas de navegação da tela principal
+  const tabs = [
+    { id: 'geral', label: 'Geral' },
+    { id: 'cursos', label: `Cursos (${cursos ? cursos.split(',').length : 0})` },
+    { id: 'pautas', label: '📊 Pauta Trimestral' },
+    { id: 'alunos', label: '⭐ Alunos' },
+    { id: 'classes', label: '📖 Classes' },
+    { id: 'eventos', label: '📅 Eventos' },
+    { id: 'professores', label: `📚 Professores (${professores ? professores.split(',').length : 0})` },
+  ];
+
+  // Renderizar o conteúdo da aba selecionada na tela principal
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'geral':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Visão Geral</Text>
+            <Text style={styles.infoText}>🏫 Categoria: {perfil.categoria}</Text>
+            <Text style={styles.infoText}>📜 NIF: {perfil.nif}</Text>
+            <Text style={styles.infoText}>📞 Contacto: {perfil.contacto}</Text>
+            <Text style={styles.infoText}>✉️ Email: {perfil.email}</Text>
+          </View>
+        );
+      case 'cursos':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Cursos Lecionados</Text>
+            <Text style={styles.cardSubtext}>{cursos || 'Nenhum curso registado.'}</Text>
+          </View>
+        );
+      case 'pautas':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Pauta Trimestral</Text>
+            <Text style={styles.cardSubtext}>{pautas}</Text>
+          </View>
+        );
+      case 'alunos':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Alunos em Destaque</Text>
+            <Text style={styles.cardSubtext}>{alunos}</Text>
+          </View>
+        );
+      case 'classes':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Classes Disponíveis</Text>
+            <Text style={styles.cardSubtext}>{classes}</Text>
+          </View>
+        );
+      case 'eventos':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Eventos Agendados</Text>
+            <Text style={styles.cardSubtext}>{eventos}</Text>
+          </View>
+        );
+      case 'professores':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Corpo Docente</Text>
+            <Text style={styles.cardSubtext}>{professores}</Text>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <View style={styles.mainContainer}>
-      <ScrollView style={{ flex: 1 }}>
-        {/* CABEÇALHO DA INSTITUIÇÃO */}
-        <View style={styles.header}>
-          <Text style={styles.nomeInstituicao}>{instituicao?.nome || 'Colégio baú'}</Text>
-          <Text style={styles.categoria}>🏫 Escola / Instituição de Ensino</Text>
-          
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTexto}>NIF: {instituicao?.nif || '0082506071LA40'}</Text>
-            <Text style={styles.infoTexto}>📞 Contacto: {instituicao?.contacto || '+244 9XX XXX XXX'}</Text>
-            <Text style={styles.infoTexto}>✉️ Email: {instituicao?.email || 'contacto@escola.ao'}</Text>
-          </View>
-        </View>
+    <ScrollView style={styles.container}>
+      {/* --- CABEÇALHO DO PERFIL --- */}
+      <View style={styles.header}>
+        <Text style={styles.schoolName}>{perfil.nome}</Text>
+        <Text style={styles.schoolCategory}>🏫 {perfil.categoria}</Text>
+        <Text style={styles.headerInfo}>NIF: {perfil.nif}</Text>
+        <Text style={styles.headerInfo}>📞 Contacto: {perfil.contacto}</Text>
+        <Text style={styles.headerInfo}>✉️ Email: {perfil.email}</Text>
+      </View>
 
-        {/* QUADROS / BOTÕES DE AÇÃO RÁPIDA */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.areaBotoes}>
-          <TouchableOpacity style={[styles.quadroBtn, styles.quadroAzul]} onPress={() => Alert.alert('Aluno', 'Cadastrar Aluno')}>
-            <Text style={styles.textoBtnAzul}>+ Cadastrar Aluno</Text>
-          </TouchableOpacity>
+      {/* --- BARRAS DE BOTÕES SUPERIORES --- */}
+      <View style={styles.actionButtonsRow}>
+        <TouchableOpacity style={styles.blueButton}>
+          <Text style={styles.buttonText}>+ Cadastrar Aluno</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quadroBtn} onPress={() => Alert.alert('Professor', 'Cadastrar Professor')}>
-            <Text style={styles.textoBtn}>+ Professor</Text>
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.grayButton}>
+          <Text style={styles.grayButtonText}>+ Professor</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quadroBtn} onPress={() => Alert.alert('Editar', 'Editar Perfil')}>
-            <Text style={styles.textoBtn}>✏️ Editar</Text>
-          </TouchableOpacity>
+        {/* BOTÃO ÚNICO DE EDIÇÃO DO PERFIL */}
+        <TouchableOpacity style={styles.grayButton} onPress={handleOpenEdit}>
+          <Text style={styles.grayButtonText}>✏️ Editar</Text>
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity style={styles.quadroBtn} onPress={() => setModalCurso(true)}>
-            <Text style={styles.textoBtn}>🎓 + Curso</Text>
-          </TouchableOpacity>
-        </ScrollView>
+      {/* --- PAINEL DE PUBLICIDADE (NÃO EDITÁVEL PELO BOTÃO) --- */}
+      <View style={styles.adBanner}>
+        <Text style={styles.adTitle}>📢 PUBLICIDADE</Text>
+        <Text style={styles.adBody}>💻 Informática & Tablets Educativos</Text>
+        <Text style={styles.adSub}>Venda de computadores portáteis e tablets de estudo com suporte técnico.</Text>
+      </View>
 
-        {/* QUADRO / CARROSSEL DE PUBLICIDADE (SUBSTITUINDO A TRANSFERÊNCIA) */}
-        <View style={styles.containerPublicidade}>
-          {publicidades.length > 0 ? (
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-              {publicidades.map((pub) => (
-                <TouchableOpacity key={pub.id} style={styles.bannerPub} activeOpacity={0.9}>
-                  {pub.imagem_url ? (
-                    <Image source={{ uri: pub.imagem_url }} style={styles.imagemBanner} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.bannerTextoContainer}>
-                      <Text style={styles.tagPub}>📢 PUBLICIDADE</Text>
-                      <Text style={styles.tituloPub}>{pub.titulo || 'Anuncie Aqui'}</Text>
-                      <Text style={styles.descPub}>{pub.descricao || 'Alcance milhares de alunos e professores na nossa plataforma.'}</Text>
-                    </View>
-                  )}
+      {/* --- MENU DE ABAS NAVEGÁVEIS --- */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsContainer}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tabButton, isActive && styles.activeTabButton]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* --- ÁREA DE CONTEÚDO DAS ABAS --- */}
+      <View style={styles.contentArea}>{renderTabContent()}</View>
+
+      {/* --- MODAL POPUP PARA EDITAR TODAS AS INFORMAÇÕES DO PERFIL --- */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Editar Perfil Completo</Text>
+
+            {/* Menu de Seções dentro do Modal */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalSubTabs}>
+              {[
+                { id: 'geral', title: 'Dados Gerais' },
+                { id: 'cursos', title: 'Cursos' },
+                { id: 'pautas', title: 'Pautas' },
+                { id: 'alunos', title: 'Alunos' },
+                { id: 'classes', title: 'Classes' },
+                { id: 'eventos', title: 'Eventos' },
+                { id: 'professores', title: 'Professores' },
+              ].map((sec) => (
+                <TouchableOpacity
+                  key={sec.id}
+                  style={[styles.modalSubTabBtn, editSection === sec.id && styles.modalSubTabActive]}
+                  onPress={() => setEditSection(sec.id)}
+                >
+                  <Text style={editSection === sec.id ? styles.modalSubTabTextActive : styles.modalSubTabText}>
+                    {sec.title}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          ) : (
-            <View style={styles.bannerPadrao}>
-              <Text style={styles.tagPub}>📢 PUBLICIDADE</Text>
-              <Text style={styles.tituloPub}>Espaço Publicitário</Text>
-              <Text style={styles.descPub}>Promova os seus serviços e cursos em todos os perfis de instituições do Portal Escola.</Text>
-            </View>
-          )}
-        </View>
 
-        {/* BARRA DE ABAS SUPERIOR */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.menuAbas}>
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'geral' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('geral')}>
-            <Text style={[styles.textoAba, abaAtiva === 'geral' && styles.textoAbaAtiva]}>Geral</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'cursos' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('cursos')}>
-            <Text style={[styles.textoAba, abaAtiva === 'cursos' && styles.textoAbaAtiva]}>Cursos ({cursos.length})</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'pauta' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('pauta')}>
-            <Text style={[styles.textoAba, abaAtiva === 'pauta' && styles.textoAbaAtiva]}>📊 Pauta Trimestral</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'alunos' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('alunos')}>
-            <Text style={[styles.textoAba, abaAtiva === 'alunos' && styles.textoAbaAtiva]}>Alunos ({alunos.length})</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'professores' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('professores')}>
-            <Text style={[styles.textoAba, abaAtiva === 'professores' && styles.textoAbaAtiva]}>Professores ({professores.length})</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'classes' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('classes')}>
-            <Text style={[styles.textoAba, abaAtiva === 'classes' && styles.textoAbaAtiva]}>📚 Classes</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'eventos' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('eventos')}>
-            <Text style={[styles.textoAba, abaAtiva === 'eventos' && styles.textoAbaAtiva]}>📅 Eventos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btnAba, abaAtiva === 'destaque' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('destaque')}>
-            <Text style={[styles.textoAba, abaAtiva === 'destaque' && styles.textoAbaAtiva]}>⭐ Alunos em Destaque</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* CONTEÚDO DAS ABAS */}
-        <View style={styles.conteudo}>
-          {abaAtiva === 'geral' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Visão Geral da Instituição</Text>
-              <Text style={styles.descricao}>{instituicao?.descricao || 'Bem-vindo ao painel geral da instituição de ensino.'}</Text>
-            </View>
-          )}
-
-          {abaAtiva === 'cursos' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Cursos Lecionados</Text>
-              {cursos.length === 0 ? <Text style={styles.textoVazio}>Nenhum curso registado.</Text> : (
-                cursos.map(item => (
-                  <View key={item.id} style={styles.cardItem}>
-                    <Text style={styles.itemTitulo}>• {item.nome}</Text>
-                    {item.duracao ? <Text style={styles.itemSub}>Duração: {item.duracao}</Text> : null}
-                  </View>
-                ))
+            {/* Formulários de Edição por Seção */}
+            <ScrollView style={{ maxHeight: 300, marginTop: 10 }}>
+              {editSection === 'geral' && (
+                <>
+                  <Text style={styles.label}>Nome da Instituição:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.nome} onChangeText={(t) => setTempPerfil({ ...tempPerfil, nome: t })} />
+                  <Text style={styles.label}>Categoria:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.categoria} onChangeText={(t) => setTempPerfil({ ...tempPerfil, categoria: t })} />
+                  <Text style={styles.label}>NIF:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.nif} onChangeText={(t) => setTempPerfil({ ...tempPerfil, nif: t })} />
+                  <Text style={styles.label}>Contacto:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.contacto} onChangeText={(t) => setTempPerfil({ ...tempPerfil, contacto: t })} />
+                  <Text style={styles.label}>Email:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.email} onChangeText={(t) => setTempPerfil({ ...tempPerfil, email: t })} />
+                </>
               )}
-            </View>
-          )}
 
-          {abaAtiva === 'pauta' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Pauta Trimestral</Text>
-              <Text style={styles.textoVazio}>Nenhuma pauta lançada para este trimestre.</Text>
-            </View>
-          )}
-
-          {abaAtiva === 'alunos' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Lista de Alunos</Text>
-              {alunos.length === 0 ? <Text style={styles.textoVazio}>Nenhum aluno registado.</Text> : (
-                alunos.map(item => <Text key={item.id} style={styles.itemLista}>• {item.nome}</Text>)
+              {editSection === 'cursos' && (
+                <>
+                  <Text style={styles.label}>Cursos (separados por vírgula):</Text>
+                  <TextInput style={[styles.input, { height: 80 }]} multiline value={tempCursos} onChangeText={setTempCursos} />
+                </>
               )}
-            </View>
-          )}
 
-          {abaAtiva === 'professores' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Corpo Docente</Text>
-              {professores.length === 0 ? <Text style={styles.textoVazio}>Nenhum professor registado.</Text> : (
-                professores.map(item => <Text key={item.id} style={styles.itemLista}>• {item.nome}</Text>)
+              {editSection === 'pautas' && (
+                <>
+                  <Text style={styles.label}>Informação de Pautas Trimestrais:</Text>
+                  <TextInput style={[styles.input, { height: 80 }]} multiline value={tempPautas} onChangeText={setTempPautas} />
+                </>
               )}
-            </View>
-          )}
 
-          {abaAtiva === 'classes' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Classes / Turmas</Text>
-              {classes.length === 0 ? <Text style={styles.textoVazio}>Nenhuma classe criada.</Text> : (
-                classes.map(item => <Text key={item.id} style={styles.itemLista}>• {item.nome}</Text>)
+              {editSection === 'alunos' && (
+                <>
+                  <Text style={styles.label}>Alunos em Destaque:</Text>
+                  <TextInput style={[styles.input, { height: 80 }]} multiline value={tempAlunos} onChangeText={setTempAlunos} />
+                </>
               )}
-            </View>
-          )}
 
-          {abaAtiva === 'eventos' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Próximos Eventos</Text>
-              {eventos.length === 0 ? <Text style={styles.textoVazio}>Nenhum evento agendado.</Text> : (
-                eventos.map(item => <Text key={item.id} style={styles.itemLista}>📅 {item.titulo} ({item.data_evento})</Text>)
+              {editSection === 'classes' && (
+                <>
+                  <Text style={styles.label}>Classes Leccionadas:</Text>
+                  <TextInput style={[styles.input, { height: 80 }]} multiline value={tempClasses} onChangeText={setTempClasses} />
+                </>
               )}
-            </View>
-          )}
 
-          {abaAtiva === 'destaque' && (
-            <View style={styles.boxConteudo}>
-              <Text style={styles.subTitulo}>Alunos em Destaque ⭐</Text>
-              {alunosDestaque.length === 0 ? <Text style={styles.textoVazio}>Nenhum aluno em destaque registado.</Text> : (
-                alunosDestaque.map(item => <Text key={item.id} style={styles.itemLista}>⭐ {item.nome} - {item.conquista}</Text>)
+              {editSection === 'eventos' && (
+                <>
+                  <Text style={styles.label}>Eventos:</Text>
+                  <TextInput style={[styles.input, { height: 80 }]} multiline value={tempEventos} onChangeText={setTempEventos} />
+                </>
               )}
-            </View>
-          )}
-        </View>
-      </ScrollView>
 
-      {/* MODAL: ADICIONAR CURSO */}
-      <Modal visible={modalCurso} animationType="slide" transparent>
-        <View style={styles.modalBg}>
-          <View style={styles.modalBody}>
-            <Text style={styles.modalTitulo}>Adicionar Novo Curso</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Nome do Curso (ex: Informática)" 
-              value={nomeCurso} 
-              onChangeText={setNomeCurso} 
-            />
-            <TextInput 
-              style={styles.input} 
-              placeholder="Duração (ex: 3 Anos)" 
-              value={duracaoCurso} 
-              onChangeText={setDuracaoCurso} 
-            />
-            <TouchableOpacity style={styles.btnSalvar} onPress={salvarCurso}>
-              <Text style={styles.btnTexto}>Salvar Curso</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalCurso(false)}>
-              <Text style={styles.btnTextoFechar}>Cancelar</Text>
-            </TouchableOpacity>
+              {editSection === 'professores' && (
+                <>
+                  <Text style={styles.label}>Professores:</Text>
+                  <TextInput style={[styles.input, { height: 80 }]} multiline value={tempProfessores} onChangeText={setTempProfessores} />
+                </>
+              )}
+            </ScrollView>
+
+            {/* Botoes de acao do Modal */}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveAll}>
+                <Text style={styles.saveBtnText}>Guardar Tudo</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
-
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#FFFFFF' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { alignItems: 'center', paddingTop: 15, paddingHorizontal: 15, paddingBottom: 10 },
-  nomeInstituicao: { fontSize: 22, fontWeight: 'bold', color: '#000', textAlign: 'center' },
-  categoria: { fontSize: 14, color: '#555', marginTop: 3, textAlign: 'center' },
-  infoBox: { marginTop: 6, alignItems: 'center' },
-  infoTexto: { fontSize: 13, color: '#666', marginTop: 2, textAlign: 'center' },
-
-  // BOTÕES EM QUADRO
-  areaBotoes: { flexDirection: 'row', paddingHorizontal: 12, marginVertical: 10, maxHeight: 75 },
-  quadroBtn: { 
-    width: 105, 
-    height: 65, 
-    backgroundColor: '#E5E7EB', 
-    borderRadius: 12, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 10,
-    padding: 5
-  },
-  quadroAzul: { backgroundColor: '#1D4ED8' },
-  textoBtn: { color: '#000', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
-  textoBtnAzul: { color: '#FFF', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
-
-  // QUADRO DE PUBLICIDADE
-  containerPublicidade: { marginHorizontal: 12, marginVertical: 8, borderRadius: 12, overflow: 'hidden' },
-  bannerPub: { width: width - 24, height: 110, borderRadius: 12, backgroundColor: '#EFF6FF', overflow: 'hidden' },
-  imagemBanner: { width: '100%', height: '100%', borderRadius: 12 },
-  bannerTextoContainer: { padding: 12, justifyContent: 'center', height: '100%' },
-  bannerPadrao: { width: '100%', height: 110, backgroundColor: '#1E40AF', padding: 14, borderRadius: 12, justifyContent: 'center' },
-  tagPub: { fontSize: 10, fontWeight: 'bold', color: '#FDE047', marginBottom: 2 },
-  tituloPub: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
-  descPub: { fontSize: 12, color: '#E0E7FF', marginTop: 4 },
-
-  // BARRA DE ABAS
-  menuAbas: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#E5E7EB', maxHeight: 45, marginTop: 5 },
-  btnAba: { paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-  btnAbaAtiva: { borderBottomColor: '#2563EB' },
-  textoAba: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
-  textoAbaAtiva: { color: '#2563EB', fontWeight: 'bold' },
-
-  // CONTEÚDO
-  conteudo: { padding: 15 },
-  boxConteudo: { backgroundColor: '#F9FAFB', padding: 15, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
-  subTitulo: { fontSize: 16, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 10 },
-  descricao: { fontSize: 14, color: '#374151', lineHeight: 20 },
-  textoVazio: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' },
-  itemLista: { fontSize: 14, color: '#1F2937', marginVertical: 4 },
-  cardItem: { marginBottom: 8 },
-  itemTitulo: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
-  itemSub: { fontSize: 12, color: '#6B7280', marginLeft: 12 },
-
-  // MODAL
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 10 },
-  modalTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 15, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 10, marginBottom: 12 },
-  btnSalvar: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 5 },
-  btnTexto: { color: '#FFF', fontWeight: 'bold' },
-  btnFechar: { padding: 10, alignItems: 'center', marginTop: 5 },
-  btnTextoFechar: { color: '#DC2626', fontWeight: '600' }
+  container: { flex: 1, backgroundColor: '#fff', paddingTop: 10 },
+  header: { alignItems: 'center', marginBottom: 15 },
+  schoolName: { fontSize: 22, fontWeight: 'bold', color: '#000' },
+  schoolCategory: { fontSize: 13, color: '#555', marginVertical: 2 },
+  headerInfo: { fontSize: 13, color: '#666' },
+  actionButtonsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12 },
+  blueButton: { backgroundColor: '#1d5bd8', paddingVertical: 12, borderRadius: 8, flex: 1, marginRight: 4, alignItems: 'center' },
+  grayButton: { backgroundColor: '#e9ecef', paddingVertical: 12, borderRadius: 8, flex: 1, marginHorizontal: 3, alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+  grayButtonText: { color: '#333', fontWeight: 'bold', fontSize: 12 },
+  adBanner: { backgroundColor: '#f0f4ff', marginHorizontal: 12, marginTop: 12, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#d0e0ff' },
+  adTitle: { fontSize: 11, fontWeight: 'bold', color: '#d97706' },
+  adBody: { fontSize: 13, fontWeight: 'bold', color: '#1e3a8a', marginTop: 2 },
+  adSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
+  tabsContainer: { flexDirection: 'row', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#e0e0e0', marginTop: 15 },
+  tabButton: { paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+  activeTabButton: { borderBottomColor: '#1d5bd8' },
+  tabText: { fontSize: 13, color: '#666', fontWeight: '500' },
+  activeTabText: { color: '#1d5bd8', fontWeight: 'bold' },
+  contentArea: { padding: 16 },
+  cardContent: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16 },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b', marginBottom: 6 },
+  cardSubtext: { fontSize: 13, color: '#64748b', lineHeight: 20 },
+  infoText: { fontSize: 13, color: '#334155', marginTop: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', width: '90%', padding: 20, borderRadius: 12 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#111' },
+  modalSubTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 6 },
+  modalSubTabBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, marginRight: 6, backgroundColor: '#f0f0f0' },
+  modalSubTabActive: { backgroundColor: '#1d5bd8' },
+  modalSubTabText: { fontSize: 12, color: '#444' },
+  modalSubTabTextActive: { fontSize: 12, color: '#fff', fontWeight: 'bold' },
+  label: { fontSize: 12, color: '#666', marginTop: 8 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginTop: 4, backgroundColor: '#fafafa' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 },
+  cancelBtn: { padding: 10, marginRight: 10 },
+  cancelBtnText: { color: '#d9534f', fontWeight: 'bold' },
+  saveBtn: { backgroundColor: '#1d5bd8', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8 },
+  saveBtnText: { color: '#fff', fontWeight: 'bold' },
 });
