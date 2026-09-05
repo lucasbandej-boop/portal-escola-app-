@@ -219,23 +219,28 @@ export default function PerfilInstituicao() {
     }
   };
 
-  // --- TELA DO MENU PRINCIPAL (MENU DE OPÇÕES) ---
+  // --- TELA DO MENU PRINCIPAL DE OPÇÕES ---
   if (currentScreen === 'menu') {
     return (
       <ScrollView style={styles.container}>
-        <View style={styles.headerForm}>
-          <Text style={styles.formTitle}>Portal Escola</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
-            <Text style={styles.backBtnText}>🏫 Ver Perfil</Text>
-          </TouchableOpacity>
+        <View style={styles.headerMenu}>
+          <Text style={styles.menuHeaderTitle}>Portal Escola</Text>
+          <Text style={styles.menuHeaderSub}>Menu Principal do Sistema</Text>
+          <Text style={styles.menuHeaderDesc}>Selecione a opção desejada para navegar:</Text>
         </View>
 
         <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuCard} onPress={() => Alert.alert('Pesquisa', 'Abrir pesquisa...')}>
+          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('perfil')}>
+            <Text style={styles.menuIcon}>🏫</Text>
+            <Text style={styles.menuText}>Página da Instituição (Estilo Facebook)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuCard} onPress={() => Alert.alert('Pesquisa', 'Abrir pesquisa de alunos...')}>
             <Text style={styles.menuIcon}>🔍</Text>
             <Text style={styles.menuText}>Pesquisa de Alunos e Encarregados</Text>
           </TouchableOpacity>
 
+          {/* LIGAÇÃO DIRETA PARA O CADASTRAMENTO DE PROFESSORES */}
           <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('cadastrarProf')}>
             <Text style={styles.menuIcon}>👨‍🏫</Text>
             <Text style={styles.menuText}>Cadastramento de Professores</Text>
@@ -397,7 +402,7 @@ export default function PerfilInstituicao() {
       <ScrollView style={styles.container}>
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>📋 Ficha de Inscrição do Aluno</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('menu')}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
             <Text style={styles.backBtnText}>⬅ Voltar</Text>
           </TouchableOpacity>
         </View>
@@ -497,9 +502,15 @@ export default function PerfilInstituicao() {
     );
   }
 
-  // --- TELA PRINCIPAL DO PERFIL DA ESCOLA ---
+  // --- TELA PRINCIPAL DO PERFIL DA ESCOLA (PÁGINA DA INSTITUIÇÃO) ---
   return (
     <ScrollView style={styles.container}>
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.backMenuBtn} onPress={() => setCurrentScreen('menu')}>
+          <Text style={styles.backMenuText}>⬅ Voltar ao Menu Principal</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.header}>
         {perfil.fotoUrl ? (
           <Image source={{ uri: perfil.fotoUrl }} style={styles.profileImage} />
@@ -520,12 +531,8 @@ export default function PerfilInstituicao() {
           <Text style={styles.buttonText}>+ Cadastrar Aluno</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.grayButton} onPress={() => setCurrentScreen('cadastrarProf')}>
-          <Text style={styles.grayButtonText}>+ Professor</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.grayButton} onPress={handleOpenEdit}>
-          <Text style={styles.grayButtonText}>✏️ Editar</Text>
+          <Text style={styles.grayButtonText}>✏️ Editar Perfil</Text>
         </TouchableOpacity>
       </View>
 
@@ -611,6 +618,9 @@ export default function PerfilInstituicao() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc', paddingTop: 10 },
+  topBar: { paddingHorizontal: 12, marginBottom: 8 },
+  backMenuBtn: { backgroundColor: '#e2e8f0', padding: 8, borderRadius: 6, alignSelf: 'flex-start' },
+  backMenuText: { color: '#334155', fontWeight: 'bold', fontSize: 12 },
   header: { alignItems: 'center', marginBottom: 15 },
   profileImage: { width: 90, height: 90, borderRadius: 45, marginBottom: 10 },
   placeholderImage: { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' },
@@ -619,8 +629,8 @@ const styles = StyleSheet.create({
   schoolCategory: { fontSize: 13, color: '#555', marginVertical: 2 },
   headerInfo: { fontSize: 13, color: '#666' },
   actionButtonsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12 },
-  blueButton: { backgroundColor: '#1d5bd8', paddingVertical: 12, borderRadius: 8, flex: 1, marginRight: 4, alignItems: 'center' },
-  grayButton: { backgroundColor: '#e9ecef', paddingVertical: 12, borderRadius: 8, flex: 1, marginHorizontal: 3, alignItems: 'center' },
+  blueButton: { backgroundColor: '#1d5bd8', paddingVertical: 12, borderRadius: 8, flex: 1, marginRight: 6, alignItems: 'center' },
+  grayButton: { backgroundColor: '#e9ecef', paddingVertical: 12, borderRadius: 8, flex: 1, marginLeft: 6, alignItems: 'center' },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   grayButtonText: { color: '#333', fontWeight: 'bold', fontSize: 12 },
   adBanner: { backgroundColor: '#f0f4ff', marginHorizontal: 12, marginTop: 12, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#d0e0ff' },
@@ -638,6 +648,10 @@ const styles = StyleSheet.create({
   cardSubtext: { fontSize: 13, color: '#64748b', lineHeight: 20 },
   infoText: { fontSize: 13, color: '#334155', marginTop: 4 },
 
+  headerMenu: { paddingHorizontal: 16, marginTop: 10, marginBottom: 10 },
+  menuHeaderTitle: { fontSize: 22, fontWeight: 'bold', color: '#1d5bd8' },
+  menuHeaderSub: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginTop: 4 },
+  menuHeaderDesc: { fontSize: 13, color: '#64748b', marginTop: 2 },
   menuContainer: { padding: 16 },
   menuCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', elevation: 1 },
   menuIcon: { fontSize: 24, marginRight: 12 },
