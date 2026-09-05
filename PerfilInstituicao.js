@@ -13,11 +13,12 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 export default function PerfilInstituicao() {
-  const [currentScreen, setCurrentScreen] = useState('perfil'); // 'perfil' | 'cadastrar' | 'perfilAluno' | 'cadastrarProf' | 'perfilProf'
+  // Telas: 'criarInstituicao' | 'perfil' | 'cadastrar' | 'perfilAluno' | 'cadastrarProf' | 'perfilProf'
+  const [currentScreen, setCurrentScreen] = useState('criarInstituicao');
   const [activeTab, setActiveTab] = useState('geral');
 
-  // --- DADOS DA INSTITUIÇÃO ---
-  const [perfil, setPerfil] = useState({
+  // --- FORMULÁRIO INICIAL DE INSCRIÇÃO DA INSTITUIÇÃO ---
+  const [instForm, setInstForm] = useState({
     nome: 'Colégio baú',
     categoria: 'Escola / Instituição de Ensino',
     nif: '0082506071LA40',
@@ -25,6 +26,9 @@ export default function PerfilInstituicao() {
     email: 'contacto@escola.ao',
     fotoUrl: null,
   });
+
+  // --- DADOS DO PERFIL GERADO DA INSTITUIÇÃO ---
+  const [perfil, setPerfil] = useState(null);
 
   const [cursos, setCursos] = useState('Ensino Geral, Técnico de Informática');
   const [pautas, setPautas] = useState('Nenhuma pauta lançada para este trimestre.');
@@ -62,20 +66,20 @@ export default function PerfilInstituicao() {
   // Modal Geral de Edição da Escola
   const [modalVisible, setModalVisible] = useState(false);
   const [editSection, setEditSection] = useState('geral');
-  const [tempPerfil, setTempPerfil] = useState({ ...perfil });
-  const [tempCursos, setTempCursos] = useState(cursos);
-  const [tempPautas, setTempPautas] = useState(pautas);
-  const [tempAlunos, setTempAlunos] = useState(alunos);
-  const [tempClasses, setTempClasses] = useState(classes);
-  const [tempEventos, setTempEventos] = useState(eventos);
-  const [tempProfessoresText, setTempProfessoresText] = useState(professoresList.join(', '));
+  const [tempPerfil, setTempPerfil] = useState(null);
+  const [tempCursos, setTempCursos] = useState('');
+  const [tempPautas, setTempPautas] = useState('');
+  const [tempAlunos, setTempAlunos] = useState('');
+  const [tempClasses, setTempClasses] = useState('');
+  const [tempEventos, setTempEventos] = useState('');
+  const [tempProfessoresText, setTempProfessoresText] = useState('');
 
-  // --- FUNÇÃO DE SELEÇÃO DA GALERIA ---
+  // --- SELEÇÃO DE IMAGEM DA GALERIA ---
   const selecionarImagem = async (callback) => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert('Permissão necessária', 'É necessário permitir o acesso à galeria para escolher um ficheiro.');
+      Alert.alert('Permissão necessária', 'É necessário permitir o acesso à galeria.');
       return;
     }
 
@@ -88,6 +92,17 @@ export default function PerfilInstituicao() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       callback(result.assets[0].uri);
     }
+  };
+
+  // Submeter a Inscrição da Instituição
+  const handleCriarInstituicao = () => {
+    if (!instForm.nome || !instForm.nif) {
+      Alert.alert('Atenção', 'Por favor, introduza o Nome da Instituição e o NIF.');
+      return;
+    }
+    setPerfil({ ...instForm });
+    Alert.alert('Sucesso', 'Instituição cadastrada com sucesso!');
+    setCurrentScreen('perfil');
   };
 
   const handleOpenEdit = () => {
@@ -110,13 +125,13 @@ export default function PerfilInstituicao() {
     setEventos(tempEventos);
     setProfessoresList(tempProfessoresText.split(',').map((p) => p.trim()).filter(Boolean));
     setModalVisible(false);
-    Alert.alert('Sucesso', 'Todas as informações foram atualizadas!');
+    Alert.alert('Sucesso', 'Informações atualizadas!');
   };
 
-  // --- REGISTO DE ALUNO ---
+  // REGISTAR ALUNO
   const handleCadastrarAluno = () => {
     if (!alunoForm.nomeCompleto || !alunoForm.bi) {
-      Alert.alert('Atenção', 'Por favor, preencha o Nome Completo e o BI.');
+      Alert.alert('Atenção', 'Preencha o Nome e o BI do aluno.');
       return;
     }
 
@@ -130,24 +145,25 @@ export default function PerfilInstituicao() {
 
     setAlunoRegistado(novoAluno);
     setTotalInscritos(totalInscritos + 1);
-    Alert.alert('Sucesso', `Aluno cadastrado com sucesso!\nNº Processo: ${numProcesso}`);
+    Alert.alert('Sucesso', `Aluno cadastrado!\nNº Processo: ${numProcesso}`);
     setCurrentScreen('perfilAluno');
   };
 
-  // --- REGISTO DE PROFESSOR ---
+  // REGISTAR PROFESSOR
   const handleCadastrarProf = () => {
     if (!profForm.nomeCompleto || !profForm.bi || !profForm.curso) {
-      Alert.alert('Atenção', 'Preencha o Nome Completo, Número do BI e o Curso.');
+      Alert.alert('Atenção', 'Preencha o Nome Completo, BI e o Curso.');
       return;
     }
 
     const novoProf = { ...profForm };
     setProfRegistado(novoProf);
     setProfessoresList([...professoresList, profForm.nomeCompleto]);
-    Alert.alert('Sucesso', 'Professor cadastrado e adicionado ao corpo docente!');
+    Alert.alert('Sucesso', 'Professor cadastrado com sucesso!');
     setCurrentScreen('perfilProf');
   };
 
+  // TABS DO PERFIL
   const tabs = [
     { id: 'geral', label: 'Geral' },
     { id: 'cursos', label: `Cursos (${cursos ? cursos.split(',').length : 0})` },
@@ -159,6 +175,7 @@ export default function PerfilInstituicao() {
   ];
 
   const renderTabContent = () => {
+    if (!perfil) return null;
     switch (activeTab) {
       case 'geral':
         return (
@@ -218,6 +235,82 @@ export default function PerfilInstituicao() {
         return null;
     }
   };
+
+  // --- TELA 1: INSCRIÇÃO DA INSTITUIÇÃO ---
+  if (currentScreen === 'criarInstituicao') {
+    return (
+      <ScrollView style={styles.container}>
+        <View style={styles.headerForm}>
+          <Text style={styles.formTitle}>🏛️ Inscrição da Instituição</Text>
+        </View>
+
+        <View style={styles.formCard}>
+          <Text style={styles.label}>Logótipo da Instituição:</Text>
+          <View style={styles.photoPickerContainer}>
+            {instForm.fotoUrl ? (
+              <Image source={{ uri: instForm.fotoUrl }} style={styles.previewImage} />
+            ) : (
+              <View style={styles.placeholderImage}>
+                <Text style={styles.placeholderText}>Logótipo</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.pickImageBtn}
+              onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, fotoUrl: uri }))}
+            >
+              <Text style={styles.pickImageBtnText}>🖼️ Selecionar Logótipo</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.label}>Nome da Instituição:</Text>
+          <TextInput
+            style={styles.input}
+            value={instForm.nome}
+            onChangeText={(t) => setInstForm({ ...instForm, nome: t })}
+            placeholder="Ex: Colégio baú"
+          />
+
+          <Text style={styles.label}>Categoria / Tipo:</Text>
+          <TextInput
+            style={styles.input}
+            value={instForm.categoria}
+            onChangeText={(t) => setInstForm({ ...instForm, categoria: t })}
+            placeholder="Ex: Escola / Instituição de Ensino"
+          />
+
+          <Text style={styles.label}>Número de Identificação Fiscal (NIF):</Text>
+          <TextInput
+            style={styles.input}
+            value={instForm.nif}
+            onChangeText={(t) => setInstForm({ ...instForm, nif: t })}
+            placeholder="Ex: 0082506071LA40"
+          />
+
+          <Text style={styles.label}>Contacto Telefónico:</Text>
+          <TextInput
+            style={styles.input}
+            value={instForm.contacto}
+            onChangeText={(t) => setInstForm({ ...instForm, contacto: t })}
+            placeholder="+244 9XX XXX XXX"
+            keyboardType="phone-pad"
+          />
+
+          <Text style={styles.label}>Endereço de Email:</Text>
+          <TextInput
+            style={styles.input}
+            value={instForm.email}
+            onChangeText={(t) => setInstForm({ ...instForm, email: t })}
+            placeholder="contacto@escola.ao"
+            keyboardType="email-address"
+          />
+
+          <TouchableOpacity style={styles.saveStudentBtn} onPress={handleCriarInstituicao}>
+            <Text style={styles.saveStudentBtnText}>✓ Criar / Gerar Perfil da Instituição</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  }
 
   // --- TELA DE CADASTRO DE PROFESSOR ---
   if (currentScreen === 'cadastrarProf') {
@@ -331,7 +424,7 @@ export default function PerfilInstituicao() {
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>👨‍🏫 Ficha do Professor</Text>
           <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
-            <Text style={styles.backBtnText}>⬅ Início</Text>
+            <Text style={styles.backBtnText}>⬅ Perfil da Escola</Text>
           </TouchableOpacity>
         </View>
 
@@ -438,7 +531,7 @@ export default function PerfilInstituicao() {
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>🎓 Perfil do Estudante</Text>
           <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
-            <Text style={styles.backBtnText}>⬅ Início</Text>
+            <Text style={styles.backBtnText}>⬅ Perfil da Escola</Text>
           </TouchableOpacity>
         </View>
 
@@ -471,22 +564,22 @@ export default function PerfilInstituicao() {
     );
   }
 
-  // --- TELA PRINCIPAL DO PERFIL DA ESCOLA ---
+  // --- TELA DE PERFIL DA INSTITUIÇÃO GERADA ---
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        {perfil.fotoUrl ? (
+        {perfil?.fotoUrl ? (
           <Image source={{ uri: perfil.fotoUrl }} style={styles.profileImage} />
         ) : (
           <View style={[styles.profileImage, styles.placeholderImage]}>
             <Text style={styles.placeholderText}>Logótipo</Text>
           </View>
         )}
-        <Text style={styles.schoolName}>{perfil.nome}</Text>
-        <Text style={styles.schoolCategory}>🏫 {perfil.categoria}</Text>
-        <Text style={styles.headerInfo}>NIF: {perfil.nif}</Text>
-        <Text style={styles.headerInfo}>📞 Contacto: {perfil.contacto}</Text>
-        <Text style={styles.headerInfo}>✉️ Email: {perfil.email}</Text>
+        <Text style={styles.schoolName}>{perfil?.nome}</Text>
+        <Text style={styles.schoolCategory}>🏫 {perfil?.categoria}</Text>
+        <Text style={styles.headerInfo}>NIF: {perfil?.nif}</Text>
+        <Text style={styles.headerInfo}>📞 Contacto: {perfil?.contacto}</Text>
+        <Text style={styles.headerInfo}>✉️ Email: {perfil?.email}</Text>
       </View>
 
       <View style={styles.actionButtonsRow}>
@@ -545,7 +638,7 @@ export default function PerfilInstituicao() {
             </ScrollView>
 
             <ScrollView style={{ maxHeight: 300, marginTop: 10 }}>
-              {editSection === 'geral' && (
+              {editSection === 'geral' && tempPerfil && (
                 <>
                   <Text style={styles.label}>Logótipo da Escola:</Text>
                   <TouchableOpacity style={styles.pickImageBtn} onPress={() => selecionarImagem((uri) => setTempPerfil({ ...tempPerfil, fotoUrl: uri }))}>
