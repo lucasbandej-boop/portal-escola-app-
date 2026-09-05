@@ -251,6 +251,7 @@ export default function PerfilInstituicao() {
     }
   };
 
+  // BANNER SUPERIOR (IDENTICO AO SCREENSHOT)
   const renderTopBar = () => (
     <View style={styles.topBar}>
       <Text style={styles.topBarTitle}>Portal Escola</Text>
@@ -412,7 +413,7 @@ export default function PerfilInstituicao() {
     );
   }
 
-  // PERFIL DA INSTITUIÇÃO
+  // PERFIL DA INSTITUIÇÃO (ECRÃ PRINCIPAL IDENTICO À IMAGEM)
   return (
     <SafeAreaView style={styles.safeArea}>
       {renderTopBar()}
