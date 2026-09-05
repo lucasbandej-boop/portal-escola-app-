@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 export default function PerfilInstituicao() {
-  const [currentScreen, setCurrentScreen] = useState('perfil'); // 'perfil' | 'cadastrar' | 'perfilAluno' | 'cadastrarProf' | 'perfilProf'
+  const [currentScreen, setCurrentScreen] = useState('menu'); // 'menu' | 'perfil' | 'cadastrar' | 'perfilAluno' | 'cadastrarProf' | 'perfilProf'
   const [activeTab, setActiveTab] = useState('geral');
 
   // --- DADOS DA INSTITUIÇÃO ---
@@ -219,19 +219,44 @@ export default function PerfilInstituicao() {
     }
   };
 
+  // --- TELA DO MENU PRINCIPAL (MENU DE OPÇÕES) ---
+  if (currentScreen === 'menu') {
+    return (
+      <ScrollView style={styles.container}>
+        <View style={styles.headerForm}>
+          <Text style={styles.formTitle}>Portal Escola</Text>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
+            <Text style={styles.backBtnText}>🏫 Ver Perfil</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuContainer}>
+          <TouchableOpacity style={styles.menuCard} onPress={() => Alert.alert('Pesquisa', 'Abrir pesquisa...')}>
+            <Text style={styles.menuIcon}>🔍</Text>
+            <Text style={styles.menuText}>Pesquisa de Alunos e Encarregados</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('cadastrarProf')}>
+            <Text style={styles.menuIcon}>👨‍🏫</Text>
+            <Text style={styles.menuText}>Cadastramento de Professores</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  }
+
   // --- TELA DE CADASTRO DE PROFESSOR ---
   if (currentScreen === 'cadastrarProf') {
     return (
       <ScrollView style={styles.container}>
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>👨‍🏫 Cadastro de Professor</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('menu')}>
             <Text style={styles.backBtnText}>⬅ Voltar</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.formCard}>
-          {/* FOTO DO PROFESSOR */}
           <Text style={styles.label}>Fotografia do Professor:</Text>
           <View style={styles.photoPickerContainer}>
             {profForm.fotoUrl ? (
@@ -249,7 +274,6 @@ export default function PerfilInstituicao() {
             </TouchableOpacity>
           </View>
 
-          {/* NOME COMPLETO */}
           <Text style={styles.label}>Nome Completo:</Text>
           <TextInput
             style={styles.input}
@@ -258,7 +282,6 @@ export default function PerfilInstituicao() {
             placeholder="Ex: Professor António Mateus"
           />
 
-          {/* NÚMERO DO BI */}
           <Text style={styles.label}>Número do Bilhete de Identidade (BI):</Text>
           <TextInput
             style={styles.input}
@@ -267,7 +290,6 @@ export default function PerfilInstituicao() {
             placeholder="000000000LA000"
           />
 
-          {/* GRAU ACADÉMICO / CURSO */}
           <Text style={styles.label}>Grau Académico:</Text>
           <View style={styles.radioGroup}>
             {['Médio', 'Licenciatura', 'Mestrado'].map((g) => (
@@ -289,7 +311,6 @@ export default function PerfilInstituicao() {
             placeholder="Ex: Matemática, Engenharia Informática"
           />
 
-          {/* EXPERIÊNCIA PROFISSIONAL */}
           <Text style={styles.label}>Experiência Profissional:</Text>
           <TextInput
             style={[styles.input, { height: 70 }]}
@@ -299,7 +320,6 @@ export default function PerfilInstituicao() {
             placeholder="Ex: 5 anos de lecionação no Ensino Secundário"
           />
 
-          {/* CÓPIA DO BI E CERTIFICADO */}
           <Text style={styles.sectionHeader}>📁 Documentação Anexa</Text>
 
           <Text style={styles.label}>Cópia do Bilhete de Identidade (BI):</Text>
@@ -336,7 +356,7 @@ export default function PerfilInstituicao() {
       <ScrollView style={styles.container}>
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>👨‍🏫 Ficha do Professor</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('menu')}>
             <Text style={styles.backBtnText}>⬅ Início</Text>
           </TouchableOpacity>
         </View>
@@ -377,7 +397,7 @@ export default function PerfilInstituicao() {
       <ScrollView style={styles.container}>
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>📋 Ficha de Inscrição do Aluno</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('menu')}>
             <Text style={styles.backBtnText}>⬅ Voltar</Text>
           </TouchableOpacity>
         </View>
@@ -443,7 +463,7 @@ export default function PerfilInstituicao() {
       <ScrollView style={styles.container}>
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>🎓 Perfil do Estudante</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('menu')}>
             <Text style={styles.backBtnText}>⬅ Início</Text>
           </TouchableOpacity>
         </View>
@@ -477,10 +497,9 @@ export default function PerfilInstituicao() {
     );
   }
 
-  // --- TELA PRINCIPAL DO PERFIL ---
+  // --- TELA PRINCIPAL DO PERFIL DA ESCOLA ---
   return (
     <ScrollView style={styles.container}>
-      {/* CABEÇALHO */}
       <View style={styles.header}>
         {perfil.fotoUrl ? (
           <Image source={{ uri: perfil.fotoUrl }} style={styles.profileImage} />
@@ -496,7 +515,6 @@ export default function PerfilInstituicao() {
         <Text style={styles.headerInfo}>✉️ Email: {perfil.email}</Text>
       </View>
 
-      {/* OS 3 BOTÕES SUPERIORES (AGORA COM + PROFESSOR FUNCIONAL) */}
       <View style={styles.actionButtonsRow}>
         <TouchableOpacity style={styles.blueButton} onPress={() => setCurrentScreen('cadastrar')}>
           <Text style={styles.buttonText}>+ Cadastrar Aluno</Text>
@@ -511,14 +529,12 @@ export default function PerfilInstituicao() {
         </TouchableOpacity>
       </View>
 
-      {/* PAINEL DE PUBLICIDADE */}
       <View style={styles.adBanner}>
         <Text style={styles.adTitle}>📢 PUBLICIDADE</Text>
         <Text style={styles.adBody}>💻 Informática & Tablets Educativos</Text>
         <Text style={styles.adSub}>Venda de computadores portáteis e tablets de estudo com suporte técnico.</Text>
       </View>
 
-      {/* MENU DAS ABAS NAVEGÁVEIS */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContainer}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -530,7 +546,6 @@ export default function PerfilInstituicao() {
         })}
       </ScrollView>
 
-      {/* CONTEÚDO DAS ABAS */}
       <View style={styles.contentArea}>{renderTabContent()}</View>
 
       {/* MODAL EDITAR TUDO */}
@@ -595,7 +610,7 @@ export default function PerfilInstituicao() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 10 },
+  container: { flex: 1, backgroundColor: '#f8fafc', paddingTop: 10 },
   header: { alignItems: 'center', marginBottom: 15 },
   profileImage: { width: 90, height: 90, borderRadius: 45, marginBottom: 10 },
   placeholderImage: { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' },
@@ -618,10 +633,15 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, color: '#666', fontWeight: '500' },
   activeTabText: { color: '#1d5bd8', fontWeight: 'bold' },
   contentArea: { padding: 16 },
-  cardContent: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16 },
+  cardContent: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16 },
   cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b', marginBottom: 6 },
   cardSubtext: { fontSize: 13, color: '#64748b', lineHeight: 20 },
   infoText: { fontSize: 13, color: '#334155', marginTop: 4 },
+
+  menuContainer: { padding: 16 },
+  menuCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', elevation: 1 },
+  menuIcon: { fontSize: 24, marginRight: 12 },
+  menuText: { fontSize: 15, fontWeight: 'bold', color: '#1e293b' },
 
   photoPickerContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   previewImage: { width: 70, height: 70, borderRadius: 35, marginRight: 12 },
@@ -633,9 +653,9 @@ const styles = StyleSheet.create({
 
   headerForm: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
   formTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
-  backBtn: { backgroundColor: '#f1f5f9', padding: 8, borderRadius: 6 },
+  backBtn: { backgroundColor: '#e2e8f0', padding: 8, borderRadius: 6 },
   backBtnText: { color: '#475569', fontWeight: 'bold', fontSize: 12 },
-  formCard: { padding: 16 },
+  formCard: { padding: 16, backgroundColor: '#fff', margin: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   label: { fontSize: 12, color: '#475569', marginTop: 12, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, marginTop: 4, backgroundColor: '#f8fafc' },
   radioGroup: { flexDirection: 'row', marginTop: 6 },
@@ -647,7 +667,7 @@ const styles = StyleSheet.create({
   saveStudentBtn: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   saveStudentBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 
-  studentCard: { margin: 16, padding: 20, backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
+  studentCard: { margin: 16, padding: 20, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
   studentAvatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 12 },
   studentName: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   studentBadge: { backgroundColor: '#dbeafe', color: '#1e40af', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginTop: 6, fontWeight: 'bold', fontSize: 12 },
