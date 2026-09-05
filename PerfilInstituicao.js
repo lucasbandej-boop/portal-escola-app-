@@ -16,7 +16,7 @@ import { supabase } from './lib/supabase';
 
 export default function PerfilInstituicao() {
   const [currentScreen, setCurrentScreen] = useState('perfil');
-  const [activeTab, setActiveTab] = useState('cursos');
+  const [activeTab, setActiveTab] = useState('alunos');
   const [loading, setLoading] = useState(false);
 
   // Dados da Instituição
@@ -32,20 +32,21 @@ export default function PerfilInstituicao() {
     foto_url: null,
   });
 
-  const [instForm, setInstForm] = useState({
-    nome: 'Colégio Baú',
-    categoria: 'Escola / Instituição de Ensino',
-    nif: '0082506071LA40',
-    contacto: '+244 9XX XXX XXX',
-    email: 'contacto@escola.ao',
-    directorGeral: '',
-    viceDirector: '',
-    fotoUrl: null,
-    docDiarioRepublica: null,
-    docNif: null,
-    docAlvara: null,
-    docBiDirector: null,
-  });
+  // Lista dinâmica de alunos inscritos/cadastrados
+  const [alunosList, setAlunosList] = useState([
+    {
+      id: '1',
+      nomeCompleto: 'Mateus António Francisco',
+      bi: '008923412LA042',
+      numProcesso: 'PROC-2026-0001',
+      codigoTurma: 'INF-M01',
+      nivel: 'Ensino Médio',
+      curso: 'Informática',
+      encarregadoNome: 'António Francisco',
+      encarregadoTelefone: '+244 923 111 222',
+      fotoUrl: null,
+    },
+  ]);
 
   // Lista dinâmica de cursos com vagas
   const [cursosList, setCursosList] = useState([
@@ -65,17 +66,16 @@ export default function PerfilInstituicao() {
   });
 
   const [pautas] = useState('Nenhuma pauta lançada para este trimestre.');
-  const [alunosText] = useState('Nenhum aluno cadastrado.');
   const [classes] = useState('1ª Classe, 2ª Classe, 3ª Classe, 10ª Classe');
   const [eventos] = useState('Feira da Ciência - 15/10');
   const [professoresList, setProfessoresList] = useState([]);
 
-  const [totalInscritos, setTotalInscritos] = useState(1);
+  const [totalInscritos, setTotalInscritos] = useState(2);
   const [alunoForm, setAlunoForm] = useState({
     nomeCompleto: '',
     bi: '',
     fotoUrl: null,
-    nivel: 'Iniciação',
+    nivel: 'Médio',
     curso: 'Informática',
     encarregadoNome: '',
     encarregadoTelefone: '',
@@ -138,7 +138,49 @@ export default function PerfilInstituicao() {
     }
   };
 
-  // Abrir Modal para criar novo curso ou editar existente
+  const handleCadastrarAluno = async () => {
+    if (!alunoForm.nomeCompleto || !alunoForm.bi) {
+      Alert.alert('Atenção', 'Preencha o Nome e o BI do aluno.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const numProcesso = `PROC-2026-${String(totalInscritos).padStart(4, '0')}`;
+      const siglaCurso = alunoForm.nivel === 'Médio' ? alunoForm.curso.substring(0, 3).toUpperCase() : 'GERAL';
+      const siglaNivel = alunoForm.nivel.charAt(0).toUpperCase();
+      const numeroTurma = Math.ceil(totalInscritos / 30);
+      const codigoTurma = `${siglaCurso}-${siglaNivel}0${numeroTurma}`;
+
+      const fotoRemote = await uploadImageToSupabase(alunoForm.fotoUrl);
+
+      const novoAluno = {
+        id: Date.now().toString(),
+        nomeCompleto: alunoForm.nomeCompleto,
+        bi: alunoForm.bi,
+        fotoUrl: fotoRemote,
+        nivel: alunoForm.nivel,
+        curso: alunoForm.curso,
+        numProcesso: numProcesso,
+        codigoTurma: codigoTurma,
+        encarregadoNome: alunoForm.encarregadoNome,
+        encarregadoTelefone: alunoForm.encarregadoTelefone,
+      };
+
+      setAlunosList((prev) => [novoAluno, ...prev]);
+      setAlunoRegistado(novoAluno);
+      setTotalInscritos(totalInscritos + 1);
+
+      Alert.alert('Sucesso', `Aluno cadastrado com sucesso!\nNº Processo: ${numProcesso}`);
+      setCurrentScreen('perfil');
+      setActiveTab('alunos');
+    } catch (err) {
+      Alert.alert('Erro', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAbrirModalCurso = (curso = null) => {
     if (curso) {
       setCursoEmEdicao(curso);
@@ -155,7 +197,6 @@ export default function PerfilInstituicao() {
     setModalCursoVisivel(true);
   };
 
-  // Salvar alterações ou criar novo curso
   const handleSalvarCurso = () => {
     if (!cursoForm.nome.trim()) {
       Alert.alert('Atenção', 'Por favor, digite o nome do curso.');
@@ -165,29 +206,15 @@ export default function PerfilInstituicao() {
     const vagasTotalNum = parseInt(cursoForm.vagasTotal, 10) || 0;
     const vagasOcupadasNum = parseInt(cursoForm.vagasOcupadas, 10) || 0;
 
-    if (vagasOcupadasNum > vagasTotalNum) {
-      Alert.alert('Atenção', 'O número de vagas ocupadas não pode ser maior que o total de vagas.');
-      return;
-    }
-
     if (cursoEmEdicao) {
-      // Atualizar curso existente
       setCursosList((prev) =>
         prev.map((item) =>
           item.id === cursoEmEdicao.id
-            ? {
-                ...item,
-                nome: cursoForm.nome,
-                vagasTotal: vagasTotalNum,
-                vagasOcupadas: vagasOcupadasNum,
-                icone: cursoForm.icone,
-              }
+            ? { ...item, nome: cursoForm.nome, vagasTotal: vagasTotalNum, vagasOcupadas: vagasOcupadasNum, icone: cursoForm.icone }
             : item
         )
       );
-      Alert.alert('Sucesso', 'Curso atualizado com sucesso!');
     } else {
-      // Criar novo curso
       const novoCurso = {
         id: Date.now().toString(),
         nome: cursoForm.nome,
@@ -196,160 +223,9 @@ export default function PerfilInstituicao() {
         icone: cursoForm.icone || '📚',
       };
       setCursosList((prev) => [...prev, novoCurso]);
-      Alert.alert('Sucesso', 'Novo curso adicionado!');
     }
 
     setModalCursoVisivel(false);
-  };
-
-  // Eliminar curso
-  const handleEliminarCurso = (id) => {
-    Alert.alert('Confirmar', 'Deseja realmente eliminar este curso?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => {
-          setCursosList((prev) => prev.filter((item) => item.id !== id));
-        },
-      },
-    ]);
-  };
-
-  const handleCriarInstituicao = async () => {
-    if (!instForm.nome || !instForm.nif || !instForm.directorGeral) {
-      Alert.alert('Atenção', 'Por favor, introduza o Nome da Instituição, NIF e o Nome do Director Geral.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const fotoUrlRemote = await uploadImageToSupabase(instForm.fotoUrl);
-      const docDiarioRemote = await uploadImageToSupabase(instForm.docDiarioRepublica);
-      const docNifRemote = await uploadImageToSupabase(instForm.docNif);
-      const docAlvaraRemote = await uploadImageToSupabase(instForm.docAlvara);
-      const docBiRemote = await uploadImageToSupabase(instForm.docBiDirector);
-
-      const payload = {
-        nome: instForm.nome,
-        categoria: instForm.categoria,
-        nif: instForm.nif,
-        contacto: instForm.contacto,
-        email: instForm.email,
-        director_geral: instForm.directorGeral,
-        vice_director: instForm.viceDirector,
-        foto_url: fotoUrlRemote,
-        doc_diario_republica: docDiarioRemote,
-        doc_nif: docNifRemote,
-        doc_alvara: docAlvaraRemote,
-        doc_bi_director: docBiRemote,
-      };
-
-      const { data, error } = await supabase.from('instituicoes').insert([payload]).select().single();
-
-      if (error) throw error;
-
-      setPerfil(data);
-      Alert.alert('Sucesso', 'Instituição cadastrada no Supabase!');
-      setCurrentScreen('perfil');
-    } catch (err) {
-      Alert.alert('Erro no Supabase', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCadastrarAluno = async () => {
-    if (!alunoForm.nomeCompleto || !alunoForm.bi) {
-      Alert.alert('Atenção', 'Preencha o Nome e o BI do aluno.');
-      return;
-    }
-
-    if (!perfil?.id) {
-      Alert.alert('Erro', 'Nenhuma instituição carregada.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const numProcesso = `PROC-2026-${String(totalInscritos).padStart(4, '0')}`;
-      const siglaCurso = alunoForm.nivel === 'Médio' ? alunoForm.curso.substring(0, 3).toUpperCase() : 'GERAL';
-      const siglaNivel = alunoForm.nivel.charAt(0).toUpperCase();
-      const numeroTurma = Math.ceil(totalInscritos / 30);
-      const codigoTurma = `${siglaCurso}-${siglaNivel}0${numeroTurma}`;
-
-      const fotoRemote = await uploadImageToSupabase(alunoForm.fotoUrl);
-
-      const payload = {
-        instituicao_id: perfil.id,
-        nome_completo: alunoForm.nomeCompleto,
-        bi: alunoForm.bi,
-        foto_url: fotoRemote,
-        nivel: alunoForm.nivel,
-        curso: alunoForm.curso,
-        num_processo: numProcesso,
-        codigo_turma: codigoTurma,
-        encarregado_nome: alunoForm.encarregadoNome,
-        encarregado_telefone: alunoForm.encarregadoTelefone,
-      };
-
-      const { data, error } = await supabase.from('alunos').insert([payload]).select().single();
-
-      if (error) throw error;
-
-      setAlunoRegistado(data);
-      setTotalInscritos(totalInscritos + 1);
-      Alert.alert('Sucesso', `Aluno cadastrado!\nNº Processo: ${numProcesso}`);
-      setCurrentScreen('perfilAluno');
-    } catch (err) {
-      Alert.alert('Erro no Supabase', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCadastrarProf = async () => {
-    if (!profForm.nomeCompleto || !profForm.bi || !profForm.curso) {
-      Alert.alert('Atenção', 'Preencha o Nome Completo, BI e o Curso.');
-      return;
-    }
-
-    if (!perfil?.id) {
-      Alert.alert('Erro', 'Nenhuma instituição carregada.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const fotoRemote = await uploadImageToSupabase(profForm.fotoUrl);
-      const copiaBiRemote = await uploadImageToSupabase(profForm.copiaBiUrl);
-      const certificadoRemote = await uploadImageToSupabase(profForm.certificadoUrl);
-
-      const payload = {
-        instituicao_id: perfil.id,
-        nome_completo: profForm.nomeCompleto,
-        bi: profForm.bi,
-        foto_url: fotoRemote,
-        grau_academico: profForm.grauAcademico,
-        curso: profForm.curso,
-        experiencia: profForm.experiencia,
-        copia_bi_url: copiaBiRemote,
-        certificado_url: certificadoRemote,
-      };
-
-      const { data, error } = await supabase.from('professores').insert([payload]).select().single();
-
-      if (error) throw error;
-
-      setProfRegistado(data);
-      setProfessoresList((prev) => [...prev, data.nome_completo]);
-      Alert.alert('Sucesso', 'Professor registado com sucesso!');
-      setCurrentScreen('perfilProf');
-    } catch (err) {
-      Alert.alert('Erro no Supabase', err.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const tabs = [
@@ -357,14 +233,13 @@ export default function PerfilInstituicao() {
     { id: 'direccao', label: '👔 Direcção' },
     { id: 'cursos', label: `Cursos (${cursosList.length})` },
     { id: 'pautas', label: '📊 Pauta Trimestral' },
-    { id: 'alunos', label: '⭐ Alunos' },
+    { id: 'alunos', label: `⭐ Alunos (${alunosList.length})` },
     { id: 'classes', label: '📖 Classes' },
     { id: 'eventos', label: '📅 Eventos' },
     { id: 'professores', label: `📚 Professores (${professoresList.length})` },
   ];
 
   const renderTabContent = () => {
-    if (!perfil) return null;
     switch (activeTab) {
       case 'geral':
         return (
@@ -380,8 +255,8 @@ export default function PerfilInstituicao() {
         return (
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>Corpo Directivo</Text>
-            <Text style={styles.infoText}>👨‍💼 Director Geral: {perfil.director_geral || 'Não especificado'}</Text>
-            <Text style={styles.infoText}>👨‍💼 Vice-Director: {perfil.vice_director || 'Não especificado'}</Text>
+            <Text style={styles.infoText}>👨‍💼 Director Geral: {perfil.director_geral}</Text>
+            <Text style={styles.infoText}>👨‍💼 Vice-Director: {perfil.vice_director}</Text>
           </View>
         );
       case 'cursos':
@@ -394,62 +269,84 @@ export default function PerfilInstituicao() {
               </TouchableOpacity>
             </View>
 
-            {cursosList.length === 0 ? (
-              <Text style={styles.cardSubtext}>Nenhum curso cadastrado no momento.</Text>
+            {cursosList.map((curso) => {
+              const disponiveis = curso.vagasTotal - curso.vagasOcupadas;
+              const estaLotado = disponiveis <= 0;
+              const percentual = Math.min(100, Math.round((curso.vagasOcupadas / curso.vagasTotal) * 100)) || 0;
+
+              return (
+                <TouchableOpacity key={curso.id} style={styles.cursoCardItem} onPress={() => handleAbrirModalCurso(curso)}>
+                  <View style={styles.cursoMainInfo}>
+                    <Text style={styles.cursoIcone}>{curso.icone}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.cursoNomeText}>{curso.nome}</Text>
+                      <Text style={styles.cursoVagasText}>{curso.vagasOcupadas} de {curso.vagasTotal} vagas preenchidas</Text>
+                    </View>
+                    <View style={[styles.badgeVagas, estaLotado ? styles.badgeLotado : styles.badgeDisponivel]}>
+                      <Text style={[styles.badgeVagasText, estaLotado ? styles.badgeLotadoText : styles.badgeDisponivelText]}>
+                        {estaLotado ? '🚫 Lotado' : `✅ ${disponiveis} vagas`}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.progressBarBackground}>
+                    <View style={[styles.progressBarFill, { width: `${percentual}%`, backgroundColor: estaLotado ? '#ef4444' : '#1d5bd8' }]} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        );
+      case 'alunos':
+        return (
+          <View style={styles.cardContent}>
+            <View style={styles.cursosHeaderRow}>
+              <Text style={styles.cardTitle}>Alunos Matriculados ({alunosList.length})</Text>
+              <TouchableOpacity style={styles.addCursoBtn} onPress={() => setCurrentScreen('cadastrar')}>
+                <Text style={styles.addCursoBtnText}>+ Novo Aluno</Text>
+              </TouchableOpacity>
+            </View>
+
+            {alunosList.length === 0 ? (
+              <Text style={styles.cardSubtext}>Nenhum aluno cadastrado no momento.</Text>
             ) : (
-              cursosList.map((curso) => {
-                const disponiveis = curso.vagasTotal - curso.vagasOcupadas;
-                const estaLotado = disponiveis <= 0;
-                const percentual = Math.min(100, Math.round((curso.vagasOcupadas / curso.vagasTotal) * 100)) || 0;
-
-                return (
-                  <TouchableOpacity
-                    key={curso.id}
-                    style={styles.cursoCardItem}
-                    onPress={() => handleAbrirModalCurso(curso)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.cursoMainInfo}>
-                      <Text style={styles.cursoIcone}>{curso.icone || '📚'}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.cursoNomeText}>{curso.nome}</Text>
-                        <Text style={styles.cursoVagasText}>
-                          {curso.vagasOcupadas} de {curso.vagasTotal} vagas preenchidas
-                        </Text>
+              alunosList.map((aluno) => (
+                <View key={aluno.id} style={styles.alunoCardItem}>
+                  <View style={styles.alunoCardHeader}>
+                    {aluno.fotoUrl ? (
+                      <Image source={{ uri: aluno.fotoUrl }} style={styles.alunoAvatar} />
+                    ) : (
+                      <View style={[styles.alunoAvatar, styles.placeholderImage]}>
+                        <Text style={styles.placeholderText}>🎓</Text>
                       </View>
-                      <View style={[styles.badgeVagas, estaLotado ? styles.badgeLotado : styles.badgeDisponivel]}>
-                        <Text style={[styles.badgeVagasText, estaLotado ? styles.badgeLotadoText : styles.badgeDisponivelText]}>
-                          {estaLotado ? '🚫 Lotado' : `✅ ${disponiveis} vagas`}
-                        </Text>
-                      </View>
+                    )}
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={styles.alunoNomeText}>{aluno.nomeCompleto}</Text>
+                      <Text style={styles.alunoBiText}>BI: {aluno.bi}</Text>
                     </View>
+                  </View>
 
-                    {/* Barra de Progresso Visual */}
-                    <View style={styles.progressBarBackground}>
-                      <View
-                        style={[
-                          styles.progressBarFill,
-                          { width: `${percentual}%`, backgroundColor: estaLotado ? '#ef4444' : '#1d5bd8' },
-                        ]}
-                      />
+                  <View style={styles.alunoTagsRow}>
+                    <View style={styles.alunoBadgeProc}>
+                      <Text style={styles.alunoBadgeProcText}>📄 {aluno.numProcesso}</Text>
                     </View>
+                    <View style={styles.alunoBadgeTurma}>
+                      <Text style={styles.alunoBadgeTurmaText}>🏫 Turma: {aluno.codigoTurma}</Text>
+                    </View>
+                  </View>
 
-                    <View style={styles.cursoActionsRow}>
-                      <Text style={styles.editHintText}>✏️ Clica para editar ou alterar vagas</Text>
-                      <TouchableOpacity onPress={() => handleEliminarCurso(curso.id)}>
-                        <Text style={styles.deleteCursoText}>🗑️ Eliminar</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
+                  <View style={styles.dividerLight} />
+
+                  <Text style={styles.alunoInfoRow}>🎓 <Text style={{ fontWeight: 'bold' }}>Curso:</Text> {aluno.curso} ({aluno.nivel})</Text>
+                  {aluno.encarregadoNome ? (
+                    <Text style={styles.alunoInfoRow}>👨‍👦 <Text style={{ fontWeight: 'bold' }}>Encarregado:</Text> {aluno.encarregadoNome} ({aluno.encarregadoTelefone})</Text>
+                  ) : null}
+                </View>
+              ))
             )}
           </View>
         );
       case 'pautas':
         return <View style={styles.cardContent}><Text style={styles.cardTitle}>Pautas</Text><Text style={styles.cardSubtext}>{pautas}</Text></View>;
-      case 'alunos':
-        return <View style={styles.cardContent}><Text style={styles.cardTitle}>Alunos</Text><Text style={styles.cardSubtext}>{alunosText}</Text></View>;
       case 'classes':
         return <View style={styles.cardContent}><Text style={styles.cardTitle}>Classes</Text><Text style={styles.cardSubtext}>{classes}</Text></View>;
       case 'eventos':
@@ -470,8 +367,42 @@ export default function PerfilInstituicao() {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#1d5bd8" />
-        <Text style={{ marginTop: 10, color: '#334155' }}>A processar no Supabase...</Text>
+        <Text style={{ marginTop: 10, color: '#334155' }}>A processar...</Text>
       </View>
+    );
+  }
+
+  if (currentScreen === 'cadastrar') {
+    return (
+      <ScrollView style={styles.container}>
+        <View style={styles.headerForm}>
+          <Text style={styles.formTitle}>📋 Cadastro de Aluno</Text>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
+            <Text style={styles.backBtnText}>⬅ Voltar</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.formCard}>
+          <Text style={styles.label}>Nome Completo do Aluno:</Text>
+          <TextInput style={styles.input} value={alunoForm.nomeCompleto} onChangeText={(t) => setAlunoForm({ ...alunoForm, nomeCompleto: t })} placeholder="Ex: João Manuel" />
+
+          <Text style={styles.label}>Nº B.I. / Cédula:</Text>
+          <TextInput style={styles.input} value={alunoForm.bi} onChangeText={(t) => setAlunoForm({ ...alunoForm, bi: t })} placeholder="Ex: 008923412LA042" />
+
+          <Text style={styles.label}>Curso Pretendido:</Text>
+          <TextInput style={styles.input} value={alunoForm.curso} onChangeText={(t) => setAlunoForm({ ...alunoForm, curso: t })} placeholder="Ex: Informática" />
+
+          <Text style={styles.label}>Nome do Encarregado de Educação:</Text>
+          <TextInput style={styles.input} value={alunoForm.encarregadoNome} onChangeText={(t) => setAlunoForm({ ...alunoForm, encarregadoNome: t })} placeholder="Ex: Manuel Francisco" />
+
+          <Text style={styles.label}>Telefone do Encarregado:</Text>
+          <TextInput style={styles.input} value={alunoForm.encarregadoTelefone} onChangeText={(t) => setAlunoForm({ ...alunoForm, encarregadoTelefone: t })} keyboardType="phone-pad" placeholder="Ex: +244 923 000 111" />
+
+          <TouchableOpacity style={styles.saveStudentBtn} onPress={handleCadastrarAluno}>
+            <Text style={styles.saveStudentBtnText}>✓ Salvar e Gerar Ficha do Aluno</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -507,22 +438,22 @@ export default function PerfilInstituicao() {
 
       <View style={styles.contentArea}>{renderTabContent()}</View>
 
-      {/* MODAL PARA EDITAÇÃO E CRIAÇÃO DE CURSOS */}
+      {/* MODAL CURSOS */}
       <Modal visible={modalCursoVisivel} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>{cursoEmEdicao ? '✏️ Editar Curso e Vagas' : '➕ Novo Curso'}</Text>
 
             <Text style={styles.label}>Ícone ou Emoji do Curso:</Text>
-            <TextInput style={styles.input} value={cursoForm.icone} onChangeText={(t) => setCursoForm({ ...cursoForm, icone: t })} placeholder="Ex: 💻, 📊, 🦷" />
+            <TextInput style={styles.input} value={cursoForm.icone} onChangeText={(t) => setCursoForm({ ...cursoForm, icone: t })} />
 
             <Text style={styles.label}>Nome do Curso:</Text>
-            <TextInput style={styles.input} value={cursoForm.nome} onChangeText={(t) => setCursoForm({ ...cursoForm, nome: t })} placeholder="Ex: Engenharia de Software" />
+            <TextInput style={styles.input} value={cursoForm.nome} onChangeText={(t) => setCursoForm({ ...cursoForm, nome: t })} />
 
             <Text style={styles.label}>Total de Vagas Oferecidas:</Text>
             <TextInput style={styles.input} value={cursoForm.vagasTotal} onChangeText={(t) => setCursoForm({ ...cursoForm, vagasTotal: t })} keyboardType="numeric" />
 
-            <Text style={styles.label}>Vagas Já Ocupadas / Preenchidas:</Text>
+            <Text style={styles.label}>Vagas Já Ocupadas:</Text>
             <TextInput style={styles.input} value={cursoForm.vagasOcupadas} onChangeText={(t) => setCursoForm({ ...cursoForm, vagasOcupadas: t })} keyboardType="numeric" />
 
             <View style={styles.modalButtonsRow}>
@@ -530,7 +461,7 @@ export default function PerfilInstituicao() {
                 <Text style={styles.cancelModalBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveModalBtn} onPress={handleSalvarCurso}>
-                <Text style={styles.saveModalBtnText}>Salvar Curso</Text>
+                <Text style={styles.saveModalBtnText}>Salvar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -546,7 +477,7 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', marginBottom: 15 },
   profileImage: { width: 90, height: 90, borderRadius: 45, marginBottom: 10 },
   placeholderImage: { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' },
-  placeholderText: { color: '#64748b', fontSize: 11, fontWeight: 'bold' },
+  placeholderText: { color: '#64748b', fontSize: 16, fontWeight: 'bold' },
   schoolName: { fontSize: 22, fontWeight: 'bold', color: '#000' },
   schoolCategory: { fontSize: 13, color: '#555', marginVertical: 2 },
   headerInfo: { fontSize: 13, color: '#666' },
@@ -580,9 +511,18 @@ const styles = StyleSheet.create({
   badgeLotadoText: { color: '#b91c1c', fontSize: 11, fontWeight: 'bold' },
   progressBarBackground: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, marginTop: 10, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 3 },
-  cursoActionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, alignItems: 'center' },
-  editHintText: { fontSize: 11, color: '#94a3b8', fontStyle: 'italic' },
-  deleteCursoText: { fontSize: 11, color: '#ef4444', fontWeight: 'bold' },
+  alunoCardItem: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 12, marginBottom: 12 },
+  alunoCardHeader: { flexDirection: 'row', alignItems: 'center' },
+  alunoAvatar: { width: 45, height: 45, borderRadius: 22.5 },
+  alunoNomeText: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
+  alunoBiText: { fontSize: 12, color: '#64748b' },
+  alunoTagsRow: { flexDirection: 'row', marginTop: 8, gap: 6 },
+  alunoBadgeProc: { backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  alunoBadgeProcText: { color: '#1e40af', fontSize: 11, fontWeight: 'bold' },
+  alunoBadgeTurma: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  alunoBadgeTurmaText: { color: '#166534', fontSize: 11, fontWeight: 'bold' },
+  dividerLight: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 8 },
+  alunoInfoRow: { fontSize: 12, color: '#334155', marginTop: 2 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContainer: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 10 },
@@ -593,4 +533,11 @@ const styles = StyleSheet.create({
   cancelModalBtnText: { color: '#475569', fontWeight: 'bold' },
   saveModalBtn: { backgroundColor: '#16a34a', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
   saveModalBtnText: { color: '#fff', fontWeight: 'bold' },
+  headerForm: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
+  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  backBtn: { backgroundColor: '#e2e8f0', padding: 8, borderRadius: 6 },
+  backBtnText: { color: '#475569', fontWeight: 'bold', fontSize: 12 },
+  formCard: { padding: 16, backgroundColor: '#fff', margin: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  saveStudentBtn: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  saveStudentBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 });
