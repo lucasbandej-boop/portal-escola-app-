@@ -13,8 +13,8 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 export default function PerfilInstituicao() {
-  // Telas: 'criarInstituicao' | 'perfil' | 'cadastrar' | 'perfilAluno' | 'cadastrarProf' | 'perfilProf'
-  const [currentScreen, setCurrentScreen] = useState('criarInstituicao');
+  // Telas: 'regulamento' | 'criarInstituicao' | 'perfil' | 'cadastrar' | 'perfilAluno' | 'cadastrarProf' | 'perfilProf'
+  const [currentScreen, setCurrentScreen] = useState('regulamento');
   const [activeTab, setActiveTab] = useState('geral');
 
   // --- FORMULÁRIO INICIAL DE INSCRIÇÃO DA INSTITUIÇÃO ---
@@ -24,7 +24,14 @@ export default function PerfilInstituicao() {
     nif: '0082506071LA40',
     contacto: '+244 9XX XXX XXX',
     email: 'contacto@escola.ao',
+    directorGeral: '',
+    viceDirector: '',
     fotoUrl: null,
+    // Documentos anexos
+    docDiarioRepublica: null,
+    docNif: null,
+    docAlvara: null,
+    docBiDirector: null,
   });
 
   // --- DADOS DO PERFIL GERADO DA INSTITUIÇÃO ---
@@ -96,8 +103,8 @@ export default function PerfilInstituicao() {
 
   // Submeter a Inscrição da Instituição
   const handleCriarInstituicao = () => {
-    if (!instForm.nome || !instForm.nif) {
-      Alert.alert('Atenção', 'Por favor, introduza o Nome da Instituição e o NIF.');
+    if (!instForm.nome || !instForm.nif || !instForm.directorGeral) {
+      Alert.alert('Atenção', 'Por favor, introduza o Nome da Instituição, NIF e o Nome do Director Geral.');
       return;
     }
     setPerfil({ ...instForm });
@@ -166,6 +173,7 @@ export default function PerfilInstituicao() {
   // TABS DO PERFIL
   const tabs = [
     { id: 'geral', label: 'Geral' },
+    { id: 'direccao', label: '👔 Direcção' },
     { id: 'cursos', label: `Cursos (${cursos ? cursos.split(',').length : 0})` },
     { id: 'pautas', label: '📊 Pauta Trimestral' },
     { id: 'alunos', label: '⭐ Alunos' },
@@ -185,6 +193,20 @@ export default function PerfilInstituicao() {
             <Text style={styles.infoText}>📜 NIF: {perfil.nif}</Text>
             <Text style={styles.infoText}>📞 Contacto: {perfil.contacto}</Text>
             <Text style={styles.infoText}>✉️ Email: {perfil.email}</Text>
+          </View>
+        );
+      case 'direccao':
+        return (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Corpo Directivo</Text>
+            <Text style={styles.infoText}>👨‍💼 Director Geral: {perfil.directorGeral || 'Não especificado'}</Text>
+            <Text style={styles.infoText}>👨‍💼 Vice-Director: {perfil.viceDirector || 'Não especificado'}</Text>
+            <View style={styles.divider} />
+            <Text style={styles.cardTitle}>Documentos de Legalização Submetidos</Text>
+            <Text style={styles.infoText}>📄 Diário da República / Estatutos: {perfil.docDiarioRepublica ? 'Anexado ✅' : 'Pendente ❌'}</Text>
+            <Text style={styles.infoText}>🪪 Cartão NIF da Empresa: {perfil.docNif ? 'Anexado ✅' : 'Pendente ❌'}</Text>
+            <Text style={styles.infoText}>🏛️ Licença / Alvará do MED: {perfil.docAlvara ? 'Anexado ✅' : 'Pendente ❌'}</Text>
+            <Text style={styles.infoText}>👤 B.I. do Director Geral: {perfil.docBiDirector ? 'Anexado ✅' : 'Pendente ❌'}</Text>
           </View>
         );
       case 'cursos':
@@ -236,12 +258,46 @@ export default function PerfilInstituicao() {
     }
   };
 
+  // --- TELA DE REGULAMENTO E LEGISLAÇÃO ANGOLANA ---
+  if (currentScreen === 'regulamento') {
+    return (
+      <ScrollView style={styles.container}>
+        <View style={styles.legalBox}>
+          <Text style={styles.legalHeader}>🇦🇴 Regulamento de Legalização de Instituições de Ensino em Angola</Text>
+          <Text style={styles.legalIntro}>
+            Nos termos do Decreto Executivo e das diretrizes do Ministério da Educação de Angola (MED), a abertura e legalização de um estabelecimento de ensino exige o cumprimento estrito dos requisitos legais e documentais abaixo descritos:
+          </Text>
+
+          <Text style={styles.legalSubTitle}>1. Documentos Obrigatórios da Instituição:</Text>
+          <Text style={styles.legalItem}>• Publicação do Diário da República ou Termo de Constituição da Sociedade escolar.</Text>
+          <Text style={styles.legalItem}>• Cartão de Identificação Fiscal (NIF da Instituição de Ensino).</Text>
+          <Text style={styles.legalItem}>• Alvará de Funcionamento / Licença de Abertura emitido pelo Ministério da Educação ou Governo Provincial.</Text>
+          <Text style={styles.legalItem}>• Certificado de Vistoria de Infraestruturas e Condições de Segurança do Edifício.</Text>
+
+          <Text style={styles.legalSubTitle}>2. Requisitos do Corpo Directivo:</Text>
+          <Text style={styles.legalItem}>• B.I. e Registo Criminal atualizado do Director Geral e do Vice-Director.</Text>
+          <Text style={styles.legalItem}>• Comprovativo de Grau Académico (Licenciatura em Ciências da Educação ou área afim com habilitação pedagógica).</Text>
+
+          <Text style={styles.legalSubTitle}>3. Responsabilidade de Registo:</Text>
+          <Text style={styles.legalItem}>• As informações submetidas neste formulário passam por auditoria para validação junto das autoridades educativas provinciais.</Text>
+
+          <TouchableOpacity style={styles.acceptLegalBtn} onPress={() => setCurrentScreen('criarInstituicao')}>
+            <Text style={styles.acceptLegalBtnText}>✓ Li e Compreendi o Regulamento — Ir ao Formulário</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  }
+
   // --- TELA 1: INSCRIÇÃO DA INSTITUIÇÃO ---
   if (currentScreen === 'criarInstituicao') {
     return (
       <ScrollView style={styles.container}>
         <View style={styles.headerForm}>
           <Text style={styles.formTitle}>🏛️ Inscrição da Instituição</Text>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('regulamento')}>
+            <Text style={styles.backBtnText}>📜 Ver Regulamento</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.formCard}>
@@ -303,6 +359,66 @@ export default function PerfilInstituicao() {
             placeholder="contacto@escola.ao"
             keyboardType="email-address"
           />
+
+          <Text style={styles.sectionHeader}>👔 Corpo Directivo</Text>
+
+          <Text style={styles.label}>Nome Completo do Director Geral:</Text>
+          <TextInput
+            style={styles.input}
+            value={instForm.directorGeral}
+            onChangeText={(t) => setInstForm({ ...instForm, directorGeral: t })}
+            placeholder="Ex: Prof. Dr. António Silva"
+          />
+
+          <Text style={styles.label}>Nome Completo do Vice-Director:</Text>
+          <TextInput
+            style={styles.input}
+            value={instForm.viceDirector}
+            onChangeText={(t) => setInstForm({ ...instForm, viceDirector: t })}
+            placeholder="Ex: Lic. Maria dos Santos"
+          />
+
+          <Text style={styles.sectionHeader}>📂 Documentação Legal da Instituição</Text>
+
+          <Text style={styles.label}>Cópia do Diário da República / Estatutos (Imagem):</Text>
+          <TouchableOpacity
+            style={styles.docUploadBtn}
+            onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docDiarioRepublica: uri }))}
+          >
+            <Text style={styles.docUploadText}>
+              {instForm.docDiarioRepublica ? '✅ Diário da República Anexado' : '📄 Anexar Diário da República'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.label}>Cópia do Cartão NIF da Empresa (Imagem):</Text>
+          <TouchableOpacity
+            style={styles.docUploadBtn}
+            onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docNif: uri }))}
+          >
+            <Text style={styles.docUploadText}>
+              {instForm.docNif ? '✅ Cartão NIF Anexado' : '🪪 Anexar Cartão NIF'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.label}>Alvará / Licença do MED (Imagem):</Text>
+          <TouchableOpacity
+            style={styles.docUploadBtn}
+            onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docAlvara: uri }))}
+          >
+            <Text style={styles.docUploadText}>
+              {instForm.docAlvara ? '✅ Alvará do MED Anexado' : '🏛️ Anexar Licença / Alvará do MED'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.label}>Cópia do B.I. do Director Geral (Imagem):</Text>
+          <TouchableOpacity
+            style={styles.docUploadBtn}
+            onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docBiDirector: uri }))}
+          >
+            <Text style={styles.docUploadText}>
+              {instForm.docBiDirector ? '✅ B.I. do Director Anexado' : '👤 Anexar B.I. do Director'}
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.saveStudentBtn} onPress={handleCriarInstituicao}>
             <Text style={styles.saveStudentBtnText}>✓ Criar / Gerar Perfil da Instituição</Text>
@@ -624,6 +740,7 @@ export default function PerfilInstituicao() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalSubTabs}>
               {[
                 { id: 'geral', title: 'Dados Gerais' },
+                { id: 'direccao', title: 'Direcção' },
                 { id: 'cursos', title: 'Cursos' },
                 { id: 'pautas', title: 'Pautas' },
                 { id: 'alunos', title: 'Alunos' },
@@ -654,6 +771,15 @@ export default function PerfilInstituicao() {
                   <TextInput style={styles.input} value={tempPerfil.contacto} onChangeText={(t) => setTempPerfil({ ...tempPerfil, contacto: t })} />
                   <Text style={styles.label}>Email:</Text>
                   <TextInput style={styles.input} value={tempPerfil.email} onChangeText={(t) => setTempPerfil({ ...tempPerfil, email: t })} />
+                </>
+              )}
+
+              {editSection === 'direccao' && tempPerfil && (
+                <>
+                  <Text style={styles.label}>Director Geral:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.directorGeral} onChangeText={(t) => setTempPerfil({ ...tempPerfil, directorGeral: t })} />
+                  <Text style={styles.label}>Vice-Director:</Text>
+                  <TextInput style={styles.input} value={tempPerfil.viceDirector} onChangeText={(t) => setTempPerfil({ ...tempPerfil, viceDirector: t })} />
                 </>
               )}
 
@@ -705,6 +831,14 @@ const styles = StyleSheet.create({
   cardSubtext: { fontSize: 13, color: '#64748b', lineHeight: 20 },
   infoText: { fontSize: 13, color: '#334155', marginTop: 4 },
 
+  legalBox: { padding: 20, backgroundColor: '#fff', margin: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1' },
+  legalHeader: { fontSize: 18, fontWeight: 'bold', color: '#1e3a8a', marginBottom: 10 },
+  legalIntro: { fontSize: 13, color: '#334155', lineHeight: 20, marginBottom: 12 },
+  legalSubTitle: { fontSize: 14, fontWeight: 'bold', color: '#0f172a', marginTop: 12, marginBottom: 4 },
+  legalItem: { fontSize: 12, color: '#475569', marginLeft: 6, marginTop: 2, lineHeight: 18 },
+  acceptLegalBtn: { backgroundColor: '#1d5bd8', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  acceptLegalBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+
   photoPickerContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   previewImage: { width: 70, height: 70, borderRadius: 35, marginRight: 12 },
   pickImageBtn: { backgroundColor: '#e2e8f0', padding: 12, borderRadius: 8, alignItems: 'center', flex: 1 },
@@ -725,7 +859,7 @@ const styles = StyleSheet.create({
   radioActive: { backgroundColor: '#1d5bd8', borderColor: '#1d5bd8' },
   radioText: { color: '#334155', fontSize: 12 },
   radioTextActive: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-  sectionHeader: { fontSize: 15, fontWeight: 'bold', marginTop: 16, color: '#0f172a' },
+  sectionHeader: { fontSize: 15, fontWeight: 'bold', marginTop: 18, color: '#0f172a' },
   saveStudentBtn: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   saveStudentBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 
