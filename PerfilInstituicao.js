@@ -9,14 +9,28 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from './lib/supabase';
 
 export default function PerfilInstituicao() {
-  const [currentScreen, setCurrentScreen] = useState('regulamento');
-  const [activeTab, setActiveTab] = useState('geral');
+  const [currentScreen, setCurrentScreen] = useState('perfil');
+  const [activeTab, setActiveTab] = useState('cursos');
   const [loading, setLoading] = useState(false);
+
+  // Dados da Instituição
+  const [perfil, setPerfil] = useState({
+    id: '1',
+    nome: 'Colégio Baú',
+    categoria: 'Escola / Instituição de Ensino',
+    nif: '0082506071LA40',
+    contacto: '+244 9XX XXX XXX',
+    email: 'contacto@escola.ao',
+    director_geral: 'Director Geral',
+    vice_director: 'Vice-Director',
+    foto_url: null,
+  });
 
   const [instForm, setInstForm] = useState({
     nome: 'Colégio Baú',
@@ -33,8 +47,23 @@ export default function PerfilInstituicao() {
     docBiDirector: null,
   });
 
-  const [perfil, setPerfil] = useState(null);
-  const [cursos] = useState('Ensino Geral, Técnico de Informática');
+  // Lista dinâmica de cursos com vagas
+  const [cursosList, setCursosList] = useState([
+    { id: '1', nome: 'Informática', vagasTotal: 30, vagasOcupadas: 18, icone: '💻' },
+    { id: '2', nome: 'Gestão Empresarial', vagasTotal: 25, vagasOcupadas: 25, icone: '📊' },
+    { id: '3', nome: 'Dentista', vagasTotal: 15, vagasOcupadas: 4, icone: '🦷' },
+  ]);
+
+  // Modal para criar/editar curso
+  const [modalCursoVisivel, setModalCursoVisivel] = useState(false);
+  const [cursoEmEdicao, setCursoEmEdicao] = useState(null);
+  const [cursoForm, setCursoForm] = useState({
+    nome: '',
+    vagasTotal: '30',
+    vagasOcupadas: '0',
+    icone: '📚',
+  });
+
   const [pautas] = useState('Nenhuma pauta lançada para este trimestre.');
   const [alunosText] = useState('Nenhum aluno cadastrado.');
   const [classes] = useState('1ª Classe, 2ª Classe, 3ª Classe, 10ª Classe');
@@ -107,6 +136,84 @@ export default function PerfilInstituicao() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       callback(result.assets[0].uri);
     }
+  };
+
+  // Abrir Modal para criar novo curso ou editar existente
+  const handleAbrirModalCurso = (curso = null) => {
+    if (curso) {
+      setCursoEmEdicao(curso);
+      setCursoForm({
+        nome: curso.nome,
+        vagasTotal: String(curso.vagasTotal),
+        vagasOcupadas: String(curso.vagasOcupadas),
+        icone: curso.icone || '📚',
+      });
+    } else {
+      setCursoEmEdicao(null);
+      setCursoForm({ nome: '', vagasTotal: '30', vagasOcupadas: '0', icone: '📚' });
+    }
+    setModalCursoVisivel(true);
+  };
+
+  // Salvar alterações ou criar novo curso
+  const handleSalvarCurso = () => {
+    if (!cursoForm.nome.trim()) {
+      Alert.alert('Atenção', 'Por favor, digite o nome do curso.');
+      return;
+    }
+
+    const vagasTotalNum = parseInt(cursoForm.vagasTotal, 10) || 0;
+    const vagasOcupadasNum = parseInt(cursoForm.vagasOcupadas, 10) || 0;
+
+    if (vagasOcupadasNum > vagasTotalNum) {
+      Alert.alert('Atenção', 'O número de vagas ocupadas não pode ser maior que o total de vagas.');
+      return;
+    }
+
+    if (cursoEmEdicao) {
+      // Atualizar curso existente
+      setCursosList((prev) =>
+        prev.map((item) =>
+          item.id === cursoEmEdicao.id
+            ? {
+                ...item,
+                nome: cursoForm.nome,
+                vagasTotal: vagasTotalNum,
+                vagasOcupadas: vagasOcupadasNum,
+                icone: cursoForm.icone,
+              }
+            : item
+        )
+      );
+      Alert.alert('Sucesso', 'Curso atualizado com sucesso!');
+    } else {
+      // Criar novo curso
+      const novoCurso = {
+        id: Date.now().toString(),
+        nome: cursoForm.nome,
+        vagasTotal: vagasTotalNum,
+        vagasOcupadas: vagasOcupadasNum,
+        icone: cursoForm.icone || '📚',
+      };
+      setCursosList((prev) => [...prev, novoCurso]);
+      Alert.alert('Sucesso', 'Novo curso adicionado!');
+    }
+
+    setModalCursoVisivel(false);
+  };
+
+  // Eliminar curso
+  const handleEliminarCurso = (id) => {
+    Alert.alert('Confirmar', 'Deseja realmente eliminar este curso?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          setCursosList((prev) => prev.filter((item) => item.id !== id));
+        },
+      },
+    ]);
   };
 
   const handleCriarInstituicao = async () => {
@@ -248,7 +355,7 @@ export default function PerfilInstituicao() {
   const tabs = [
     { id: 'geral', label: 'Geral' },
     { id: 'direccao', label: '👔 Direcção' },
-    { id: 'cursos', label: 'Cursos' },
+    { id: 'cursos', label: `Cursos (${cursosList.length})` },
     { id: 'pautas', label: '📊 Pauta Trimestral' },
     { id: 'alunos', label: '⭐ Alunos' },
     { id: 'classes', label: '📖 Classes' },
@@ -275,16 +382,70 @@ export default function PerfilInstituicao() {
             <Text style={styles.cardTitle}>Corpo Directivo</Text>
             <Text style={styles.infoText}>👨‍💼 Director Geral: {perfil.director_geral || 'Não especificado'}</Text>
             <Text style={styles.infoText}>👨‍💼 Vice-Director: {perfil.vice_director || 'Não especificado'}</Text>
-            <View style={styles.divider} />
-            <Text style={styles.cardTitle}>Documentos de Legalização Submetidos</Text>
-            <Text style={styles.infoText}>📄 Diário da República: {perfil.doc_diario_republica ? 'Anexado ✅' : 'Pendente ❌'}</Text>
-            <Text style={styles.infoText}>🪪 Cartão NIF: {perfil.doc_nif ? 'Anexado ✅' : 'Pendente ❌'}</Text>
-            <Text style={styles.infoText}>🏛️ Licença / Alvará: {perfil.doc_alvara ? 'Anexado ✅' : 'Pendente ❌'}</Text>
-            <Text style={styles.infoText}>👤 B.I. do Director Geral: {perfil.doc_bi_director ? 'Anexado ✅' : 'Pendente ❌'}</Text>
           </View>
         );
       case 'cursos':
-        return <View style={styles.cardContent}><Text style={styles.cardTitle}>Cursos</Text><Text style={styles.cardSubtext}>{cursos}</Text></View>;
+        return (
+          <View style={styles.cardContent}>
+            <View style={styles.cursosHeaderRow}>
+              <Text style={styles.cardTitle}>Cursos Lecionados</Text>
+              <TouchableOpacity style={styles.addCursoBtn} onPress={() => handleAbrirModalCurso()}>
+                <Text style={styles.addCursoBtnText}>+ Novo Curso</Text>
+              </TouchableOpacity>
+            </View>
+
+            {cursosList.length === 0 ? (
+              <Text style={styles.cardSubtext}>Nenhum curso cadastrado no momento.</Text>
+            ) : (
+              cursosList.map((curso) => {
+                const disponiveis = curso.vagasTotal - curso.vagasOcupadas;
+                const estaLotado = disponiveis <= 0;
+                const percentual = Math.min(100, Math.round((curso.vagasOcupadas / curso.vagasTotal) * 100)) || 0;
+
+                return (
+                  <TouchableOpacity
+                    key={curso.id}
+                    style={styles.cursoCardItem}
+                    onPress={() => handleAbrirModalCurso(curso)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.cursoMainInfo}>
+                      <Text style={styles.cursoIcone}>{curso.icone || '📚'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cursoNomeText}>{curso.nome}</Text>
+                        <Text style={styles.cursoVagasText}>
+                          {curso.vagasOcupadas} de {curso.vagasTotal} vagas preenchidas
+                        </Text>
+                      </View>
+                      <View style={[styles.badgeVagas, estaLotado ? styles.badgeLotado : styles.badgeDisponivel]}>
+                        <Text style={[styles.badgeVagasText, estaLotado ? styles.badgeLotadoText : styles.badgeDisponivelText]}>
+                          {estaLotado ? '🚫 Lotado' : `✅ ${disponiveis} vagas`}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Barra de Progresso Visual */}
+                    <View style={styles.progressBarBackground}>
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          { width: `${percentual}%`, backgroundColor: estaLotado ? '#ef4444' : '#1d5bd8' },
+                        ]}
+                      />
+                    </View>
+
+                    <View style={styles.cursoActionsRow}>
+                      <Text style={styles.editHintText}>✏️ Clica para editar ou alterar vagas</Text>
+                      <TouchableOpacity onPress={() => handleEliminarCurso(curso.id)}>
+                        <Text style={styles.deleteCursoText}>🗑️ Eliminar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+        );
       case 'pautas':
         return <View style={styles.cardContent}><Text style={styles.cardTitle}>Pautas</Text><Text style={styles.cardSubtext}>{pautas}</Text></View>;
       case 'alunos':
@@ -311,187 +472,6 @@ export default function PerfilInstituicao() {
         <ActivityIndicator size="large" color="#1d5bd8" />
         <Text style={{ marginTop: 10, color: '#334155' }}>A processar no Supabase...</Text>
       </View>
-    );
-  }
-
-  if (currentScreen === 'regulamento') {
-    return (
-      <ScrollView style={styles.container}>
-        <View style={styles.legalBox}>
-          <Text style={styles.legalHeader}>🇦🇴 Regulamento de Legalização de Instituições de Ensino em Angola</Text>
-          <Text style={styles.legalIntro}>
-            Nos termos do Decreto Executivo do Ministério da Educação (MED), a abertura exige o cumprimento estrito dos requisitos abaixo:
-          </Text>
-          <Text style={styles.legalSubTitle}>1. Documentos Obrigatórios da Instituição:</Text>
-          <Text style={styles.legalItem}>• Publicação do Diário da República.</Text>
-          <Text style={styles.legalItem}>• Cartão NIF da Instituição.</Text>
-          <Text style={styles.legalItem}>• Alvará de Funcionamento / Licença do MED.</Text>
-          <TouchableOpacity style={styles.acceptLegalBtn} onPress={() => setCurrentScreen('criarInstituicao')}>
-            <Text style={styles.acceptLegalBtnText}>✓ Li e Compreendi — Ir ao Formulário</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    );
-  }
-
-  if (currentScreen === 'criarInstituicao') {
-    return (
-      <ScrollView style={styles.container}>
-        <View style={styles.headerForm}>
-          <Text style={styles.formTitle}>🏛️ Inscrição da Instituição</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('regulamento')}>
-            <Text style={styles.backBtnText}>📜 Ver Regulamento</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.formCard}>
-          <Text style={styles.label}>Logótipo da Instituição:</Text>
-          <View style={styles.photoPickerContainer}>
-            {instForm.fotoUrl ? (
-              <Image source={{ uri: instForm.fotoUrl }} style={styles.previewImage} />
-            ) : (
-              <View style={styles.placeholderImage}><Text style={styles.placeholderText}>Logótipo</Text></View>
-            )}
-            <TouchableOpacity style={styles.pickImageBtn} onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, fotoUrl: uri }))}>
-              <Text style={styles.pickImageBtnText}>🖼️ Selecionar Logótipo</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.label}>Nome da Instituição:</Text>
-          <TextInput style={styles.input} value={instForm.nome} onChangeText={(t) => setInstForm({ ...instForm, nome: t })} />
-
-          <Text style={styles.label}>Categoria / Tipo:</Text>
-          <TextInput style={styles.input} value={instForm.categoria} onChangeText={(t) => setInstForm({ ...instForm, categoria: t })} />
-
-          <Text style={styles.label}>NIF:</Text>
-          <TextInput style={styles.input} value={instForm.nif} onChangeText={(t) => setInstForm({ ...instForm, nif: t })} />
-
-          <Text style={styles.label}>Contacto:</Text>
-          <TextInput style={styles.input} value={instForm.contacto} onChangeText={(t) => setInstForm({ ...instForm, contacto: t })} keyboardType="phone-pad" />
-
-          <Text style={styles.label}>Email:</Text>
-          <TextInput style={styles.input} value={instForm.email} onChangeText={(t) => setInstForm({ ...instForm, email: t })} keyboardType="email-address" />
-
-          <Text style={styles.sectionHeader}>👔 Corpo Directivo</Text>
-          <Text style={styles.label}>Director Geral:</Text>
-          <TextInput style={styles.input} value={instForm.directorGeral} onChangeText={(t) => setInstForm({ ...instForm, directorGeral: t })} />
-
-          <Text style={styles.label}>Vice-Director:</Text>
-          <TextInput style={styles.input} value={instForm.viceDirector} onChangeText={(t) => setInstForm({ ...instForm, viceDirector: t })} />
-
-          <Text style={styles.sectionHeader}>📂 Documentação Legal</Text>
-
-          <TouchableOpacity style={styles.docUploadBtn} onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docDiarioRepublica: uri }))}>
-            <Text style={styles.docUploadText}>{instForm.docDiarioRepublica ? '✅ Diário Anexado' : '📄 Anexar Diário da República'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.docUploadBtn} onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docNif: uri }))}>
-            <Text style={styles.docUploadText}>{instForm.docNif ? '✅ NIF Anexado' : '🪪 Anexar Cartão NIF'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.docUploadBtn} onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docAlvara: uri }))}>
-            <Text style={styles.docUploadText}>{instForm.docAlvara ? '✅ Alvará Anexado' : '🏛️ Anexar Licença / Alvará'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.docUploadBtn} onPress={() => selecionarImagem((uri) => setInstForm({ ...instForm, docBiDirector: uri }))}>
-            <Text style={styles.docUploadText}>{instForm.docBiDirector ? '✅ B.I. Director Anexado' : '👤 Anexar B.I. do Director'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.saveStudentBtn} onPress={handleCriarInstituicao}>
-            <Text style={styles.saveStudentBtnText}>✓ Salvar no Supabase e Gerar Perfil</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    );
-  }
-
-  if (currentScreen === 'cadastrarProf') {
-    return (
-      <ScrollView style={styles.container}>
-        <View style={styles.headerForm}>
-          <Text style={styles.formTitle}>👨‍🏫 Cadastro de Professor</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
-            <Text style={styles.backBtnText}>⬅ Voltar</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.formCard}>
-          <Text style={styles.label}>Nome Completo:</Text>
-          <TextInput style={styles.input} value={profForm.nomeCompleto} onChangeText={(t) => setProfForm({ ...profForm, nomeCompleto: t })} />
-
-          <Text style={styles.label}>Nº BI:</Text>
-          <TextInput style={styles.input} value={profForm.bi} onChangeText={(t) => setProfForm({ ...profForm, bi: t })} />
-
-          <Text style={styles.label}>Curso / Especialidade:</Text>
-          <TextInput style={styles.input} value={profForm.curso} onChangeText={(t) => setProfForm({ ...profForm, curso: t })} />
-
-          <TouchableOpacity style={styles.saveStudentBtn} onPress={handleCadastrarProf}>
-            <Text style={styles.saveStudentBtnText}>✓ Salvar Professor no Supabase</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    );
-  }
-
-  if (currentScreen === 'perfilProf' && profRegistado) {
-    return (
-      <ScrollView style={styles.container}>
-        <View style={styles.headerForm}>
-          <Text style={styles.formTitle}>👨‍🏫 Ficha do Professor</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
-            <Text style={styles.backBtnText}>⬅ Voltar</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.studentCard}>
-          <Text style={styles.studentName}>{profRegistado.nome_completo}</Text>
-          <Text style={styles.studentBadge}>BI: {profRegistado.bi}</Text>
-          <Text style={styles.infoRow}>🎓 Grau: {profRegistado.grau_academico}</Text>
-          <Text style={styles.infoRow}>📚 Curso: {profRegistado.curso}</Text>
-        </View>
-      </ScrollView>
-    );
-  }
-
-  if (currentScreen === 'cadastrar') {
-    return (
-      <ScrollView style={styles.container}>
-        <View style={styles.headerForm}>
-          <Text style={styles.formTitle}>📋 Cadastro de Aluno</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
-            <Text style={styles.backBtnText}>⬅ Voltar</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.formCard}>
-          <Text style={styles.label}>Nome Completo:</Text>
-          <TextInput style={styles.input} value={alunoForm.nomeCompleto} onChangeText={(t) => setAlunoForm({ ...alunoForm, nomeCompleto: t })} />
-
-          <Text style={styles.label}>Nº BI:</Text>
-          <TextInput style={styles.input} value={alunoForm.bi} onChangeText={(t) => setAlunoForm({ ...alunoForm, bi: t })} />
-
-          <TouchableOpacity style={styles.saveStudentBtn} onPress={handleCadastrarAluno}>
-            <Text style={styles.saveStudentBtnText}>✓ Salvar Aluno no Supabase</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    );
-  }
-
-  if (currentScreen === 'perfilAluno' && alunoRegistado) {
-    return (
-      <ScrollView style={styles.container}>
-        <View style={styles.headerForm}>
-          <Text style={styles.formTitle}>🎓 Ficha do Aluno</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentScreen('perfil')}>
-            <Text style={styles.backBtnText}>⬅ Voltar</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.studentCard}>
-          <Text style={styles.studentName}>{alunoRegistado.nome_completo}</Text>
-          <Text style={styles.studentBadge}>Nº Processo: {alunoRegistado.num_processo}</Text>
-          <Text style={styles.studentBadgeTurma}>Turma: {alunoRegistado.codigo_turma}</Text>
-        </View>
-      </ScrollView>
     );
   }
 
@@ -526,6 +506,36 @@ export default function PerfilInstituicao() {
       </ScrollView>
 
       <View style={styles.contentArea}>{renderTabContent()}</View>
+
+      {/* MODAL PARA EDITAÇÃO E CRIAÇÃO DE CURSOS */}
+      <Modal visible={modalCursoVisivel} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>{cursoEmEdicao ? '✏️ Editar Curso e Vagas' : '➕ Novo Curso'}</Text>
+
+            <Text style={styles.label}>Ícone ou Emoji do Curso:</Text>
+            <TextInput style={styles.input} value={cursoForm.icone} onChangeText={(t) => setCursoForm({ ...cursoForm, icone: t })} placeholder="Ex: 💻, 📊, 🦷" />
+
+            <Text style={styles.label}>Nome do Curso:</Text>
+            <TextInput style={styles.input} value={cursoForm.nome} onChangeText={(t) => setCursoForm({ ...cursoForm, nome: t })} placeholder="Ex: Engenharia de Software" />
+
+            <Text style={styles.label}>Total de Vagas Oferecidas:</Text>
+            <TextInput style={styles.input} value={cursoForm.vagasTotal} onChangeText={(t) => setCursoForm({ ...cursoForm, vagasTotal: t })} keyboardType="numeric" />
+
+            <Text style={styles.label}>Vagas Já Ocupadas / Preenchidas:</Text>
+            <TextInput style={styles.input} value={cursoForm.vagasOcupadas} onChangeText={(t) => setCursoForm({ ...cursoForm, vagasOcupadas: t })} keyboardType="numeric" />
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity style={styles.cancelModalBtn} onPress={() => setModalCursoVisivel(false)}>
+                <Text style={styles.cancelModalBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveModalBtn} onPress={handleSalvarCurso}>
+                <Text style={styles.saveModalBtnText}>Salvar Curso</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -552,36 +562,35 @@ const styles = StyleSheet.create({
   activeTabText: { color: '#1d5bd8', fontWeight: 'bold' },
   contentArea: { padding: 16 },
   cardContent: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b', marginBottom: 6 },
-  cardSubtext: { fontSize: 13, color: '#64748b' },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  cardSubtext: { fontSize: 13, color: '#64748b', marginTop: 8 },
   infoText: { fontSize: 13, color: '#334155', marginTop: 4 },
-  legalBox: { padding: 20, backgroundColor: '#fff', margin: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1' },
-  legalHeader: { fontSize: 18, fontWeight: 'bold', color: '#1e3a8a', marginBottom: 10 },
-  legalIntro: { fontSize: 13, color: '#334155', lineHeight: 20 },
-  legalSubTitle: { fontSize: 14, fontWeight: 'bold', color: '#0f172a', marginTop: 12 },
-  legalItem: { fontSize: 12, color: '#475569', marginLeft: 6, marginTop: 2 },
-  acceptLegalBtn: { backgroundColor: '#1d5bd8', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
-  acceptLegalBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  photoPickerContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  previewImage: { width: 70, height: 70, borderRadius: 35, marginRight: 12 },
-  pickImageBtn: { backgroundColor: '#e2e8f0', padding: 12, borderRadius: 8, alignItems: 'center', flex: 1 },
-  pickImageBtnText: { color: '#1e293b', fontWeight: 'bold', fontSize: 12 },
-  docUploadBtn: { backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#cbd5e1', padding: 12, borderRadius: 8, marginTop: 6, alignItems: 'center' },
-  docUploadText: { color: '#334155', fontSize: 12, fontWeight: 'bold' },
-  headerForm: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
-  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
-  backBtn: { backgroundColor: '#e2e8f0', padding: 8, borderRadius: 6 },
-  backBtnText: { color: '#475569', fontWeight: 'bold', fontSize: 12 },
-  formCard: { padding: 16, backgroundColor: '#fff', margin: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
-  label: { fontSize: 12, color: '#475569', marginTop: 12, fontWeight: '600' },
+  cursosHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  addCursoBtn: { backgroundColor: '#1d5bd8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  addCursoBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  cursoCardItem: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12, marginBottom: 12 },
+  cursoMainInfo: { flexDirection: 'row', alignItems: 'center' },
+  cursoIcone: { fontSize: 22, marginRight: 10 },
+  cursoNomeText: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
+  cursoVagasText: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  badgeVagas: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  badgeDisponivel: { backgroundColor: '#dcfce7' },
+  badgeDisponivelText: { color: '#15803d', fontSize: 11, fontWeight: 'bold' },
+  badgeLotado: { backgroundColor: '#fee2e2' },
+  badgeLotadoText: { color: '#b91c1c', fontSize: 11, fontWeight: 'bold' },
+  progressBarBackground: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, marginTop: 10, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 3 },
+  cursoActionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, alignItems: 'center' },
+  editHintText: { fontSize: 11, color: '#94a3b8', fontStyle: 'italic' },
+  deleteCursoText: { fontSize: 11, color: '#ef4444', fontWeight: 'bold' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalContainer: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 10 },
+  label: { fontSize: 12, color: '#475569', marginTop: 10, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, marginTop: 4, backgroundColor: '#f8fafc' },
-  sectionHeader: { fontSize: 15, fontWeight: 'bold', marginTop: 18, color: '#0f172a' },
-  saveStudentBtn: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
-  saveStudentBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  studentCard: { margin: 16, padding: 20, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
-  studentName: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
-  studentBadge: { backgroundColor: '#dbeafe', color: '#1e40af', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginTop: 6, fontWeight: 'bold', fontSize: 12 },
-  studentBadgeTurma: { backgroundColor: '#dcfce7', color: '#166534', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginTop: 4, fontWeight: 'bold', fontSize: 12 },
-  divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 14 },
-  infoRow: { width: '100%', fontSize: 14, color: '#334155', marginTop: 6 },
+  modalButtonsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
+  cancelModalBtn: { backgroundColor: '#e2e8f0', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 8 },
+  cancelModalBtnText: { color: '#475569', fontWeight: 'bold' },
+  saveModalBtn: { backgroundColor: '#16a34a', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  saveModalBtnText: { color: '#fff', fontWeight: 'bold' },
 });
