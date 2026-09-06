@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,62 +15,48 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from './lib/supabase';
 
 export default function PerfilInstituicao() {
-  const [currentScreen, setCurrentScreen] = useState('perfil');
-  const [activeTab, setActiveTab] = useState('alunos');
+  const [session, setSession] = useState(null);
+  const [authMode, setAuthMode] = useState('login'); // 'login' ou 'register'
   const [loading, setLoading] = useState(false);
 
-  // Dados da Instituição
+  // Estados de Auth (Email e Senha)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nomeEscola, setNomeEscola] = useState('');
+  const [nif, setNif] = useState('');
+
+  // Estados da Aplicação Principais
+  const [currentScreen, setCurrentScreen] = useState('perfil');
+  const [activeTab, setActiveTab] = useState('alunos');
+
+  // Dados da Instituição (Dinâmicos via Auth/Supabase)
   const [perfil, setPerfil] = useState({
-    id: '1',
     nome: 'Colégio Baú',
     categoria: 'Escola / Instituição de Ensino',
     nif: '0082506071LA40',
     contacto: '+244 9XX XXX XXX',
-    email: 'contacto@escola.ao',
+    email: '',
     director_geral: 'Director Geral',
     vice_director: 'Vice-Director',
     foto_url: null,
   });
 
-  // Lista dinâmica de alunos inscritos/cadastrados
-  const [alunosList, setAlunosList] = useState([
-    {
-      id: '1',
-      nomeCompleto: 'Mateus António Francisco',
-      bi: '008923412LA042',
-      numProcesso: 'PROC-2026-0001',
-      codigoTurma: 'INF-M01',
-      nivel: 'Ensino Médio',
-      curso: 'Informática',
-      encarregadoNome: 'António Francisco',
-      encarregadoTelefone: '+244 923 111 222',
-      fotoUrl: null,
-    },
-  ]);
-
-  // Lista dinâmica de cursos com vagas
+  // Lista dinâmica de alunos
+  const [alunosList, setAlunosList] = useState([]);
+  
+  // Cursos
   const [cursosList, setCursosList] = useState([
     { id: '1', nome: 'Informática', vagasTotal: 30, vagasOcupadas: 18, icone: '💻' },
     { id: '2', nome: 'Gestão Empresarial', vagasTotal: 25, vagasOcupadas: 25, icone: '📊' },
     { id: '3', nome: 'Dentista', vagasTotal: 15, vagasOcupadas: 4, icone: '🦷' },
   ]);
 
-  // Modal para criar/editar curso
+  // Modal Curso
   const [modalCursoVisivel, setModalCursoVisivel] = useState(false);
   const [cursoEmEdicao, setCursoEmEdicao] = useState(null);
-  const [cursoForm, setCursoForm] = useState({
-    nome: '',
-    vagasTotal: '30',
-    vagasOcupadas: '0',
-    icone: '📚',
-  });
+  const [cursoForm, setCursoForm] = useState({ nome: '', vagasTotal: '30', vagasOcupadas: '0', icone: '📚' });
 
-  const [pautas] = useState('Nenhuma pauta lançada para este trimestre.');
-  const [classes] = useState('1ª Classe, 2ª Classe, 3ª Classe, 10ª Classe');
-  const [eventos] = useState('Feira da Ciência - 15/10');
-  const [professoresList, setProfessoresList] = useState([]);
-
-  const [totalInscritos, setTotalInscritos] = useState(2);
+  // Formulário Aluno
   const [alunoForm, setAlunoForm] = useState({
     nomeCompleto: '',
     bi: '',
@@ -80,20 +66,107 @@ export default function PerfilInstituicao() {
     encarregadoNome: '',
     encarregadoTelefone: '',
   });
-  const [alunoRegistado, setAlunoRegistado] = useState(null);
 
-  const [profForm, setProfForm] = useState({
-    fotoUrl: null,
-    nomeCompleto: '',
-    bi: '',
-    grauAcademico: 'Licenciatura',
-    curso: '',
-    experiencia: '',
-    copiaBiUrl: null,
-    certificadoUrl: null,
-  });
-  const [profRegistado, setProfRegistado] = useState(null);
+  // Verificação de Sessão Ativa ao Iniciar
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        setPerfil((prev) => ({ ...prev, email: session.user.email }));
+        carregarAlunos();
+      }
+    });
 
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        setPerfil((prev) => ({ ...prev, email: session.user.email }));
+        carregarAlunos();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // CARREGAR ALUNOS DO SUPABASE
+  const carregarAlunos = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('alunos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.log('Erro ao carregar alunos:', error.message);
+      } else if (data) {
+        const alunosMapeados = data.map((a) => ({
+          id: a.id,
+          nomeCompleto: a.nome_completo,
+          bi: a.bi,
+          numProcesso: a.num_processo,
+          codigoTurma: a.codigo_turma,
+          nivel: a.nivel,
+          curso: a.curso,
+          encarregadoNome: a.encarregado_nome,
+          encarregadoTelefone: a.encarregado_telefone,
+          fotoUrl: a.foto_url,
+        }));
+        setAlunosList(alunosMapeados);
+      }
+    } catch (err) {
+      console.log('Erro Supabase:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // FUNÇÕES DE AUTENTICAÇÃO (LOGIN / REGISTRO / LOGOUT)
+  const handleSignUp = async () => {
+    if (!email || !password) {
+      Alert.alert('Atenção', 'Informe o email e a palavra-passe.');
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    setLoading(false);
+    if (error) {
+      Alert.alert('Erro ao Criar Conta', error.message);
+    } else {
+      Alert.alert('Sucesso', 'Conta criada com sucesso! Faça login para continuar.');
+      setAuthMode('login');
+    }
+  };
+
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert('Atenção', 'Preencha o email e a palavra-passe.');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setLoading(false);
+    if (error) {
+      Alert.alert('Erro ao Entrar', error.message);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+  };
+
+  // UPLOAD DA FOTO DE ALUNO
   const uploadImageToSupabase = async (uri) => {
     if (!uri || uri.startsWith('http')) return uri;
 
@@ -115,29 +188,12 @@ export default function PerfilInstituicao() {
 
       return publicUrlData.publicUrl;
     } catch (err) {
-      console.error('Erro no upload de imagem:', err.message);
+      console.error('Erro upload:', err.message);
       return null;
     }
   };
 
-  const selecionarImagem = async (callback) => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permissão necessária', 'É necessário permitir o acesso à galeria.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      callback(result.assets[0].uri);
-    }
-  };
-
+  // CADASTRO DE ALUNOS
   const handleCadastrarAluno = async () => {
     if (!alunoForm.nomeCompleto || !alunoForm.bi) {
       Alert.alert('Atenção', 'Preencha o Nome e o BI do aluno.');
@@ -146,6 +202,7 @@ export default function PerfilInstituicao() {
 
     setLoading(true);
     try {
+      const totalInscritos = alunosList.length + 1;
       const numProcesso = `PROC-2026-${String(totalInscritos).padStart(4, '0')}`;
       const siglaCurso = alunoForm.nivel === 'Médio' ? alunoForm.curso.substring(0, 3).toUpperCase() : 'GERAL';
       const siglaNivel = alunoForm.nivel.charAt(0).toUpperCase();
@@ -154,33 +211,43 @@ export default function PerfilInstituicao() {
 
       const fotoRemote = await uploadImageToSupabase(alunoForm.fotoUrl);
 
-      const novoAluno = {
-        id: Date.now().toString(),
-        nomeCompleto: alunoForm.nomeCompleto,
-        bi: alunoForm.bi,
-        fotoUrl: fotoRemote,
-        nivel: alunoForm.nivel,
-        curso: alunoForm.curso,
-        numProcesso: numProcesso,
-        codigoTurma: codigoTurma,
-        encarregadoNome: alunoForm.encarregadoNome,
-        encarregadoTelefone: alunoForm.encarregadoTelefone,
-      };
+      const { error } = await supabase.from('alunos').insert([
+        {
+          nome_completo: alunoForm.nomeCompleto,
+          bi: alunoForm.bi,
+          foto_url: fotoRemote,
+          nivel: alunoForm.nivel,
+          curso: alunoForm.curso,
+          num_processo: numProcesso,
+          codigo_turma: codigoTurma,
+          encarregado_nome: alunoForm.encarregadoNome,
+          encarregado_telefone: alunoForm.encarregadoTelefone,
+        },
+      ]);
 
-      setAlunosList((prev) => [novoAluno, ...prev]);
-      setAlunoRegistado(novoAluno);
-      setTotalInscritos(totalInscritos + 1);
+      if (error) throw error;
 
       Alert.alert('Sucesso', `Aluno cadastrado com sucesso!\nNº Processo: ${numProcesso}`);
+      setAlunoForm({
+        nomeCompleto: '',
+        bi: '',
+        fotoUrl: null,
+        nivel: 'Médio',
+        curso: 'Informática',
+        encarregadoNome: '',
+        encarregadoTelefone: '',
+      });
+      await carregarAlunos();
       setCurrentScreen('perfil');
       setActiveTab('alunos');
     } catch (err) {
-      Alert.alert('Erro', err.message);
+      Alert.alert('Erro ao Salvar', err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // CURSOS LOGIC
   const handleAbrirModalCurso = (curso = null) => {
     if (curso) {
       setCursoEmEdicao(curso);
@@ -199,10 +266,9 @@ export default function PerfilInstituicao() {
 
   const handleSalvarCurso = () => {
     if (!cursoForm.nome.trim()) {
-      Alert.alert('Atenção', 'Por favor, digite o nome do curso.');
+      Alert.alert('Atenção', 'Digite o nome do curso.');
       return;
     }
-
     const vagasTotalNum = parseInt(cursoForm.vagasTotal, 10) || 0;
     const vagasOcupadasNum = parseInt(cursoForm.vagasOcupadas, 10) || 0;
 
@@ -224,154 +290,77 @@ export default function PerfilInstituicao() {
       };
       setCursosList((prev) => [...prev, novoCurso]);
     }
-
     setModalCursoVisivel(false);
   };
 
-  const tabs = [
-    { id: 'geral', label: 'Geral' },
-    { id: 'direccao', label: '👔 Direcção' },
-    { id: 'cursos', label: `Cursos (${cursosList.length})` },
-    { id: 'pautas', label: '📊 Pauta Trimestral' },
-    { id: 'alunos', label: `⭐ Alunos (${alunosList.length})` },
-    { id: 'classes', label: '📖 Classes' },
-    { id: 'eventos', label: '📅 Eventos' },
-    { id: 'professores', label: `📚 Professores (${professoresList.length})` },
-  ];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'geral':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Visão Geral</Text>
-            <Text style={styles.infoText}>🏫 Categoria: {perfil.categoria}</Text>
-            <Text style={styles.infoText}>📜 NIF: {perfil.nif}</Text>
-            <Text style={styles.infoText}>📞 Contacto: {perfil.contacto}</Text>
-            <Text style={styles.infoText}>✉️ Email: {perfil.email}</Text>
-          </View>
-        );
-      case 'direccao':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Corpo Directivo</Text>
-            <Text style={styles.infoText}>👨‍💼 Director Geral: {perfil.director_geral}</Text>
-            <Text style={styles.infoText}>👨‍💼 Vice-Director: {perfil.vice_director}</Text>
-          </View>
-        );
-      case 'cursos':
-        return (
-          <View style={styles.cardContent}>
-            <View style={styles.cursosHeaderRow}>
-              <Text style={styles.cardTitle}>Cursos Lecionados</Text>
-              <TouchableOpacity style={styles.addCursoBtn} onPress={() => handleAbrirModalCurso()}>
-                <Text style={styles.addCursoBtnText}>+ Novo Curso</Text>
-              </TouchableOpacity>
-            </View>
-
-            {cursosList.map((curso) => {
-              const disponiveis = curso.vagasTotal - curso.vagasOcupadas;
-              const estaLotado = disponiveis <= 0;
-              const percentual = Math.min(100, Math.round((curso.vagasOcupadas / curso.vagasTotal) * 100)) || 0;
-
-              return (
-                <TouchableOpacity key={curso.id} style={styles.cursoCardItem} onPress={() => handleAbrirModalCurso(curso)}>
-                  <View style={styles.cursoMainInfo}>
-                    <Text style={styles.cursoIcone}>{curso.icone}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.cursoNomeText}>{curso.nome}</Text>
-                      <Text style={styles.cursoVagasText}>{curso.vagasOcupadas} de {curso.vagasTotal} vagas preenchidas</Text>
-                    </View>
-                    <View style={[styles.badgeVagas, estaLotado ? styles.badgeLotado : styles.badgeDisponivel]}>
-                      <Text style={[styles.badgeVagasText, estaLotado ? styles.badgeLotadoText : styles.badgeDisponivelText]}>
-                        {estaLotado ? '🚫 Lotado' : `✅ ${disponiveis} vagas`}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.progressBarBackground}>
-                    <View style={[styles.progressBarFill, { width: `${percentual}%`, backgroundColor: estaLotado ? '#ef4444' : '#1d5bd8' }]} />
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        );
-      case 'alunos':
-        return (
-          <View style={styles.cardContent}>
-            <View style={styles.cursosHeaderRow}>
-              <Text style={styles.cardTitle}>Alunos Matriculados ({alunosList.length})</Text>
-              <TouchableOpacity style={styles.addCursoBtn} onPress={() => setCurrentScreen('cadastrar')}>
-                <Text style={styles.addCursoBtnText}>+ Novo Aluno</Text>
-              </TouchableOpacity>
-            </View>
-
-            {alunosList.length === 0 ? (
-              <Text style={styles.cardSubtext}>Nenhum aluno cadastrado no momento.</Text>
-            ) : (
-              alunosList.map((aluno) => (
-                <View key={aluno.id} style={styles.alunoCardItem}>
-                  <View style={styles.alunoCardHeader}>
-                    {aluno.fotoUrl ? (
-                      <Image source={{ uri: aluno.fotoUrl }} style={styles.alunoAvatar} />
-                    ) : (
-                      <View style={[styles.alunoAvatar, styles.placeholderImage]}>
-                        <Text style={styles.placeholderText}>🎓</Text>
-                      </View>
-                    )}
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.alunoNomeText}>{aluno.nomeCompleto}</Text>
-                      <Text style={styles.alunoBiText}>BI: {aluno.bi}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.alunoTagsRow}>
-                    <View style={styles.alunoBadgeProc}>
-                      <Text style={styles.alunoBadgeProcText}>📄 {aluno.numProcesso}</Text>
-                    </View>
-                    <View style={styles.alunoBadgeTurma}>
-                      <Text style={styles.alunoBadgeTurmaText}>🏫 Turma: {aluno.codigoTurma}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.dividerLight} />
-
-                  <Text style={styles.alunoInfoRow}>🎓 <Text style={{ fontWeight: 'bold' }}>Curso:</Text> {aluno.curso} ({aluno.nivel})</Text>
-                  {aluno.encarregadoNome ? (
-                    <Text style={styles.alunoInfoRow}>👨‍👦 <Text style={{ fontWeight: 'bold' }}>Encarregado:</Text> {aluno.encarregadoNome} ({aluno.encarregadoTelefone})</Text>
-                  ) : null}
-                </View>
-              ))
-            )}
-          </View>
-        );
-      case 'pautas':
-        return <View style={styles.cardContent}><Text style={styles.cardTitle}>Pautas</Text><Text style={styles.cardSubtext}>{pautas}</Text></View>;
-      case 'classes':
-        return <View style={styles.cardContent}><Text style={styles.cardTitle}>Classes</Text><Text style={styles.cardSubtext}>{classes}</Text></View>;
-      case 'eventos':
-        return <View style={styles.cardContent}><Text style={styles.cardTitle}>Eventos</Text><Text style={styles.cardSubtext}>{eventos}</Text></View>;
-      case 'professores':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Corpo Docente</Text>
-            <Text style={styles.cardSubtext}>{professoresList.length > 0 ? professoresList.join(', ') : 'Nenhum professor cadastrado.'}</Text>
-          </View>
-        );
-      default:
-        return null;
-    }
-  };
-
-  if (loading) {
+  // TELA DE AUTENTICAÇÃO (SE NÃO ESTIVER LOGADO)
+  if (!session) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#1d5bd8" />
-        <Text style={{ marginTop: 10, color: '#334155' }}>A processar...</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.authContainer}>
+        <View style={styles.authBox}>
+          <Text style={styles.authLogo}>🏫 Portal Escolar</Text>
+          <Text style={styles.authSubtitle}>
+            {authMode === 'login' ? 'Entre no sistema da sua instituição' : 'Crie uma nova conta institucional'}
+          </Text>
+
+          {authMode === 'register' && (
+            <>
+              <Text style={styles.label}>Nome da Escola / Instituição:</Text>
+              <TextInput style={styles.input} value={nomeEscola} onChangeText={setNomeEscola} placeholder="Ex: Colégio Baú" />
+
+              <Text style={styles.label}>NIF da Instituição:</Text>
+              <TextInput style={styles.input} value={nif} onChangeText={setNif} placeholder="Ex: 0082506071LA40" />
+            </>
+          )}
+
+          <Text style={styles.label}>E-mail:</Text>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholder="escola@exemplo.com"
+          />
+
+          <Text style={styles.label}>Palavra-passe:</Text>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="••••••••"
+          />
+
+          {loading ? (
+            <ActivityIndicator size="large" color="#1d5bd8" style={{ marginTop: 20 }} />
+          ) : (
+            <TouchableOpacity
+              style={styles.authPrimaryBtn}
+              onPress={authMode === 'login' ? handleSignIn : handleSignUp}
+            >
+              <Text style={styles.authPrimaryBtnText}>
+                {authMode === 'login' ? 'Entrar no Portal' : 'Criar Conta'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.switchAuthBtn}
+            onPress={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+          >
+            <Text style={styles.switchAuthText}>
+              {authMode === 'login'
+                ? 'Não tem uma conta? Cadastre a sua Escola'
+                : 'Já tem uma conta? Fazer Login'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     );
   }
 
+  // TELA SECUNDÁRIA: CADASTRO DE ALUNO
   if (currentScreen === 'cadastrar') {
     return (
       <ScrollView style={styles.container}>
@@ -392,39 +381,49 @@ export default function PerfilInstituicao() {
           <Text style={styles.label}>Curso Pretendido:</Text>
           <TextInput style={styles.input} value={alunoForm.curso} onChangeText={(t) => setAlunoForm({ ...alunoForm, curso: t })} placeholder="Ex: Informática" />
 
-          <Text style={styles.label}>Nome do Encarregado de Educação:</Text>
+          <Text style={styles.label}>Nome do Encarregado:</Text>
           <TextInput style={styles.input} value={alunoForm.encarregadoNome} onChangeText={(t) => setAlunoForm({ ...alunoForm, encarregadoNome: t })} placeholder="Ex: Manuel Francisco" />
 
           <Text style={styles.label}>Telefone do Encarregado:</Text>
           <TextInput style={styles.input} value={alunoForm.encarregadoTelefone} onChangeText={(t) => setAlunoForm({ ...alunoForm, encarregadoTelefone: t })} keyboardType="phone-pad" placeholder="Ex: +244 923 000 111" />
 
           <TouchableOpacity style={styles.saveStudentBtn} onPress={handleCadastrarAluno}>
-            <Text style={styles.saveStudentBtnText}>✓ Salvar e Gerar Ficha do Aluno</Text>
+            <Text style={styles.saveStudentBtnText}>✓ Salvar no Banco de Dados</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     );
   }
 
+  const tabs = [
+    { id: 'geral', label: 'Geral' },
+    { id: 'direccao', label: '👔 Direcção' },
+    { id: 'cursos', label: `Cursos (${cursosList.length})` },
+    { id: 'alunos', label: `⭐ Alunos (${alunosList.length})` },
+  ];
+
+  // TELA PRINCIPAL
   return (
     <ScrollView style={styles.container}>
+      <View style={styles.topBar}>
+        <Text style={styles.userEmailText}>📍 {session.user.email}</Text>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut}>
+          <Text style={styles.logoutBtnText}>Sair 🚪</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.header}>
-        {perfil?.foto_url ? (
-          <Image source={{ uri: perfil.foto_url }} style={styles.profileImage} />
-        ) : (
-          <View style={[styles.profileImage, styles.placeholderImage]}><Text style={styles.placeholderText}>Logótipo</Text></View>
-        )}
-        <Text style={styles.schoolName}>{perfil?.nome || 'Instituição'}</Text>
-        <Text style={styles.schoolCategory}>🏫 {perfil?.categoria || 'Geral'}</Text>
-        <Text style={styles.headerInfo}>NIF: {perfil?.nif || 'N/A'}</Text>
+        <View style={[styles.profileImage, styles.placeholderImage]}>
+          <Text style={styles.placeholderText}>Logótipo</Text>
+        </View>
+        <Text style={styles.schoolName}>{perfil.nome}</Text>
+        <Text style={styles.schoolCategory}>🏫 {perfil.categoria}</Text>
+        <Text style={styles.headerInfo}>NIF: {perfil.nif}</Text>
       </View>
 
       <View style={styles.actionButtonsRow}>
         <TouchableOpacity style={styles.blueButton} onPress={() => setCurrentScreen('cadastrar')}>
           <Text style={styles.buttonText}>+ Cadastrar Aluno</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.grayButton} onPress={() => setCurrentScreen('cadastrarProf')}>
-          <Text style={styles.grayButtonText}>+ Professor</Text>
         </TouchableOpacity>
       </View>
 
@@ -436,108 +435,94 @@ export default function PerfilInstituicao() {
         ))}
       </ScrollView>
 
-      <View style={styles.contentArea}>{renderTabContent()}</View>
+      <View style={styles.contentArea}>
+        {activeTab === 'geral' && (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Visão Geral</Text>
+            <Text style={styles.infoText}>🏫 Categoria: {perfil.categoria}</Text>
+            <Text style={styles.infoText}>📜 NIF: {perfil.nif}</Text>
+            <Text style={styles.infoText}>✉️ Email Conectado: {session.user.email}</Text>
+          </View>
+        )}
 
-      {/* MODAL CURSOS */}
-      <Modal visible={modalCursoVisivel} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>{cursoEmEdicao ? '✏️ Editar Curso e Vagas' : '➕ Novo Curso'}</Text>
-
-            <Text style={styles.label}>Ícone ou Emoji do Curso:</Text>
-            <TextInput style={styles.input} value={cursoForm.icone} onChangeText={(t) => setCursoForm({ ...cursoForm, icone: t })} />
-
-            <Text style={styles.label}>Nome do Curso:</Text>
-            <TextInput style={styles.input} value={cursoForm.nome} onChangeText={(t) => setCursoForm({ ...cursoForm, nome: t })} />
-
-            <Text style={styles.label}>Total de Vagas Oferecidas:</Text>
-            <TextInput style={styles.input} value={cursoForm.vagasTotal} onChangeText={(t) => setCursoForm({ ...cursoForm, vagasTotal: t })} keyboardType="numeric" />
-
-            <Text style={styles.label}>Vagas Já Ocupadas:</Text>
-            <TextInput style={styles.input} value={cursoForm.vagasOcupadas} onChangeText={(t) => setCursoForm({ ...cursoForm, vagasOcupadas: t })} keyboardType="numeric" />
-
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity style={styles.cancelModalBtn} onPress={() => setModalCursoVisivel(false)}>
-                <Text style={styles.cancelModalBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveModalBtn} onPress={handleSalvarCurso}>
-                <Text style={styles.saveModalBtnText}>Salvar</Text>
+        {activeTab === 'alunos' && (
+          <View style={styles.cardContent}>
+            <View style={styles.cursosHeaderRow}>
+              <Text style={styles.cardTitle}>Alunos ({alunosList.length})</Text>
+              <TouchableOpacity style={styles.addCursoBtn} onPress={() => setCurrentScreen('cadastrar')}>
+                <Text style={styles.addCursoBtnText}>+ Novo Aluno</Text>
               </TouchableOpacity>
             </View>
+
+            {loading ? (
+              <ActivityIndicator size="small" color="#1d5bd8" />
+            ) : alunosList.length === 0 ? (
+              <Text style={styles.cardSubtext}>Nenhum aluno cadastrado.</Text>
+            ) : (
+              alunosList.map((aluno) => (
+                <View key={aluno.id} style={styles.alunoCardItem}>
+                  <Text style={styles.alunoNomeText}>{aluno.nomeCompleto}</Text>
+                  <Text style={styles.alunoBiText}>BI: {aluno.bi}</Text>
+                  <Text style={styles.alunoInfoRow}>🎓 Curso: {aluno.curso}</Text>
+                  <Text style={styles.alunoInfoRow}>📄 Processo: {aluno.numProcesso}</Text>
+                </View>
+              ))
+            )}
           </View>
-        </View>
-      </Modal>
+        )}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc', paddingTop: 10 },
-  centered: { justifyContent: 'center', alignItems: 'center' },
+  authContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f1f5f9' },
+  authBox: { width: '100%', backgroundColor: '#fff', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#e2e8f0' },
+  authLogo: { fontSize: 24, fontWeight: 'bold', color: '#1d5bd8', textAlign: 'center', marginBottom: 6 },
+  authSubtitle: { fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 20 },
+  authPrimaryBtn: { backgroundColor: '#1d5bd8', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 15 },
+  authPrimaryBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  switchAuthBtn: { marginTop: 15, alignItems: 'center' },
+  switchAuthText: { color: '#1d5bd8', fontSize: 13, fontWeight: '600' },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
+  userEmailText: { fontSize: 12, color: '#64748b', fontWeight: 'bold' },
+  logoutBtn: { backgroundColor: '#fee2e2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  logoutBtnText: { color: '#ef4444', fontSize: 12, fontWeight: 'bold' },
   header: { alignItems: 'center', marginBottom: 15 },
-  profileImage: { width: 90, height: 90, borderRadius: 45, marginBottom: 10 },
+  profileImage: { width: 80, height: 80, borderRadius: 40, marginBottom: 10 },
   placeholderImage: { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' },
-  placeholderText: { color: '#64748b', fontSize: 16, fontWeight: 'bold' },
-  schoolName: { fontSize: 22, fontWeight: 'bold', color: '#000' },
-  schoolCategory: { fontSize: 13, color: '#555', marginVertical: 2 },
-  headerInfo: { fontSize: 13, color: '#666' },
-  actionButtonsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12 },
-  blueButton: { backgroundColor: '#1d5bd8', paddingVertical: 12, borderRadius: 8, flex: 1, marginRight: 4, alignItems: 'center' },
-  grayButton: { backgroundColor: '#e9ecef', paddingVertical: 12, borderRadius: 8, flex: 1, marginHorizontal: 3, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-  grayButtonText: { color: '#333', fontWeight: 'bold', fontSize: 12 },
-  tabsContainer: { flexDirection: 'row', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#e0e0e0', marginTop: 15 },
-  tabButton: { paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+  placeholderText: { color: '#64748b', fontSize: 14, fontWeight: 'bold' },
+  schoolName: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
+  schoolCategory: { fontSize: 13, color: '#64748b' },
+  headerInfo: { fontSize: 12, color: '#94a3b8' },
+  actionButtonsRow: { paddingHorizontal: 16, marginBottom: 10 },
+  blueButton: { backgroundColor: '#1d5bd8', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
+  tabsContainer: { flexDirection: 'row', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  tabButton: { paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   activeTabButton: { borderBottomColor: '#1d5bd8' },
-  tabText: { fontSize: 13, color: '#666', fontWeight: '500' },
+  tabText: { fontSize: 13, color: '#64748b' },
   activeTabText: { color: '#1d5bd8', fontWeight: 'bold' },
   contentArea: { padding: 16 },
-  cardContent: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16 },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  cardContent: { backgroundColor: '#fff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e2e8f0' },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
   cardSubtext: { fontSize: 13, color: '#64748b', marginTop: 8 },
-  infoText: { fontSize: 13, color: '#334155', marginTop: 4 },
-  cursosHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  addCursoBtn: { backgroundColor: '#1d5bd8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  infoText: { fontSize: 13, color: '#334155', marginTop: 6 },
+  cursosHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  addCursoBtn: { backgroundColor: '#1d5bd8', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
   addCursoBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  cursoCardItem: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12, marginBottom: 12 },
-  cursoMainInfo: { flexDirection: 'row', alignItems: 'center' },
-  cursoIcone: { fontSize: 22, marginRight: 10 },
-  cursoNomeText: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
-  cursoVagasText: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  badgeVagas: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeDisponivel: { backgroundColor: '#dcfce7' },
-  badgeDisponivelText: { color: '#15803d', fontSize: 11, fontWeight: 'bold' },
-  badgeLotado: { backgroundColor: '#fee2e2' },
-  badgeLotadoText: { color: '#b91c1c', fontSize: 11, fontWeight: 'bold' },
-  progressBarBackground: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, marginTop: 10, overflow: 'hidden' },
-  progressBarFill: { height: '100%', borderRadius: 3 },
-  alunoCardItem: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 12, marginBottom: 12 },
-  alunoCardHeader: { flexDirection: 'row', alignItems: 'center' },
-  alunoAvatar: { width: 45, height: 45, borderRadius: 22.5 },
-  alunoNomeText: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
+  alunoCardItem: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, marginBottom: 8 },
+  alunoNomeText: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
   alunoBiText: { fontSize: 12, color: '#64748b' },
-  alunoTagsRow: { flexDirection: 'row', marginTop: 8, gap: 6 },
-  alunoBadgeProc: { backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  alunoBadgeProcText: { color: '#1e40af', fontSize: 11, fontWeight: 'bold' },
-  alunoBadgeTurma: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  alunoBadgeTurmaText: { color: '#166534', fontSize: 11, fontWeight: 'bold' },
-  dividerLight: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 8 },
   alunoInfoRow: { fontSize: 12, color: '#334155', marginTop: 2 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContainer: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 10 },
   label: { fontSize: 12, color: '#475569', marginTop: 10, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, marginTop: 4, backgroundColor: '#f8fafc' },
-  modalButtonsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
-  cancelModalBtn: { backgroundColor: '#e2e8f0', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 8 },
-  cancelModalBtnText: { color: '#475569', fontWeight: 'bold' },
-  saveModalBtn: { backgroundColor: '#16a34a', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-  saveModalBtnText: { color: '#fff', fontWeight: 'bold' },
-  headerForm: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
-  formTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, marginTop: 4, backgroundColor: '#fff' },
+  headerForm: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 },
+  formTitle: { fontSize: 18, fontWeight: 'bold' },
   backBtn: { backgroundColor: '#e2e8f0', padding: 8, borderRadius: 6 },
   backBtnText: { color: '#475569', fontWeight: 'bold', fontSize: 12 },
   formCard: { padding: 16, backgroundColor: '#fff', margin: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   saveStudentBtn: { backgroundColor: '#16a34a', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
-  saveStudentBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  saveStudentBtnText: { color: '#fff', fontWeight: 'bold' },
 });
