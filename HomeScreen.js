@@ -30,10 +30,14 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // Lógica de navegação do botão marcado
   const handleOpenInstituicao = () => {
-    // Redireciona para PerfilInstituicao (que já gerencia se exibe Login/Cadastro ou o Perfil)
     setCurrentScreen('perfil');
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    Alert.alert('Sessão Encerrada', 'Fizeste logout com sucesso.');
   };
 
   if (currentScreen === 'perfil') {
@@ -44,7 +48,14 @@ export default function HomeScreen() {
     <ScrollView style={styles.container}>
       {/* Cabeçalho */}
       <View style={styles.header}>
-        <Text style={styles.logoTitle}>Portal Escola</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.logoTitle}>Portal Escola</Text>
+          {session && (
+            <TouchableOpacity style={styles.logoutHeaderBtn} onPress={handleSignOut}>
+              <Text style={styles.logoutHeaderBtnText}>Sair 🚪</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Menu Principal */}
@@ -58,7 +69,7 @@ export default function HomeScreen() {
           <View style={styles.cardTextContainer}>
             <Text style={styles.cardTitle}>Página da Instituição (Estilo Facebook)</Text>
             <Text style={styles.cardSubtext}>
-              {session ? 'Aceder ao perfil da escola' : 'Entrar ou criar conta da escola'}
+              {session ? `Conectado como: ${session.user.email}` : 'Entrar ou criar conta da escola'}
             </Text>
           </View>
         </TouchableOpacity>
@@ -114,7 +125,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   header: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 10, backgroundColor: '#fff' },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logoTitle: { fontSize: 24, fontWeight: 'bold', color: '#1d5bd8' },
+  logoutHeaderBtn: { backgroundColor: '#fee2e2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  logoutHeaderBtnText: { color: '#ef4444', fontSize: 12, fontWeight: 'bold' },
   content: { padding: 16 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
   sectionSubtitle: { fontSize: 13, color: '#64748b', marginBottom: 15 },
