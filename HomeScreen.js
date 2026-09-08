@@ -12,50 +12,17 @@ import { supabase } from './lib/supabase';
 import PerfilInstituicao from './PerfilInstituicao';
 
 export default function HomeScreen() {
-  const [currentScreen, setCurrentScreen] = useState('menu'); // 'menu' ou 'perfil'
-  const [session, setSession] = useState(null);
+  const [screen, setScreen] = useState('menu'); // 'menu' ou 'perfil'
 
-  // Monitora a sessão ativa no Supabase
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  const handleOpenInstituicao = () => {
-    setCurrentScreen('perfil');
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    Alert.alert('Sessão Encerrada', 'Fizeste logout com sucesso.');
-  };
-
-  if (currentScreen === 'perfil') {
-    return <PerfilInstituicao onVoltar={() => setCurrentScreen('menu')} />;
+  if (screen === 'perfil') {
+    return <PerfilInstituicao onVoltar={() => setScreen('menu')} />;
   }
 
   return (
     <ScrollView style={styles.container}>
       {/* Cabeçalho */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Text style={styles.logoTitle}>Portal Escola</Text>
-          {session && (
-            <TouchableOpacity style={styles.logoutHeaderBtn} onPress={handleSignOut}>
-              <Text style={styles.logoutHeaderBtnText}>Sair 🚪</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <Text style={styles.logoTitle}>Portal Escola</Text>
       </View>
 
       {/* Menu Principal */}
@@ -64,25 +31,27 @@ export default function HomeScreen() {
         <Text style={styles.sectionSubtitle}>Selecione a opção desejada para navegar:</Text>
 
         {/* Opção Destacada: Página da Instituição */}
-        <TouchableOpacity style={styles.menuCard} onPress={handleOpenInstituicao}>
+        <TouchableOpacity 
+          style={styles.menuCard} 
+          activeOpacity={0.7}
+          onPress={() => setScreen('perfil')}
+        >
           <Text style={styles.cardIcon}>🏫</Text>
           <View style={styles.cardTextContainer}>
             <Text style={styles.cardTitle}>Página da Instituição (Estilo Facebook)</Text>
-            <Text style={styles.cardSubtext}>
-              {session ? `Conectado como: ${session.user.email}` : 'Entrar ou criar conta da escola'}
-            </Text>
+            <Text style={styles.cardSubtext}>Clique para entrar ou criar conta</Text>
           </View>
         </TouchableOpacity>
 
         {/* Outras opções */}
-        <TouchableOpacity style={styles.menuCard} onPress={() => Alert.alert('Em breve')}>
+        <TouchableOpacity style={styles.menuCard} onPress={() => Alert.alert('Aviso', 'Em breve')}>
           <Text style={styles.cardIcon}>🔍</Text>
           <View style={styles.cardTextContainer}>
             <Text style={styles.cardTitle}>Pesquisa de Alunos e Encarregados</Text>
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuCard} onPress={() => Alert.alert('Em breve')}>
+        <TouchableOpacity style={styles.menuCard} onPress={() => Alert.alert('Aviso', 'Em breve')}>
           <Text style={styles.cardIcon}>👨‍🏫</Text>
           <View style={styles.cardTextContainer}>
             <Text style={styles.cardTitle}>Cadastramento de Professores</Text>
@@ -125,10 +94,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   header: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 10, backgroundColor: '#fff' },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logoTitle: { fontSize: 24, fontWeight: 'bold', color: '#1d5bd8' },
-  logoutHeaderBtn: { backgroundColor: '#fee2e2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  logoutHeaderBtnText: { color: '#ef4444', fontSize: 12, fontWeight: 'bold' },
   content: { padding: 16 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
   sectionSubtitle: { fontSize: 13, color: '#64748b', marginBottom: 15 },
@@ -145,7 +111,7 @@ const styles = StyleSheet.create({
   cardIcon: { fontSize: 24, marginRight: 12 },
   cardTextContainer: { flex: 1 },
   cardTitle: { fontSize: 15, fontWeight: 'bold', color: '#0f172a' },
-  cardSubtext: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  cardSubtext: { fontSize: 12, color: '#1d5bd8', marginTop: 2, fontWeight: '500' },
   bannerDark: {
     backgroundColor: '#064e3b',
     borderRadius: 12,
