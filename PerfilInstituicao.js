@@ -13,11 +13,11 @@ import { supabase } from './lib/supabase';
 
 export default function PerfilInstituicao({ onVoltar }) {
   const [session, setSession] = useState(null);
-  const [authMode, setAuthMode] = useState('register'); // 'register' (Criar Conta) ou 'login' (Entrar)
+  const [authMode, setAuthMode] = useState('login'); // Definido 'login' por padrão ao clicar
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // Campos do formulário
+  // Campos de login e cadastro
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nomeEscola, setNomeEscola] = useState('');
@@ -39,9 +39,26 @@ export default function PerfilInstituicao({ onVoltar }) {
     };
   }, []);
 
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert('Atenção', 'Por favor, preencha o e-mail e a palavra-passe.');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setLoading(false);
+    if (error) {
+      Alert.alert('Erro ao Entrar', error.message);
+    }
+  };
+
   const handleSignUp = async () => {
     if (!email || !password || !nomeEscola) {
-      Alert.alert('Atenção', 'Preencha o nome da escola, email e palavra-passe.');
+      Alert.alert('Atenção', 'Preencha o nome da instituição, e-mail e palavra-passe.');
       return;
     }
     setLoading(true);
@@ -64,23 +81,6 @@ export default function PerfilInstituicao({ onVoltar }) {
     }
   };
 
-  const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert('Atenção', 'Preencha o email e a palavra-passe.');
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    setLoading(false);
-    if (error) {
-      Alert.alert('Erro ao Entrar', error.message);
-    }
-  };
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setSession(null);
@@ -94,7 +94,7 @@ export default function PerfilInstituicao({ onVoltar }) {
     );
   }
 
-  // CASO NÃO HOUVER SESSÃO ATIVA (MOSTRA FORMULÁRIO COM OPÇÕES DE CRIAR CONTA E LOGIN)
+  // TELA DE LOGIN / CADASTRO (QUANDO NÃO HOUVER SESSÃO ATIVA)
   if (!session) {
     return (
       <ScrollView contentContainerStyle={styles.authContainer}>
@@ -108,23 +108,23 @@ export default function PerfilInstituicao({ onVoltar }) {
           <Text style={styles.authLogo}>🏫 Portal Escolar</Text>
           <Text style={styles.authSubtitle}>Área da Instituição / Escola</Text>
 
-          {/* Abas para alternar entre Criar Conta e Entrar */}
+          {/* Seletor entre Login e Criar Conta */}
           <View style={styles.tabSelector}>
+            <TouchableOpacity
+              style={[styles.tabBtn, authMode === 'login' && styles.tabBtnActive]}
+              onPress={() => setAuthMode('login')}
+            >
+              <Text style={[styles.tabBtnText, authMode === 'login' && styles.tabBtnTextActive]}>
+                Entrar / Login
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.tabBtn, authMode === 'register' && styles.tabBtnActive]}
               onPress={() => setAuthMode('register')}
             >
               <Text style={[styles.tabBtnText, authMode === 'register' && styles.tabBtnTextActive]}>
                 Criar Conta
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabBtn, authMode === 'login' && styles.tabBtnActive]}
-              onPress={() => setAuthMode('login')}
-            >
-              <Text style={[styles.tabBtnText, authMode === 'login' && styles.tabBtnTextActive]}>
-                Já tenho conta
               </Text>
             </TouchableOpacity>
           </View>
@@ -174,10 +174,10 @@ export default function PerfilInstituicao({ onVoltar }) {
           ) : (
             <TouchableOpacity
               style={styles.authPrimaryBtn}
-              onPress={authMode === 'register' ? handleSignUp : handleSignIn}
+              onPress={authMode === 'login' ? handleSignIn : handleSignUp}
             >
               <Text style={styles.authPrimaryBtnText}>
-                {authMode === 'register' ? 'Criar Conta da Escola' : 'Entrar no Sistema'}
+                {authMode === 'login' ? 'Entrar no Sistema' : 'Criar Conta da Escola'}
               </Text>
             </TouchableOpacity>
           )}
@@ -186,7 +186,7 @@ export default function PerfilInstituicao({ onVoltar }) {
     );
   }
 
-  // CASO JÁ TENHA SESSÃO ATIVA
+  // TELA DE CONTEÚDO (APÓS LOGIN EFETUADO COM SUCESSO)
   return (
     <ScrollView style={styles.container}>
       <View style={styles.topBar}>
@@ -208,7 +208,7 @@ export default function PerfilInstituicao({ onVoltar }) {
 
       <View style={styles.contentArea}>
         <TouchableOpacity style={styles.logoutBigBtn} onPress={handleSignOut}>
-          <Text style={styles.logoutBigBtnText}>🔒 Clique aqui para Fazer Logout e testar com outra conta</Text>
+          <Text style={styles.logoutBigBtnText}>🔒 Fazer Logout para pedir Login novamente ao entrar</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
