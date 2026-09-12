@@ -102,6 +102,20 @@ export default function PerfilInstituicao() {
     setModalAluno(true);
   };
 
+  const solicitarTransferencia = () => {
+    Alert.alert(
+      'Solicitar Transferência',
+      `Deseja iniciar o processo de transferência para o estudante ${alunoSelecionado?.nome}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Confirmar', 
+          onPress: () => Alert.alert('Sucesso', 'Pedido de transferência registado com sucesso!') 
+        }
+      ]
+    );
+  };
+
   const salvarEdicaoAluno = async () => {
     if (!alunoSelecionado) return;
     
@@ -169,7 +183,7 @@ export default function PerfilInstituicao() {
           </View>
         </View>
 
-        {/* BOTOES DE AÇÃO */}
+        {/* BOTOES DE AÇÃO RÁPIDA */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.areaBotoes}>
           <TouchableOpacity style={[styles.quadroBtn, styles.quadroAzul]} onPress={() => Alert.alert('Aluno', 'Cadastrar Aluno')}>
             <Text style={styles.textoBtnAzul}>+ Cadastrar Aluno</Text>
@@ -346,7 +360,7 @@ export default function PerfilInstituicao() {
         </View>
       </ScrollView>
 
-      {/* MODAL PERFIL DO ESTUDANTE (COM EDIÇÃO) */}
+      {/* MODAL PERFIL DO ESTUDANTE */}
       <Modal visible={modalAluno} animationType="slide" transparent>
         <View style={styles.modalBg}>
           <ScrollView style={styles.modalPerfilBody}>
@@ -403,6 +417,11 @@ export default function PerfilInstituicao() {
                 <View style={styles.infoLinha}><Text style={styles.infoLabel}>Nível / Classe:</Text><Text style={styles.infoValor}>{alunoSelecionado?.nivel || alunoSelecionado?.classe || 'N/A'}</Text></View>
                 <View style={styles.infoLinha}><Text style={styles.infoLabel}>Encarregado:</Text><Text style={styles.infoValor}>{alunoSelecionado?.encarregado || 'Não Registado'}</Text></View>
                 <View style={styles.infoLinha}><Text style={styles.infoLabel}>Contacto:</Text><Text style={styles.infoValor}>{alunoSelecionado?.contacto || 'Não Registado'}</Text></View>
+
+                {/* BOTÃO DE SOLICITAR TRANSFERÊNCIA DE ESTUDANTE */}
+                <TouchableOpacity style={styles.btnTransferencia} onPress={solicitarTransferencia}>
+                  <Text style={styles.btnTextoTransferencia}>🔄 Solicitar Transferência de Estudante</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity style={styles.btnEditarPerfil} onPress={() => setModoEdicaoAluno(true)}>
                   <Text style={styles.btnTexto}>✏️ Editar Dados do Estudante</Text>
@@ -484,7 +503,6 @@ const styles = StyleSheet.create({
   textoVazio: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', marginVertical: 20 },
   itemLista: { fontSize: 14, color: '#1F2937', marginVertical: 4 },
 
-  // CARD DE CADA ALUNO DA LISTA
   cardAluno: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -505,7 +523,6 @@ const styles = StyleSheet.create({
   nomeAlunoCard: { fontSize: 16, fontWeight: 'bold', color: '#1F2937' },
   detalheAlunoCard: { fontSize: 13, color: '#6B7280', marginTop: 1 },
 
-  // MODAL DE PERFIL DO ALUNO
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 10 },
   modalPerfilBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 12, maxHeight: '85%' },
@@ -519,7 +536,9 @@ const styles = StyleSheet.create({
   labelInput: { fontSize: 13, fontWeight: 'bold', color: '#374151', marginTop: 8, marginBottom: 2 },
   input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB' },
   
-  btnEditarPerfil: { backgroundColor: '#2563EB', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  btnTransferencia: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15 },
+  btnTextoTransferencia: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
+  btnEditarPerfil: { backgroundColor: '#2563EB', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
   btnSalvar: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15 },
   btnCancelar: { padding: 10, alignItems: 'center', marginTop: 5 },
   btnTexto: { color: '#FFF', fontWeight: 'bold' },
