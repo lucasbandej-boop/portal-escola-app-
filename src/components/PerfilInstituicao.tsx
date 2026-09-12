@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Phone, Mail, FileText, UserPlus, GraduationCap, Edit3, Trash2, 
-  Plus, X, CheckCircle, Calendar, Star, Award, BookOpen, School, Users, Sparkles
+  CheckCircle, Calendar, Star, Award, BookOpen, School, Users, Sparkles, X
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import type { Instituicao, Curso, Classe, Pauta, Evento, AlunoDestaque, Aluno, Professor } from '../types';
