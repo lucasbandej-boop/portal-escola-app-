@@ -1,174 +1,60 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Platform,
-} from 'react-native';
-import { supabase } from '../supabase';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { supabase } from '../../supabase';
 
-export default function LoginEscola({ onNavigateRegister, onLoginSuccess }) {
-  const [licencaOuNome, setLicencaOuNome] = useState('');
-  const [senha, setSenha] = useState('');
+export default function LoginEscola({ navigation }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const showAlert = (titulo, mensagem) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${titulo}: ${mensagem}`);
-    } else {
-      Alert.alert(titulo, mensagem);
-    }
-  };
-
   const handleLogin = async () => {
-    if (!licencaOuNome.trim() || !senha.trim()) {
-      showAlert('Atenção', 'Por favor, preencha a Licença/Nome e a Senha.');
+    if (!email || !password) {
+      Alert.alert('Atenção', 'Preencha o e-mail e a senha.');
       return;
     }
-
     setLoading(true);
-
-    try {
-      // Buscar escola pelo Número de Licença ou pelo Nome da Instituição
-      const { data, error } = await supabase
-        .from('escolas')
-        .select('*')
-        .or(`numero_licenca.eq.${licencaOuNome.trim()},nome.ilike.%${licencaOuNome.trim()}%`)
-        .eq('senha_acesso', senha.trim())
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
-        showAlert('Erro de Acesso', 'Credenciais inválidas. Verifique o número de licença/nome e a senha.');
-        setLoading(false);
-        return;
-      }
-
-      showAlert('Sucesso', `Bem-vindo, ${data.nome}!`);
-      if (onLoginSuccess) {
-        onLoginSuccess(data);
-      }
-    } catch (err) {
-      showAlert('Erro', err.message || 'Falha ao realizar login.');
-    } finally {
-      setLoading(false);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      Alert.alert('Erro no Acesso', error.message);
+    } else {
+      navigation.navigate('PerfilInstituicao');
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.titulo}>Portal Escola</Text>
-        <Text style={styles.subtitulo}>Acesso à Secretaria Virtual</Text>
-
-        <Text style={styles.label}>Nº de Licença ou Nome da Escola</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: LIC-2026-001 ou Colégio ABC"
-          value={licencaOuNome}
-          onChangeText={setLicencaOuNome}
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.label}>Senha de Acesso</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite a senha"
-          value={senha}
-          onChangeText={setSenha}
-          secureTextEntry
-        />
-
-        <TouchableOpacity style={styles.botaoLogin} onPress={handleLogin} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.textoBotao}>Entrar na Plataforma</Text>
-          )}
+      <Text style={styles.title}>🔐 Acesso da Instituição</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="E-mail da Escola"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Palavra-passe"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#2563EB" />
+      ) : (
+        <TouchableOpacity style={styles.btn} onPress={handleLogin}>
+          <Text style={styles.btnText}>Entrar no Portal</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.linkCadastro} onPress={onNavigateRegister}>
-          <Text style={styles.textoLink}>Não tem conta? Cadastrar Instituição</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#F1F5F9',
-  },
-  card: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  titulo: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    textAlign: 'center',
-  },
-  subtitulo: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#0F172A',
-    marginBottom: 16,
-  },
-  botaoLogin: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  textoBotao: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  linkCadastro: {
-    marginTop: 18,
-    alignItems: 'center',
-  },
-  textoLink: {
-    color: '#2563EB',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#F3F4F6' },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 20, textAlign: 'center' },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#FFF' },
+  btn: { backgroundColor: '#2563EB', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
 });
