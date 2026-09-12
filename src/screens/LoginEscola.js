@@ -9,7 +9,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../supabase';
 
 export default function LoginEscola({ onNavigateRegister, onLoginSuccess }) {
   const [licencaOuNome, setLicencaOuNome] = useState('');
