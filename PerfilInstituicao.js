@@ -6,21 +6,29 @@ import {
   ScrollView, 
   TouchableOpacity, 
   ActivityIndicator,
+  Modal,
+  TextInput,
   Alert
 } from 'react-native';
 import { supabase } from './supabase';
 
 export default function PerfilInstituicao() {
-  const [abaAtiva, setAbaAtiva] = useState('geral'); // 'geral', 'pauta', 'alunos', 'professores', 'classes', 'eventos', 'destaque'
+  const [abaAtiva, setAbaAtiva] = useState('geral');
   const [instituicao, setInstituicao] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
-  // Estados de Listas
+  // Modal de Adicionar Curso
+  const [modalCurso, setModalCurso] = useState(false);
+  const [nomeCurso, setNomeCurso] = useState('');
+  const [duracaoCurso, setDuracaoCurso] = useState('');
+
+  // Listas
   const [alunos, setAlunos] = useState([]);
   const [professores, setProfessores] = useState([]);
   const [classes, setClasses] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [alunosDestaque, setAlunosDestaque] = useState([]);
+  const [cursos, setCursos] = useState([]);
 
   useEffect(() => {
     carregarDados();
@@ -47,10 +55,27 @@ export default function PerfilInstituicao() {
       const resDestaques = await supabase.from('alunos_destaque').select('*');
       if (resDestaques.data) setAlunosDestaque(resDestaques.data);
 
+      const resCursos = await supabase.from('cursos').select('*');
+      if (resCursos.data) setCursos(resCursos.data);
+
     } catch (err) {
       console.log('Erro ao carregar:', err);
     } finally {
       setCarregando(false);
+    }
+  };
+
+  const salvarCurso = async () => {
+    if (!nomeCurso) return Alert.alert('Aviso', 'Escreva o nome do curso.');
+    const { error } = await supabase.from('cursos').insert([{ nome: nomeCurso, duracao: duracaoCurso }]);
+    if (!error) {
+      Alert.alert('Sucesso', 'Curso adicionado!');
+      setNomeCurso('');
+      setDuracaoCurso('');
+      setModalCurso(false);
+      carregarDados();
+    } else {
+      Alert.alert('Erro', 'Não foi possível salvar o curso.');
     }
   };
 
@@ -64,7 +89,7 @@ export default function PerfilInstituicao() {
 
   return (
     <View style={styles.mainContainer}>
-      {/* CABEÇALHO DA INSTITUIÇÃO */}
+      {/* CABEÇALHO */}
       <View style={styles.header}>
         <Text style={styles.nomeInstituicao}>{instituicao?.nome || 'Colégio baú'}</Text>
         <Text style={styles.categoria}>🏫 Escola / Instituição de Ensino</Text>
@@ -76,54 +101,57 @@ export default function PerfilInstituicao() {
         </View>
       </View>
 
-      {/* BARRA DE ABAS DE NAVEGAÇÃO SUPERIOR */}
+      {/* BARRA DE QUADROS / BOTÕES DE AÇÃO RÁPIDA */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.areaBotoes}>
+        <TouchableOpacity style={[styles.quadroBtn, styles.quadroAzul]} onPress={() => Alert.alert('Aluno', 'Cadastrar Aluno')}>
+          <Text style={styles.textoBtnAzul}>+ Cadastrar Aluno</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quadroBtn} onPress={() => Alert.alert('Professor', 'Cadastrar Professor')}>
+          <Text style={styles.textoBtn}>+ Professor</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quadroBtn} onPress={() => Alert.alert('Editar', 'Editar Perfil')}>
+          <Text style={styles.textoBtn}>✏️ Editar</Text>
+        </TouchableOpacity>
+
+        {/* NOVO QUADRO: ADICIONAR CURSO */}
+        <TouchableOpacity style={styles.quadroBtn} onPress={() => setModalCurso(true)}>
+          <Text style={styles.textoBtn}>🎓 + Curso</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* BARRA DE ABAS SUPERIOR */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.menuAbas}>
-        <TouchableOpacity 
-          style={[styles.btnAba, abaAtiva === 'geral' && styles.btnAbaAtiva]} 
-          onPress={() => setAbaAtiva('geral')}
-        >
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'geral' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('geral')}>
           <Text style={[styles.textoAba, abaAtiva === 'geral' && styles.textoAbaAtiva]}>Geral</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.btnAba, abaAtiva === 'pauta' && styles.btnAbaAtiva]} 
-          onPress={() => setAbaAtiva('pauta')}
-        >
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'cursos' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('cursos')}>
+          <Text style={[styles.textoAba, abaAtiva === 'cursos' && styles.textoAbaAtiva]}>Cursos ({cursos.length})</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'pauta' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('pauta')}>
           <Text style={[styles.textoAba, abaAtiva === 'pauta' && styles.textoAbaAtiva]}>📊 Pauta Trimestral</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.btnAba, abaAtiva === 'alunos' && styles.btnAbaAtiva]} 
-          onPress={() => setAbaAtiva('alunos')}
-        >
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'alunos' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('alunos')}>
           <Text style={[styles.textoAba, abaAtiva === 'alunos' && styles.textoAbaAtiva]}>Alunos ({alunos.length})</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.btnAba, abaAtiva === 'professores' && styles.btnAbaAtiva]} 
-          onPress={() => setAbaAtiva('professores')}
-        >
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'professores' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('professores')}>
           <Text style={[styles.textoAba, abaAtiva === 'professores' && styles.textoAbaAtiva]}>Professores ({professores.length})</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.btnAba, abaAtiva === 'classes' && styles.btnAbaAtiva]} 
-          onPress={() => setAbaAtiva('classes')}
-        >
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'classes' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('classes')}>
           <Text style={[styles.textoAba, abaAtiva === 'classes' && styles.textoAbaAtiva]}>📚 Classes</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.btnAba, abaAtiva === 'eventos' && styles.btnAbaAtiva]} 
-          onPress={() => setAbaAtiva('eventos')}
-        >
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'eventos' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('eventos')}>
           <Text style={[styles.textoAba, abaAtiva === 'eventos' && styles.textoAbaAtiva]}>📅 Eventos</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.btnAba, abaAtiva === 'destaque' && styles.btnAbaAtiva]} 
-          onPress={() => setAbaAtiva('destaque')}
-        >
+        <TouchableOpacity style={[styles.btnAba, abaAtiva === 'destaque' && styles.btnAbaAtiva]} onPress={() => setAbaAtiva('destaque')}>
           <Text style={[styles.textoAba, abaAtiva === 'destaque' && styles.textoAbaAtiva]}>⭐ Alunos em Destaque</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -134,6 +162,20 @@ export default function PerfilInstituicao() {
           <View style={styles.boxConteudo}>
             <Text style={styles.subTitulo}>Visão Geral da Instituição</Text>
             <Text style={styles.descricao}>{instituicao?.descricao || 'Bem-vindo ao painel geral da instituição de ensino.'}</Text>
+          </View>
+        )}
+
+        {abaAtiva === 'cursos' && (
+          <View style={styles.boxConteudo}>
+            <Text style={styles.subTitulo}>Cursos Lecionados</Text>
+            {cursos.length === 0 ? <Text style={styles.textoVazio}>Nenhum curso registado.</Text> : (
+              cursos.map(item => (
+                <View key={item.id} style={styles.cardItem}>
+                  <Text style={styles.itemTitulo}>• {item.nome}</Text>
+                  {item.duracao ? <Text style={styles.itemSub}>Duração: {item.duracao}</Text> : null}
+                </View>
+              ))
+            )}
           </View>
         )}
 
@@ -189,6 +231,34 @@ export default function PerfilInstituicao() {
           </View>
         )}
       </ScrollView>
+
+      {/* MODAL: ADICIONAR CURSO */}
+      <Modal visible={modalCurso} animationType="slide" transparent>
+        <View style={styles.modalBg}>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitulo}>Adicionar Novo Curso</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nome do Curso (ex: Informática)" 
+              value={nomeCurso} 
+              onChangeText={setNomeCurso} 
+            />
+            <TextInput 
+              style={styles.input} 
+              placeholder="Duração (ex: 3 Anos)" 
+              value={duracaoCurso} 
+              onChangeText={setDuracaoCurso} 
+            />
+            <TouchableOpacity style={styles.btnSalvar} onPress={salvarCurso}>
+              <Text style={styles.btnTexto}>Salvar Curso</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnFechar} onPress={() => setModalCurso(false)}>
+              <Text style={styles.btnTextoFechar}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -201,15 +271,48 @@ const styles = StyleSheet.create({
   categoria: { fontSize: 14, color: '#555', marginTop: 3, textAlign: 'center' },
   infoBox: { marginTop: 6, alignItems: 'center' },
   infoTexto: { fontSize: 13, color: '#666', marginTop: 2, textAlign: 'center' },
-  menuAbas: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#E5E7EB', maxHeight: 50 },
-  btnAba: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+
+  // BOTÕES EM QUADRO
+  areaBotoes: { flexDirection: 'row', paddingHorizontal: 10, marginVertical: 10, maxHeight: 75 },
+  quadroBtn: { 
+    width: 105, 
+    height: 65, 
+    backgroundColor: '#E5E7EB', 
+    borderRadius: 12, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 10,
+    padding: 5
+  },
+  quadroAzul: { backgroundColor: '#1D4ED8' },
+  textoBtn: { color: '#000', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
+  textoBtnAzul: { color: '#FFF', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
+
+  // BARRA DE ABAS
+  menuAbas: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#E5E7EB', maxHeight: 45 },
+  btnAba: { paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   btnAbaAtiva: { borderBottomColor: '#2563EB' },
   textoAba: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
   textoAbaAtiva: { color: '#2563EB', fontWeight: 'bold' },
+
+  // CONTEÚDO
   conteudo: { flex: 1, padding: 15 },
   boxConteudo: { backgroundColor: '#F9FAFB', padding: 15, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
   subTitulo: { fontSize: 16, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 10 },
   descricao: { fontSize: 14, color: '#374151', lineHeight: 20 },
   textoVazio: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' },
-  itemLista: { fontSize: 14, color: '#1F2937', marginVertical: 4 }
+  itemLista: { fontSize: 14, color: '#1F2937', marginVertical: 4 },
+  cardItem: { marginBottom: 8 },
+  itemTitulo: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+  itemSub: { fontSize: 12, color: '#6B7280', marginLeft: 12 },
+
+  // MODAL
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalBody: { backgroundColor: '#FFF', padding: 20, borderRadius: 10 },
+  modalTitulo: { fontSize: 18, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 15, textAlign: 'center' },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 10, marginBottom: 12 },
+  btnSalvar: { backgroundColor: '#059669', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 5 },
+  btnTexto: { color: '#FFF', fontWeight: 'bold' },
+  btnFechar: { padding: 10, alignItems: 'center', marginTop: 5 },
+  btnTextoFechar: { color: '#DC2626', fontWeight: '600' }
 });
