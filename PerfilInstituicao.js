@@ -9,7 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { supabase } from './lib/supabase';
+import { supabase } from './supabase';
 
 export default function PerfilInstituicao({ onVoltar }) {
   const [session, setSession] = useState(null);

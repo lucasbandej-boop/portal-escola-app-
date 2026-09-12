@@ -1,3 +1,19 @@
+#!/bin/bash
+
+echo "🚀 Iniciando atualização automática do Portal Escolar..."
+
+# 1. Isolar conexão com Supabase em supabase.js
+cat << 'SUPABASE_EOF' > supabase.js
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = 'https://oqllnyyoktxjdemyxtpb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbGxueXlva3R4amRlbXl4dHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMjI5OTMsImV4cCI6MjEwMDc5ODk5M30.qZlRZwiLRK7gWWiaCBG89-kk6FGxERrOynbqTcWRVzM';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+SUPABASE_EOF
+
+# 2. Criar a HomeScreen.js com Menu e Pesquisa
+cat << 'HOME_EOF' > HomeScreen.js
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -142,3 +158,56 @@ const styles = StyleSheet.create({
   resultName: { fontSize: 15, fontWeight: 'bold', color: '#1E3A8A' },
   resultInfo: { fontSize: 13, color: '#4B5563', marginTop: 2 }
 });
+HOME_EOF
+
+# 3. Atualizar App.js com React Navigation
+cat << 'APP_EOF' > App.js
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import HomeScreen from './HomeScreen';
+import PerfilInstituicao from './PerfilInstituicao';
+import ProfessorScreen from './src/screens/ProfessorScreen';
+import LoginEscola from './src/screens/LoginEscola';
+
+const Stack = createNativeStackNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator 
+        initialRouteName="Home"
+        screenOptions={{
+          headerStyle: { backgroundColor: '#FFFFFF' },
+          headerTintColor: '#2563EB',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      >
+        <Stack.Screen 
+          name="Home" 
+          component={HomeScreen} 
+          options={{ title: 'Portal Escola' }} 
+        />
+        <Stack.Screen 
+          name="PerfilInstituicao" 
+          component={PerfilInstituicao} 
+          options={{ title: 'Página da Instituição' }} 
+        />
+        <Stack.Screen 
+          name="Professores" 
+          component={ProfessorScreen} 
+          options={{ title: 'Cadastramento de Professores' }} 
+        />
+        <Stack.Screen 
+          name="Login" 
+          component={LoginEscola} 
+          options={{ title: 'Acesso Restrito' }} 
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+APP_EOF
+
+echo "✅ Projeto atualizado com sucesso!"
