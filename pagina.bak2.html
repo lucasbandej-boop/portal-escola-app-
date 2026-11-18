@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Página da Instituição</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Roboto,sans-serif;background:#f1f3f5;color:#111827}
+#app{max-width:480px;margin:0 auto;min-height:100vh}
+header{background:#fff;padding:12px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+header .logo{font-size:20px;font-weight:bold;color:#2563eb;flex:1}
+.voltar{background:none;border:0;font-size:15px;font-weight:600;color:#2563eb;cursor:pointer}
+.box{padding:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;margin-bottom:12px}
+h1{font-size:24px;margin-bottom:4px}
+.sub{color:#6b7280;font-size:15px;margin-bottom:16px}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+input{width:100%;padding:13px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;background:#fff}
+input:focus{outline:2px solid #2563eb;border-color:#2563eb}
+input.inv{border-color:#dc2626}
+.erro{color:#dc2626;font-size:13px;margin-top:4px}
+.btn{display:block;width:100%;padding:15px;border:0;border-radius:12px;background:#2563eb;color:#fff;font-size:17px;font-weight:bold;margin-top:18px;cursor:pointer}
+.btn.sec{background:#e5e7eb;color:#111827;margin-top:10px}
+.btn.verde{background:#059669}
+.tabs{display:flex;background:#e5e7eb;border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs button{flex:1;padding:11px;border:0;border-radius:9px;background:none;font-size:15px;font-weight:600;cursor:pointer;color:#6b7280}
+.tabs button.on{background:#fff;color:#2563eb}
+.prog{height:8px;background:#e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:6px}
+.prog div{height:100%;background:#2563eb;transition:width .3s;width:33%}
+.passo{font-size:13px;color:#6b7280;margin-bottom:6px}
+.niveis{display:grid;gap:8px}
+.nivel{border:2px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;text-align:left;font-size:16px;font-weight:600;cursor:pointer}
+.nivel small{display:block;font-weight:400;color:#6b7280;font-size:13px}
+.nivel.on{border-color:#2563eb;background:#eff6ff}
+.linha{display:flex;gap:8px;margin-bottom:8px}
+.linha button{width:46px;border:0;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:20px;cursor:pointer}
+.foto-capa{height:140px;border:2px dashed #d1d5db;border-radius:12px;background:#f9fafb center/cover;display:flex;align-items:center;justify-content:center;color:#6b7280;cursor:pointer;text-align:center;padding:8px}
+.foto-perfil{width:110px;height:110px;border:2px dashed #d1d5db;border-radius:50%;background:#f9fafb center/cover;display:flex;align-items:center;justify-content:center;color:#6b7280;cursor:pointer;font-size:13px;text-align:center;padding:8px}
+.oculto{display:none!important}
+.capa{height:170px;background:#cbd5e1 center/cover}
+.topo{background:#fff;padding:0 16px 16px;border-bottom:1px solid #e5e7eb}
+.avatar{width:110px;height:110px;border-radius:50%;border:4px solid #fff;background:#e5e7eb center/cover;margin-top:-55px}
+.topo h1{margin-top:8px}
+.badge{display:inline-block;background:#dbeafe;color:#1d4ed8;font-size:13px;font-weight:600;padding:4px 10px;border-radius:20px;margin-top:6px}
+.acoes{display:flex;gap:8px;margin-top:14px}
+.acoes .btn{margin:0;padding:11px;font-size:15px}
+.info{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:15px}
+.info:last-child{border:0}
+.info b{min-width:120px;color:#6b7280;font-weight:600}
+
+.seta{background:none;border:0;font-size:28px;color:#2563eb;cursor:pointer;line-height:1}
+header .logo{font-size:22px}
+.topo{text-align:center;padding-bottom:14px}
+.avatar{margin:-55px auto 0}
+.topo h1{font-size:28px;margin-top:8px}
+.pf-sub{font-size:18px;color:#374151;margin-top:4px}
+.pf-lin{font-size:16px;color:#6b7280;margin-top:4px}
+.botoes{display:flex;gap:10px;overflow-x:auto;padding:16px}
+.bt{flex:0 0 30%;min-height:64px;border:0;border-radius:14px;background:#e5e7eb;color:#111827;font-size:15px;font-weight:700;cursor:pointer;padding:8px}
+.bt.azul{background:#1d4ed8;color:#fff}
+.ad{margin:0 16px;background:#eff6ff;border-radius:16px;padding:16px;transition:opacity .4s}
+.ad small{color:#ca8a04;font-weight:700;font-size:13px}
+.ad h3{color:#1e3a8a;font-size:20px;margin:6px 0 4px}
+.ad p{color:#4b5563;font-size:15px;line-height:1.4}
+.abas{display:flex;overflow-x:auto;background:#fff;border-bottom:2px solid #e5e7eb;margin-top:16px;padding:0 8px}
+.aba{flex:0 0 auto;border:0;background:none;padding:14px;font-size:16px;font-weight:600;color:#374151;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.aba.on{color:#1d4ed8;border-bottom-color:#1d4ed8}
+#aba-conteudo{background:#f8fafc}
+.ct{color:#1e3a8a;font-size:20px;margin-bottom:8px}
+.cp{font-size:17px;color:#374151;line-height:1.5;margin-bottom:8px}
+
+.seta{background:none;border:0;font-size:28px;color:#2563eb;cursor:pointer;line-height:1}
+header .logo{font-size:22px}
+.topo{text-align:center;padding-bottom:14px}
+.avatar{margin:-55px auto 0}
+.topo h1{font-size:28px;margin-top:8px}
+.pf-sub{font-size:18px;color:#374151;margin-top:4px}
+.pf-lin{font-size:16px;color:#6b7280;margin-top:4px}
+.botoes{display:flex;gap:10px;overflow-x:auto;padding:16px}
+.bt{flex:0 0 30%;min-height:64px;border:0;border-radius:14px;background:#e5e7eb;color:#111827;font-size:15px;font-weight:700;cursor:pointer;padding:8px}
+.bt.azul{background:#1d4ed8;color:#fff}
+.ad{margin:0 16px;background:#eff6ff;border-radius:16px;padding:16px;transition:opacity .4s}
+.ad small{color:#ca8a04;font-weight:700;font-size:13px}
+.ad h3{color:#1e3a8a;font-size:20px;margin:6px 0 4px}
+.ad p{color:#4b5563;font-size:15px;line-height:1.4}
+.abas{display:flex;overflow-x:auto;background:#fff;border-bottom:2px solid #e5e7eb;margin-top:16px;padding:0 8px}
+.aba{flex:0 0 auto;border:0;background:none;padding:14px;font-size:16px;font-weight:600;color:#374151;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.aba.on{color:#1d4ed8;border-bottom-color:#1d4ed8}
+#aba-conteudo{background:#f8fafc}
+.ct{color:#1e3a8a;font-size:20px;margin-bottom:8px}
+.cp{font-size:17px;color:#374151;line-height:1.5;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <button class="seta" onclick="location.href='preview.html'">←</button>
+  <div class="logo">Página da Instituição</div>
+</header>
+
+<!-- LOGIN / CRIAR CONTA -->
+<div id="t-auth" class="box oculto">
+  <h1>Página da Instituição</h1>
+  <p class="sub">Entre ou crie uma conta para gerir o perfil da sua instituição.</p>
+  <div class="card">
+    <div class="tabs">
+      <button id="tb-entrar" class="on" onclick="setModo('entrar')">Entrar</button>
+      <button id="tb-criar" onclick="setModo('criar')">Criar conta</button>
+    </div>
+    <label>Email</label>
+    <input id="a-email" type="email" autocomplete="email" placeholder="exemplo@email.com">
+    <label>Senha</label>
+    <input id="a-senha" type="password" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
+    <div id="a-conf" class="oculto">
+      <label>Confirmar senha</label>
+      <input id="a-senha2" type="password" autocomplete="new-password">
+    </div>
+    <div class="erro" id="a-erro"></div>
+    <button class="btn" id="a-btn" onclick="enviarAuth()">Entrar</button>
+  </div>
+</div>
+
+<!-- FORMULÁRIO DE CADASTRO -->
+<div id="t-form" class="box oculto">
+  <h1>Cadastro da Instituição</h1>
+  <p class="sub">Preencha os dados. O seu progresso é guardado automaticamente.</p>
+  <div class="prog"><div id="barra"></div></div>
+  <div class="passo" id="lbl"></div>
+
+  <div id="p1" class="card">
+    <label>Nome da instituição *</label>
+    <input id="f-nome" oninput="sv()" onblur="tc(this)" placeholder="Ex.: Colégio Nova Esperança">
+    <div class="erro" id="e-nome"></div>
+    <label>NIF da instituição *</label>
+    <input id="f-nif" maxlength="14" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-Z]/g,'');sv()" placeholder="Ex.: 0012345678LA01">
+    <div class="erro" id="e-nif"></div>
+    <label>Telefone (opcional)</label>
+    <input id="f-tel" inputmode="numeric" maxlength="9" oninput="this.value=this.value.replace(/\D/g,'');sv()" placeholder="9XXXXXXXX">
+    <div class="erro" id="e-tel"></div>
+    <label>Localização (opcional)</label>
+    <input id="f-local" oninput="sv()" placeholder="Município, bairro">
+  </div>
+
+  <div id="p2" class="card oculto">
+    <label>Nível da instituição *</label>
+    <div class="niveis">
+      <button class="nivel" data-n="iniciacao" onclick="setNivel('iniciacao')">🧸 Iniciação<small>Pede também professor e encarregados</small></button>
+      <button class="nivel" data-n="primario" onclick="setNivel('primario')">📘 Ensino Primário</button>
+      <button class="nivel" data-n="medio" onclick="setNivel('medio')">🎓 Ensino Médio</button>
+    </div>
+    <div class="erro" id="e-nivel"></div>
+    <label>Nome do(a) diretor(a) *</label>
+    <input id="f-diretor" oninput="sv()" onblur="tc(this)">
+    <div class="erro" id="e-diretor"></div>
+    <label>Nome do(a) secretário(a) *</label>
+    <input id="f-secretaria" oninput="sv()" onblur="tc(this)">
+    <div class="erro" id="e-secretaria"></div>
+    <div id="bloco-ini" class="oculto">
+      <label>Professor(a) responsável *</label>
+      <input id="f-professor" oninput="sv()" onblur="tc(this)">
+      <div class="erro" id="e-professor"></div>
+      <label>Encarregados *</label>
+      <div id="enc-lista"></div>
+      <button class="btn sec" style="margin-top:0" onclick="addEnc()">＋ Adicionar encarregado</button>
+      <div class="erro" id="e-enc"></div>
+    </div>
+  </div>
+
+  <div id="p3" class="card oculto">
+    <label>Foto de capa *</label>
+    <div class="foto-capa" id="p-capa" onclick="$('i-capa').click()"></div>
+    <input id="i-capa" type="file" accept="image/*" class="oculto" onchange="foto('capa',this)">
+    <div class="erro" id="e-capa"></div>
+    <label>Foto de perfil *</label>
+    <div class="foto-perfil" id="p-perfil" onclick="$('i-perfil').click()"></div>
+    <input id="i-perfil" type="file" accept="image/*" class="oculto" onchange="foto('perfil',this)">
+    <div class="erro" id="e-perfil"></div>
+  </div>
+
+  <button class="btn" id="b-prox" onclick="prox()">Continuar</button>
+  <button class="btn sec" id="b-volt" onclick="mostrar(passo-1)">← Voltar</button>
+</div>
+
+<!-- PERFIL ESTILO FACEBOOK -->
+<div id="t-perfil" class="oculto">
+  <div class="capa" id="capa"></div>
+  <div class="topo">
+    <div class="avatar" id="avatar"></div>
+    <h1 id="pf-nome"></h1>
+    <div class="pf-sub">🏫 Escola / Instituição de Ensino</div>
+    <div class="pf-lin" id="pf-nif"></div>
+    <div class="pf-lin" id="pf-tel"></div>
+    <div class="pf-lin" id="pf-mail"></div>
+  </div>
+  <div class="botoes">
+    <button class="bt azul" onclick="soon('Cadastrar Aluno')">+ Cadastrar Aluno</button>
+    <button class="bt" onclick="soon('Professor')">+ Professor</button>
+    <button class="bt" onclick="abrirForm(1)">✏️ Editar</button>
+    <button class="bt" onclick="sair()">🚪 Sair</button>
+  </div>
+  <div class="ad" id="ad"></div>
+  <div class="abas" id="abas"></div>
+  <div class="box"><div class="card" id="aba-conteudo"></div></div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const LS={
+  get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){alert('Sem espaço para guardar. Use fotos mais pequenas.');return false}}
+};
+const NIVEIS={iniciacao:'Iniciação',primario:'Ensino Primário',medio:'Ensino Médio'};
+const CAMPOS=['nome','nif','tel','local','diretor','secretaria','professor'];
+const MIN=['de','da','do','das','dos','e'];
+const vazio=()=>({nome:'',nif:'',tel:'',local:'',nivel:'',diretor:'',secretaria:'',professor:'',enc:[''],capa:'',perfil:''});
+let email='',d=vazio(),passo=1,modo='entrar';
+
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const titulo=s=>s.trim().toLowerCase().split(/\s+/).map((w,i)=>i&&MIN.includes(w)?w:w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+function tela(id){['auth','form','perfil'].forEach(t=>$('t-'+t).classList.toggle('oculto',t!==id));window.scrollTo(0,0)}
+async function hash(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+
+/* ---------- LOGIN ---------- */
+function setModo(m){modo=m;$('tb-entrar').classList.toggle('on',m==='entrar');$('tb-criar').classList.toggle('on',m==='criar');$('a-conf').classList.toggle('oculto',m!=='criar');$('a-btn').textContent=m==='criar'?'Criar conta':'Entrar';$('a-erro').textContent=''}
+async function enviarAuth(){
+  const e=$('a-email').value.trim().toLowerCase(),s=$('a-senha').value;let erro='';
+  if(!/^\S+@\S+\.\S+$/.test(e))erro='Email inválido.';
+  else if(s.length<6)erro='A senha deve ter no mínimo 6 caracteres.';
+  else if(modo==='criar'&&s!==$('a-senha2').value)erro='As senhas não coincidem.';
+  if(!erro){
+    const users=LS.get('pe_users',{}),h=await hash(s);
+    if(modo==='criar'){if(users[e])erro='Este email já tem conta. Use "Entrar".';else{users[e]=h;LS.set('pe_users',users)}}
+    else if(users[e]!==h)erro='Email ou senha incorretos.';
+  }
+  $('a-erro').textContent=erro;if(erro)return;
+  LS.set('pe_sessao',e);iniciar();
+}
+function sair(){localStorage.removeItem('pe_sessao');email='';tela('auth')}
+function iniciar(){
+  email=LS.get('pe_sessao','');
+  if(!email){tela('auth');return}
+  const inst=LS.get('pe_inst_'+email,null);
+  if(inst){d=Object.assign(vazio(),inst);verPerfil()}
+  else{d=Object.assign(vazio(),LS.get('pe_rasc_'+email,{}));abrirForm(1)}
+}
+
+/* ---------- FORMULÁRIO ---------- */
+function sv(){
+  CAMPOS.forEach(k=>d[k]=$('f-'+k).value.trim());
+  if(email&&!LS.get('pe_inst_'+email,null))LS.set('pe_rasc_'+email,d);
+}
+function tc(el){el.value=titulo(el.value);sv()}
+function err(id,m){const e=$('e-'+id);if(e)e.textContent=m||'';const f=$('f-'+id);if(f)f.classList.toggle('inv',!!m);return !m}
+function setNivel(n){d.nivel=n;nivelUI();err('nivel','');sv()}
+function nivelUI(){
+  document.querySelectorAll('.nivel').forEach(b=>b.classList.toggle('on',b.dataset.n===d.nivel));
+  $('bloco-ini').classList.toggle('oculto',d.nivel!=='iniciacao');
+}
+function renderEnc(){
+  const box=$('enc-lista');box.innerHTML='';
+  if(!d.enc||!d.enc.length)d.enc=[''];
+  d.enc.forEach((v,i)=>{
+    const l=document.createElement('div');l.className='linha';
+    const inp=document.createElement('input');inp.placeholder='Nome do encarregado '+(i+1);inp.value=v;
+    inp.oninput=()=>{d.enc[i]=inp.value;sv()};
+    inp.onblur=()=>{inp.value=titulo(inp.value);d.enc[i]=inp.value;sv()};
+    l.appendChild(inp);
+    if(d.enc.length>1){const b=document.createElement('button');b.textContent='×';b.onclick=()=>{d.enc.splice(i,1);renderEnc();sv()};l.appendChild(b)}
+    box.appendChild(l);
+  });
+}
+function addEnc(){d.enc.push('');renderEnc();sv()}
+function foto(tipo,inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{const im=new Image();im.onload=()=>{
+    const max=tipo==='capa'?900:400,k=Math.min(1,max/im.width);
+    const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    d[tipo]=c.toDataURL('image/jpeg',.7);renderFotos();sv();err(tipo,'');
+  };im.src=ev.target.result};
+  r.readAsDataURL(f);
+}
+function renderFotos(){
+  [['capa','Toque para escolher a foto de capa'],['perfil','Foto de perfil']].forEach(([t,txt])=>{
+    const el=$('p-'+t);el.style.backgroundImage=d[t]?'url('+d[t]+')':'';el.textContent=d[t]?'':txt;
+  });
+}
+function abrirForm(p){
+  CAMPOS.forEach(k=>$('f-'+k).value=d[k]||'');
+  nivelUI();renderEnc();renderFotos();mostrar(p);tela('form');
+}
+function mostrar(p){
+  passo=p;[1,2,3].forEach(i=>$('p'+i).classList.toggle('oculto',i!==p));
+  $('barra').style.width=(p*33.33)+'%';
+  $('lbl').textContent='Passo '+p+' de 3 · '+['Identidade','Direção e nível','Fotografias'][p-1];
+  $('b-volt').classList.toggle('oculto',p===1);
+  $('b-prox').textContent=p===3?'✅ Criar perfil':'Continuar';
+  window.scrollTo(0,0);
+}
+function validar(p){
+  sv();let ok=true;
+  const c=(id,cond,m)=>{if(!err(id,cond?'':m))ok=false};
+  if(p===1){
+    c('nome',d.nome.length>=3,'Escreva o nome da instituição.');
+    c('nif',/^[0-9]{9,10}([A-Z]{2}[0-9]{2,3})?$/.test(d.nif),'NIF inválido. Exemplo: 0012345678LA01');
+    c('tel',!d.tel||/^9\d{8}$/.test(d.tel),'Telefone: 9 dígitos, começa por 9.');
+  }
+  if(p===2){
+    c('nivel',!!d.nivel,'Escolha o nível da instituição.');
+    c('diretor',d.diretor.length>=3,'Escreva o nome do(a) diretor(a).');
+    c('secretaria',d.secretaria.length>=3,'Escreva o nome do(a) secretário(a).');
+    if(d.nivel==='iniciacao'){
+      c('professor',d.professor.length>=3,'Escreva o nome do professor responsável.');
+      c('enc',d.enc.some(x=>x.trim().length>=3),'Adicione pelo menos um encarregado.');
+    }
+  }
+  if(p===3){c('capa',!!d.capa,'Escolha a foto de capa.');c('perfil',!!d.perfil,'Escolha a foto de perfil.')}
+  return ok;
+}
+function prox(){
+  if(!validar(passo))return;
+  if(passo<3)return mostrar(passo+1);
+  if(d.nivel!=='iniciacao'){d.professor='';d.enc=[]}
+  if(!LS.set('pe_inst_'+email,d))return;
+  localStorage.removeItem('pe_rasc_'+email);
+  verPerfil();
+}
+
+/* ---------- PERFIL ---------- */
+const ADS=[
+  {t:'💻 Informática & Tablets Educativos',p:'Venda de computadores portáteis e tablets de estudo com suporte técnico.'},
+  {t:'👕 Uniformes & Fardamentos',p:'Produção de fardas escolares para colégios e institutos, com a melhor qualidade de Luanda.'}
+];
+const ABAS=[['geral','🏠 Visão Geral'],['classes','📚 Classes'],['eventos','📅 Eventos'],['destaque','⭐ Alunos em Destaque']];
+let adI=0,adT=null,abaAtual='geral';
+function soon(n){alert(n+': será criado nas próximas partes.')}
+function adMostrar(){const a=ADS[adI];$('ad').innerHTML='<small>📢 PUBLICIDADE</small><h3>'+a.t+'</h3><p>'+a.p+'</p>'}
+function abaHtml(k){
+  const t={geral:'Visão Geral da Instituição',classes:'Classes',eventos:'Eventos',destaque:'Alunos em Destaque'}[k];
+  let x='<h3 class="ct">'+t+'</h3>';
+  if(k==='geral'){
+    x+='<p class="cp">Bem-vindo ao painel geral da instituição de ensino.</p>';
+    const L=[['Nível',NIVEIS[d.nivel]],['Diretor(a)',d.diretor],['Secretário(a)',d.secretaria]];
+    if(d.nivel==='iniciacao')L.push(['Professor(a)',d.professor],['Encarregados',(d.enc||[]).filter(function(v){return v.trim()}).join(', ')]);
+    if(d.local)L.push(['Localização',d.local]);
+    x+=L.map(function(p){return '<div class="info"><b>'+p[0]+'</b><span>'+esc(p[1])+'</span></div>'}).join('');
+  }else x+='<p class="cp">Ainda sem conteúdo. Será criado numa próxima parte.</p>';
+  return x;
+}
+function abasUI(){
+  const box=$('abas');box.innerHTML='';
+  ABAS.forEach(function(a){
+    const b=document.createElement('button');
+    b.className='aba'+(a[0]===abaAtual?' on':'');b.textContent=a[1];
+    b.onclick=function(){abaAtual=a[0];abasUI()};
+    box.appendChild(b);
+  });
+  $('aba-conteudo').innerHTML=abaHtml(abaAtual);
+}
+function verPerfil(){
+  $('capa').style.backgroundImage='url('+d.capa+')';
+  $('avatar').style.backgroundImage='url('+d.perfil+')';
+  $('pf-nome').textContent=d.nome;
+  $('pf-nif').textContent='NIF: '+d.nif;
+  const t=d.tel?'+244 '+d.tel.slice(0,3)+' '+d.tel.slice(3,6)+' '+d.tel.slice(6):'+244 9XX XXX XXX';
+  $('pf-tel').textContent='📞 Contacto: '+t;
+  $('pf-mail').textContent='✉️ Email: '+email;
+  adMostrar();
+  if(!adT)adT=setInterval(function(){
+    adI=(adI+1)%ADS.length;const el=$('ad');el.style.opacity=0;
+    setTimeout(function(){adMostrar();el.style.opacity=1},400);
+  },5000);
+  abaAtual='geral';abasUI();tela('perfil');
+}
+iniciar();
+</script>
+</body>
+</html>

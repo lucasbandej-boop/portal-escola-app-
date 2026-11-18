@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal Escola</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, Roboto, sans-serif; background: #f1f3f5; color: #111827; }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+  header { background: #fff; padding: 14px 16px; border-bottom: 1px solid #e5e7eb; }
+  .logo { font-size: 26px; font-weight: bold; color: #2563eb; }
+  .conteudo { padding: 16px 16px 40px; }
+  h1 { font-size: 26px; }
+  .sub { font-size: 15px; color: #6b7280; margin-bottom: 16px; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 18px; margin-bottom: 12px; display: flex; align-items: center; cursor: pointer; width: 100%; text-align: left; font: inherit; }
+  .card:active { background: #f3f4f6; }
+  .icone { font-size: 36px; margin-right: 16px; }
+  .card-texto { flex: 1; font-size: 18px; font-weight: bold; }
+  .anuncio { background: #065f46; border-radius: 18px; padding: 16px; margin: 8px 0 16px; }
+  .tag { display: inline-block; background: rgba(255,255,255,.15); color: #a7f3d0; font-size: 14px; font-weight: 600; border-radius: 20px; padding: 6px 12px; margin-bottom: 12px; }
+  .anuncio h2 { color: #fff; font-size: 26px; margin-bottom: 8px; }
+  .anuncio p { color: #d1fae5; font-size: 16px; line-height: 1.5; margin-bottom: 14px; }
+  .btn-anuncio { display: block; background: #022c22; color: #6ee7b7; font-size: 17px; font-weight: bold; text-align: center; text-decoration: none; padding: 16px; border-radius: 12px; }
+  .suporte { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; text-align: center; }
+  .suporte h3 { font-size: 20px; }
+  .suporte p { font-size: 15px; color: #6b7280; margin: 8px 0; }
+  .btn-suporte { display: block; background: #059669; color: #fff; font-size: 17px; font-weight: bold; text-decoration: none; padding: 16px; border-radius: 12px; }
+  .oculto { display: none; }
+  .construcao { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; text-align: center; }
+  .construcao p { font-size: 20px; margin-bottom: 20px; }
+  .voltar { background: #2563eb; color: #fff; font-weight: bold; border: 0; padding: 14px 20px; border-radius: 10px; font-size: 16px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="menu">
+    <header><div class="logo">Portal Escola</div></header>
+    <div class="conteudo">
+      <h1>Menu Principal do Sistema</h1>
+      <p class="sub">Selecione a opção desejada para navegar.</p>
+
+      <button class="card" onclick="location.href='pagina.html'">
+        <span class="icone">🏫</span>
+        <span class="card-texto">Página da Instituição (Estilo Facebook)</span>
+      </button>
+      <button class="card" onclick="abrir('Pesquisa de Alunos e Encarregados')">
+        <span class="icone">🔍</span>
+        <span class="card-texto">Pesquisa de Alunos e Encarregados</span>
+      </button>
+      <button class="card" onclick="abrir('Cadastramento de Professores')">
+        <span class="icone">👨‍🏫</span>
+        <span class="card-texto">Cadastramento de Professores</span>
+      </button>
+
+      <div class="anuncio">
+        <span class="tag" id="a-tag"></span>
+        <h2 id="a-titulo"></h2>
+        <p id="a-texto"></p>
+        <a class="btn-anuncio" id="a-btn" href="tel:929561442"></a>
+      </div>
+
+      <div class="suporte">
+        <h3>🎧 Apoio ao Cliente &amp; Suporte</h3>
+        <p>Dúvidas ou problemas no portal? Fale conosco:</p>
+        <a class="btn-suporte" href="tel:929561442">📞 Ligar para o Suporte: 929561442</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="tela" class="construcao oculto">
+    <p id="tela-titulo"></p>
+    <button class="voltar" onclick="voltar()">← Voltar ao Menu</button>
+  </div>
+
+</div>
+
+<script>
+  const TEL = '929561442';
+  const ANUNCIOS = [
+    { tag: '👕 Confecção de Uniformes', titulo: 'Uniformes & Fardamentos',
+      texto: 'Produção de fardas escolares para colégios e institutos. Batas, camisas, calças e bordados personalizados com a melhor qualidade de Luanda.' },
+    { tag: '📚 Anúncio 2', titulo: 'Título do anúncio', texto: 'Texto do segundo anúncio.' },
+    { tag: '📚 Anúncio 3', titulo: 'Título do anúncio', texto: 'Texto do terceiro anúncio.' },
+  ];
+  let i = 0;
+  function mostrar() {
+    const a = ANUNCIOS[i];
+    document.getElementById('a-tag').textContent = a.tag + ' (' + (i + 1) + ' / ' + ANUNCIOS.length + ')';
+    document.getElementById('a-titulo').textContent = a.titulo;
+    document.getElementById('a-texto').textContent = a.texto;
+    document.getElementById('a-btn').textContent = '📞 ' + TEL + ' (Clique para Ligar)';
+  }
+  mostrar();
+  setInterval(() => { i = (i + 1) % ANUNCIOS.length; mostrar(); }, 5000);
+
+  function abrir(nome) {
+    document.getElementById('menu').classList.add('oculto');
+    document.getElementById('tela').classList.remove('oculto');
+    document.getElementById('tela-titulo').textContent = nome + ' (em construção)';
+  }
+  function voltar() {
+    document.getElementById('tela').classList.add('oculto');
+    document.getElementById('menu').classList.remove('oculto');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Página da Instituição</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Roboto,sans-serif;background:#f1f3f5;color:#111827}
+#app{max-width:480px;margin:0 auto;min-height:100vh}
+header{background:#fff;padding:12px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+header .logo{font-size:20px;font-weight:bold;color:#2563eb;flex:1}
+.voltar{background:none;border:0;font-size:15px;font-weight:600;color:#2563eb;cursor:pointer}
+.box{padding:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;margin-bottom:12px}
+h1{font-size:24px;margin-bottom:4px}
+.sub{color:#6b7280;font-size:15px;margin-bottom:16px}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+input{width:100%;padding:13px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;background:#fff}
+input:focus{outline:2px solid #2563eb;border-color:#2563eb}
+input.inv{border-color:#dc2626}
+.erro{color:#dc2626;font-size:13px;margin-top:4px}
+.btn{display:block;width:100%;padding:15px;border:0;border-radius:12px;background:#2563eb;color:#fff;font-size:17px;font-weight:bold;margin-top:18px;cursor:pointer}
+.btn.sec{background:#e5e7eb;color:#111827;margin-top:10px}
+.btn.verde{background:#059669}
+.tabs{display:flex;background:#e5e7eb;border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs button{flex:1;padding:11px;border:0;border-radius:9px;background:none;font-size:15px;font-weight:600;cursor:pointer;color:#6b7280}
+.tabs button.on{background:#fff;color:#2563eb}
+.prog{height:8px;background:#e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:6px}
+.prog div{height:100%;background:#2563eb;transition:width .3s;width:33%}
+.passo{font-size:13px;color:#6b7280;margin-bottom:6px}
+.niveis{display:grid;gap:8px}
+.nivel{border:2px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;text-align:left;font-size:16px;font-weight:600;cursor:pointer}
+.nivel small{display:block;font-weight:400;color:#6b7280;font-size:13px}
+.nivel.on{border-color:#2563eb;background:#eff6ff}
+.linha{display:flex;gap:8px;margin-bottom:8px}
+.linha button{width:46px;border:0;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:20px;cursor:pointer}
+.foto-capa{height:140px;border:2px dashed #d1d5db;border-radius:12px;background:#f9fafb center/cover;display:flex;align-items:center;justify-content:center;color:#6b7280;cursor:pointer;text-align:center;padding:8px}
+.foto-perfil{width:110px;height:110px;border:2px dashed #d1d5db;border-radius:50%;background:#f9fafb center/cover;display:flex;align-items:center;justify-content:center;color:#6b7280;cursor:pointer;font-size:13px;text-align:center;padding:8px}
+.oculto{display:none!important}
+.capa{height:170px;background:#cbd5e1 center/cover}
+.topo{background:#fff;padding:0 16px 16px;border-bottom:1px solid #e5e7eb}
+.avatar{width:110px;height:110px;border-radius:50%;border:4px solid #fff;background:#e5e7eb center/cover;margin-top:-55px}
+.topo h1{margin-top:8px}
+.badge{display:inline-block;background:#dbeafe;color:#1d4ed8;font-size:13px;font-weight:600;padding:4px 10px;border-radius:20px;margin-top:6px}
+.acoes{display:flex;gap:8px;margin-top:14px}
+.acoes .btn{margin:0;padding:11px;font-size:15px}
+.info{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:15px}
+.info:last-child{border:0}
+.info b{min-width:120px;color:#6b7280;font-weight:600}
+
+.seta{background:none;border:0;font-size:28px;color:#2563eb;cursor:pointer;line-height:1}
+header .logo{font-size:22px}
+.topo{text-align:center;padding-bottom:14px}
+.avatar{margin:-55px auto 0}
+.topo h1{font-size:28px;margin-top:8px}
+.pf-sub{font-size:18px;color:#374151;margin-top:4px}
+.pf-lin{font-size:16px;color:#6b7280;margin-top:4px}
+.botoes{display:flex;gap:10px;overflow-x:auto;padding:16px}
+.bt{flex:0 0 30%;min-height:64px;border:0;border-radius:14px;background:#e5e7eb;color:#111827;font-size:15px;font-weight:700;cursor:pointer;padding:8px}
+.bt.azul{background:#1d4ed8;color:#fff}
+.ad{margin:0 16px;background:#eff6ff;border-radius:16px;padding:16px;transition:opacity .4s}
+.ad small{color:#ca8a04;font-weight:700;font-size:13px}
+.ad h3{color:#1e3a8a;font-size:20px;margin:6px 0 4px}
+.ad p{color:#4b5563;font-size:15px;line-height:1.4}
+.abas{display:flex;overflow-x:auto;background:#fff;border-bottom:2px solid #e5e7eb;margin-top:16px;padding:0 8px}
+.aba{flex:0 0 auto;border:0;background:none;padding:14px;font-size:16px;font-weight:600;color:#374151;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.aba.on{color:#1d4ed8;border-bottom-color:#1d4ed8}
+#aba-conteudo{background:#f8fafc}
+.ct{color:#1e3a8a;font-size:20px;margin-bottom:8px}
+.cp{font-size:17px;color:#374151;line-height:1.5;margin-bottom:8px}
+
+.seta{background:none;border:0;font-size:28px;color:#2563eb;cursor:pointer;line-height:1}
+header .logo{font-size:22px}
+.topo{text-align:center;padding-bottom:14px}
+.avatar{margin:-55px auto 0}
+.topo h1{font-size:28px;margin-top:8px}
+.pf-sub{font-size:18px;color:#374151;margin-top:4px}
+.pf-lin{font-size:16px;color:#6b7280;margin-top:4px}
+.botoes{display:flex;gap:10px;overflow-x:auto;padding:16px}
+.bt{flex:0 0 30%;min-height:64px;border:0;border-radius:14px;background:#e5e7eb;color:#111827;font-size:15px;font-weight:700;cursor:pointer;padding:8px}
+.bt.azul{background:#1d4ed8;color:#fff}
+.ad{margin:0 16px;background:#eff6ff;border-radius:16px;padding:16px;transition:opacity .4s}
+.ad small{color:#ca8a04;font-weight:700;font-size:13px}
+.ad h3{color:#1e3a8a;font-size:20px;margin:6px 0 4px}
+.ad p{color:#4b5563;font-size:15px;line-height:1.4}
+.abas{display:flex;overflow-x:auto;background:#fff;border-bottom:2px solid #e5e7eb;margin-top:16px;padding:0 8px}
+.aba{flex:0 0 auto;border:0;background:none;padding:14px;font-size:16px;font-weight:600;color:#374151;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.aba.on{color:#1d4ed8;border-bottom-color:#1d4ed8}
+#aba-conteudo{background:#f8fafc}
+.ct{color:#1e3a8a;font-size:20px;margin-bottom:8px}
+.cp{font-size:17px;color:#374151;line-height:1.5;margin-bottom:8px}
+
+textarea,select{width:100%;padding:13px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;font-family:inherit;background:#fff}
+textarea:focus,select:focus{outline:2px solid #2563eb;border-color:#2563eb}
+.cp{white-space:pre-wrap}
+.it{padding:12px 0;border-bottom:1px solid #e5e7eb}
+.it:last-child{border:0}
+.it b{display:block;font-size:17px;color:#111827}
+.it span{display:block;font-size:14px;color:#6b7280;margin-top:2px}
+.it p{font-size:15px;color:#374151;margin-top:6px;white-space:pre-wrap}
+.it img{width:100%;border-radius:10px;margin-top:8px}
+
+.pes{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #e5e7eb;cursor:pointer}
+.pes:last-child{border:0}
+.pes .fi{width:52px;height:52px;border-radius:50%;background:#e5e7eb center/cover;flex:0 0 auto}
+.pes b{display:block;font-size:16px}
+.pes span{font-size:13px;color:#6b7280}
+#lb{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:50}
+#lb img{max-width:100%;max-height:100%}
+
+.vagas{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 16px}
+.vg{border-radius:16px;padding:14px;color:#fff;font-size:14px;font-weight:600}
+.vg.ok{background:linear-gradient(135deg,#059669,#34d399)}
+.vg.no{background:linear-gradient(135deg,#b91c1c,#f87171)}
+.vg .n{font-size:28px;font-weight:800;margin:4px 0}
+.vg small{display:block;font-size:13px;font-weight:600;opacity:.95}
+.vg .bar{height:8px;background:rgba(255,255,255,.35);border-radius:8px;margin-top:10px;overflow:hidden}
+.vg .bar i{display:block;height:100%;background:#fff;border-radius:8px}
+#reg-txt{max-height:50vh;overflow-y:auto;font-size:15px;line-height:1.5}
+#reg-txt h4{margin:14px 0 4px;color:#1e3a8a;font-size:16px}
+#reg-txt h4:first-child{margin-top:0}
+#reg-txt ul{padding-left:20px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.fi-adm{width:48px;height:48px;border-radius:50%;background:#e5e7eb center/cover;flex:0 0 auto}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <button class="seta" onclick="location.href='preview.html'">←</button>
+  <div class="logo">Página da Instituição</div>
+</header>
+
+<!-- LOGIN / CRIAR CONTA -->
+<div id="t-auth" class="box oculto">
+  <h1>Página da Instituição</h1>
+  <p class="sub">Área exclusiva para instituições de ensino. Depois do cadastro, a administração verifica e aprova a sua instituição.</p>
+  <div class="card">
+    <div class="tabs">
+      <button id="tb-entrar" class="on" onclick="setModo('entrar')">Entrar</button>
+      <button id="tb-criar" onclick="setModo('criar')">Cadastrar instituição</button>
+    </div>
+    <label>Email</label>
+    <input id="a-email" type="email" autocomplete="email" placeholder="exemplo@email.com">
+    <label>Senha</label>
+    <input id="a-senha" type="password" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
+    <div id="a-conf" class="oculto">
+      <label>Confirmar senha</label>
+      <input id="a-senha2" type="password" autocomplete="new-password">
+    </div>
+    <div class="erro" id="a-erro"></div>
+    <button class="btn" id="a-btn" onclick="enviarAuth()">Entrar</button>
+  </div>
+</div>
+
+<!-- FORMULÁRIO DE CADASTRO -->
+<div id="t-form" class="box oculto">
+  <h1>Cadastro da Instituição</h1>
+  <p class="sub">Preencha os dados. O seu progresso é guardado automaticamente.</p>
+  <div class="prog"><div id="barra"></div></div>
+  <div class="passo" id="lbl"></div>
+
+  <div id="p1" class="card">
+    <label>Nome da instituição *</label>
+    <input id="f-nome" oninput="sv()" onblur="tc(this)" placeholder="Ex.: Colégio Nova Esperança">
+    <div class="erro" id="e-nome"></div>
+    <label>NIF da instituição *</label>
+    <input id="f-nif" maxlength="14" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-Z]/g,'');sv()" placeholder="Ex.: 0012345678LA01">
+    <div class="erro" id="e-nif"></div>
+    <label>Nº da licença do Ministério da Educação *</label>
+    <input id="f-licenca" maxlength="30" oninput="sv()" placeholder="Número da licença">
+    <div class="erro" id="e-licenca"></div>
+    <label>Província *</label>
+    <input id="f-prov" list="dl-prov" oninput="sv()" onblur="tc(this)" placeholder="Ex.: Luanda">
+    <datalist id="dl-prov"><option value="Bengo"><option value="Benguela"><option value="Bié"><option value="Cabinda"><option value="Cuando"><option value="Cubango"><option value="Cuanza Norte"><option value="Cuanza Sul"><option value="Cunene"><option value="Huambo"><option value="Huíla"><option value="Icolo e Bengo"><option value="Luanda"><option value="Lunda Norte"><option value="Lunda Sul"><option value="Malanje"><option value="Moxico"><option value="Moxico Leste"><option value="Namibe"><option value="Uíge"><option value="Zaire"></datalist>
+    <div class="erro" id="e-prov"></div>
+    <label>Município *</label>
+    <input id="f-mun" oninput="sv()" onblur="tc(this)" placeholder="Ex.: Talatona">
+    <div class="erro" id="e-mun"></div>
+    <label>Telefone (opcional)</label>
+    <input id="f-tel" inputmode="numeric" maxlength="9" oninput="this.value=this.value.replace(/\D/g,'');sv()" placeholder="9XXXXXXXX">
+    <div class="erro" id="e-tel"></div>
+    <label>Bairro / Rua (opcional)</label>
+    <input id="f-local" oninput="sv()" placeholder="Ex.: Bairro Talatona, Rua 12">
+  </div>
+
+  <div id="p2" class="card oculto">
+    <label>Nível da instituição *</label>
+    <div class="niveis">
+      <button class="nivel" data-n="iniciacao" onclick="setNivel('iniciacao')">🧸 Iniciação<small>Pede também professor e encarregados</small></button>
+      <button class="nivel" data-n="primario" onclick="setNivel('primario')">📘 Ensino Primário<small>1ª a 6ª classe</small></button>
+      <button class="nivel" data-n="secundario" onclick="setNivel('secundario')">📗 Ensino Secundário<small>1.º Ciclo (7ª a 9ª classe)</small></button>
+      <button class="nivel" data-n="medio" onclick="setNivel('medio')">🎓 Ensino Médio<small>2.º Ciclo (10ª classe em diante)</small></button>
+    </div>
+    <div class="erro" id="e-nivel"></div>
+    <label>Nome do(a) diretor(a) *</label>
+    <input id="f-diretor" oninput="sv()" onblur="tc(this)">
+    <div class="erro" id="e-diretor"></div>
+    <label>Nome do(a) secretário(a) *</label>
+    <input id="f-secretaria" oninput="sv()" onblur="tc(this)">
+    <div class="erro" id="e-secretaria"></div>
+    <label>Vagas para professores *</label>
+    <input id="f-vagasProf" inputmode="numeric" maxlength="3" oninput="this.value=this.value.replace(/[^0-9]/g,'');sv()" placeholder="Ex.: 15">
+    <div class="erro" id="e-vagasProf"></div>
+    <label>Vagas para estudantes *</label>
+    <input id="f-vagasEst" inputmode="numeric" maxlength="5" oninput="this.value=this.value.replace(/[^0-9]/g,'');sv()" placeholder="Ex.: 400">
+    <div class="erro" id="e-vagasEst"></div>
+    <small style="color:#6b7280">Número máximo que a instituição pode ter. Quando as vagas esgotam, o cadastro fecha e aparece a vermelho.</small>
+    <div id="bloco-ini" class="oculto">
+      <label>Professor(a) responsável *</label>
+      <input id="f-professor" oninput="sv()" onblur="tc(this)">
+      <div class="erro" id="e-professor"></div>
+      <label>Encarregados *</label>
+      <div id="enc-lista"></div>
+      <button class="btn sec" style="margin-top:0" onclick="addEnc()">＋ Adicionar encarregado</button>
+      <div class="erro" id="e-enc"></div>
+    </div>
+  </div>
+
+  <div id="p3" class="card oculto">
+    <label>Foto de capa *</label>
+    <div class="foto-capa" id="p-capa" onclick="$('i-capa').click()"></div>
+    <input id="i-capa" type="file" accept="image/*" class="oculto" onchange="foto('capa',this)">
+    <div class="erro" id="e-capa"></div>
+    <label>Foto de perfil *</label>
+    <div class="foto-perfil" id="p-perfil" onclick="$('i-perfil').click()"></div>
+    <input id="i-perfil" type="file" accept="image/*" class="oculto" onchange="foto('perfil',this)">
+    <div class="erro" id="e-perfil"></div>
+  </div>
+
+  <button class="btn" id="b-prox" onclick="prox()">Continuar</button>
+  <button class="btn sec" id="b-volt" onclick="voltarForm()">← Voltar</button>
+</div>
+
+<!-- PESQUISA RESTRITA -->
+<div id="t-pl" class="box oculto">
+  <h1>🔒 Acesso Restrito</h1>
+  <p class="sub">Esta área é reservada a utilizadores autorizados. Entre com a sua conta para pesquisar.</p>
+  <div class="card">
+    <label>Email</label>
+    <input id="pl-email" type="email" autocomplete="off" placeholder="exemplo@email.com">
+    <label>Palavra-passe</label>
+    <input id="pl-senha" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')loginPesq()">
+    <div class="erro" id="pl-erro"></div>
+    <button class="btn" onclick="loginPesq()">Entrar</button>
+  </div>
+  <p class="sub" style="text-align:center;font-size:13px">Só utilizadores com conta cadastrada têm acesso.</p>
+</div>
+
+<div id="t-pb" class="box oculto">
+  <div class="card" style="display:flex;align-items:center;gap:8px">
+    <div style="flex:1"><b id="pb-inst"></b><br><small id="pb-user" style="color:#6b7280"></small></div>
+    <button class="voltar" onclick="sairPesq('')">Terminar sessão</button>
+  </div>
+  <h1>🔍 Pesquisar aluno</h1>
+  <p class="sub">Escreva o número de processo do aluno.</p>
+  <div class="card">
+    <label>Número de processo</label>
+    <input id="pb-q" inputmode="numeric" maxlength="9" placeholder="Ex.: 2026/0001" autocomplete="off" onkeydown="if(event.key==='Enter')pesquisar()">
+    <div class="erro" id="pb-msg"></div>
+    <button class="btn" onclick="pesquisar()">🔍 Pesquisar</button>
+  </div>
+  <p class="sub" style="font-size:13px">🔐 A sessão termina automaticamente após 5 minutos sem atividade.</p>
+</div>
+
+<!-- REGULAMENTO -->
+<div id="t-reg" class="box oculto">
+  <h1>📜 Regulamento</h1>
+  <p class="sub">Antes de cadastrar a sua instituição, leia e aceite o regulamento e a política do Portal Escola.</p>
+  <div class="card" id="reg-txt" onscroll="regScroll()">
+    <h4>1. Enquadramento legal</h4>
+    <p>Em Angola, uma instituição de ensino privada só pode abrir e funcionar depois de ter a <b>licença do Ministério da Educação</b>, nos termos do Decreto Presidencial n.º 37/23, de 9 de Fevereiro (Regime Jurídico das Instituições Privadas e Público-Privadas de Educação Pré-Escolar e de Ensino Primário e Secundário). Funcionar sem licença é proibido.</p>
+    <h4>2. Quem pode cadastrar-se</h4>
+    <p>Apenas instituições de ensino legalmente constituídas: escolas e colégios licenciados pelo Ministério da Educação e instituições públicas criadas por diploma oficial. Este aplicativo <b>não é para particulares</b>.</p>
+    <h4>3. Requisitos do cadastro</h4>
+    <ul>
+      <li>Licença válida do Ministério da Educação (indicar o número).</li>
+      <li>NIF da instituição.</li>
+      <li>Localização real: província, município e endereço.</li>
+      <li>Diretor(a) e secretário(a) identificados.</li>
+      <li>Nível de ensino autorizado: Iniciação, Primário, Secundário (1.º Ciclo) ou Médio (2.º Ciclo).</li>
+      <li>Número máximo de vagas de professores e de estudantes, de acordo com a capacidade real das instalações.</li>
+    </ul>
+    <h4>4. Compromissos da instituição</h4>
+    <ul>
+      <li>Usar os planos de estudo e programas oficiais e cumprir o calendário escolar aprovado.</li>
+      <li>Ter professores com as habilitações exigidas.</li>
+      <li>Manter as turmas dentro dos limites legais de alunos por turma.</li>
+      <li>Manter os dados atualizados e comunicar qualquer alteração.</li>
+      <li>Aceitar a inspeção e a avaliação do Ministério da Educação.</li>
+    </ul>
+    <h4>5. Proteção de dados</h4>
+    <p>Os dados de alunos, encarregados e professores só podem ser usados para a gestão escolar, em conformidade com a Lei da Proteção de Dados Pessoais (Lei n.º 22/11, de 17 de Junho). O acesso é restrito a utilizadores autorizados e é proibido partilhar ou divulgar essas informações.</p>
+    <h4>6. Verificação pela administração</h4>
+    <p>Depois de enviar o cadastro, ele fica <b>pendente</b>. A administração do Portal Escola verifica se todos os requisitos foram cumpridos e pode aprovar ou rejeitar (indicando o motivo). Só depois da aprovação a instituição pode usar o aplicativo e receberá um email a confirmar a criação da conta. Dados falsos podem levar à rejeição ou à suspensão da conta.</p>
+    <p style="font-size:13px;color:#6b7280">Resumo informativo baseado na legislação angolana em vigor e na política do Portal Escola. Não substitui os diplomas oficiais. Versão 1.</p>
+  </div>
+  <p class="sub" id="reg-dica" style="font-size:13px;margin-top:10px">⬇️ Deslize até ao fim para poder aceitar.</p>
+  <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500">
+    <input type="checkbox" id="reg-ck" disabled onchange="regOk()" style="width:22px;height:22px;padding:0;flex:0 0 auto">
+    <span>Li o regulamento e concordo com a política do Portal Escola. Declaro que a instituição está legalizada e que os dados que vou fornecer são verdadeiros.</span>
+  </label>
+  <button class="btn" id="reg-btn" disabled onclick="aceitarReg()">✅ Aceitar e continuar</button>
+  <button class="btn sec" onclick="location.href='preview.html'">Não concordo (voltar ao Menu)</button>
+</div>
+
+<!-- CADASTRO PENDENTE -->
+<div id="t-pend" class="box oculto" style="text-align:center">
+  <div id="pend-ic" style="font-size:64px;margin-top:16px">⏳</div>
+  <h1 id="pend-tit"></h1>
+  <p class="sub" id="pend-txt"></p>
+  <div class="card" id="pend-info" style="text-align:left"></div>
+  <button class="btn oculto" id="pend-corrigir" onclick="abrirForm(1)">✏️ Corrigir e reenviar</button>
+  <button class="btn" onclick="verificarEstado()">🔄 Verificar estado</button>
+  <button class="btn sec" onclick="sair()">Sair</button>
+</div>
+
+<!-- ADMINISTRAÇÃO (SIMULAÇÃO) -->
+<div id="t-adm" class="box oculto">
+  <div class="card" style="background:#fffbeb;border-color:#fcd34d;font-size:14px">🛠️ <b>Simulação da base de dados.</b> No app real, a administração faz isto no Supabase. Esta página serve só para testar.</div>
+  <h1>Instituições</h1>
+  <div id="adm-lista"></div>
+  <h1 style="font-size:20px;margin-top:8px">📧 Emails enviados (simulação)</h1>
+  <div id="adm-emails"></div>
+</div>
+
+<!-- CADASTRAMENTO DE ESTUDANTES -->
+<div id="t-te" class="box oculto">
+  <h1>🎓 Cadastramento de Estudantes</h1>
+  <p class="sub">Crie a sua conta para ter acesso ao aplicativo (consultas e funções futuras). Só alunos já registados numa instituição aprovada podem criar conta.</p>
+  <div class="card">
+    <label>Instituição *</label>
+    <select id="te-inst"></select>
+    <label>Número de processo *</label>
+    <input id="te-proc" inputmode="numeric" maxlength="9" placeholder="Ex.: 2026/0001" autocomplete="off">
+    <label>Número do bilhete *</label>
+    <input id="te-bi" maxlength="14" autocapitalize="characters" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-Z]/g,'')" placeholder="Ex.: 001234567LA041">
+    <label>Email *</label>
+    <input id="te-email" type="email" autocomplete="off">
+    <label>Palavra-passe *</label>
+    <input id="te-senha" type="password" autocomplete="new-password">
+    <label>Confirmar palavra-passe *</label>
+    <input id="te-senha2" type="password" autocomplete="new-password">
+    <div class="erro" id="te-erro"></div>
+    <button class="btn" onclick="criarContaEst()">Criar conta</button>
+  </div>
+</div>
+<div id="t-tok" class="box oculto" style="text-align:center">
+  <div style="font-size:64px;margin-top:16px">✅</div>
+  <h1>Conta criada!</h1>
+  <p class="sub" id="tok-txt"></p>
+  <button class="btn" onclick="location.href='preview.html'">← Voltar ao Menu</button>
+</div>
+
+<!-- CADASTRO -->
+<div id="t-cad" class="box oculto">
+  <button class="voltar" id="cd-voltar" style="margin-bottom:8px">← Perfil</button>
+  <h1 id="cd-tit"></h1>
+  <p class="sub" id="cd-sub"></p>
+  <div id="cd-corpo"></div>
+</div>
+
+<!-- PERFIL DE ALUNO / PROFESSOR -->
+<div id="t-ver" class="oculto">
+  <div class="capa" style="height:110px;background:#1d4ed8"></div>
+  <div class="topo">
+    <div class="avatar" id="v-foto"></div>
+    <h1 id="v-nome"></h1>
+    <div class="pf-sub" id="v-sub"></div>
+  </div>
+  <div class="botoes">
+    <button class="bt azul" onclick="editarPessoa()">✏️ Editar</button>
+    <button class="bt" id="bt-transf" onclick="abrirTransf()">🔄 Transferir</button>
+    <button class="bt" onclick="voltarLista()">← Lista</button>
+    <button class="bt" onclick="eliminarPessoa()">🗑️ Eliminar</button>
+  </div>
+  <div class="box">
+    <div class="card oculto" id="v-transf" style="background:#fffbeb;border-color:#fcd34d"></div>
+    <div class="card" id="v-info"></div>
+    <div class="card" id="v-docs"></div>
+    <button class="btn oculto" id="v-back-pesq" onclick="voltarPesq()">← Nova pesquisa</button>
+  </div>
+</div>
+
+<div id="lb" class="oculto" onclick="this.classList.add('oculto')"><img id="lb-img"></div>
+
+<!-- EDITAR PÁGINA -->
+<div id="t-edit" class="box oculto">
+  <button class="voltar" id="ed-voltar" style="margin-bottom:8px">← Perfil</button>
+  <h1 id="ed-tit"></h1>
+  <p class="sub" id="ed-sub"></p>
+  <div id="ed-corpo"></div>
+</div>
+
+<!-- PERFIL ESTILO FACEBOOK -->
+<div id="t-perfil" class="oculto">
+  <div class="capa" id="capa"></div>
+  <div class="topo">
+    <div class="avatar" id="avatar"></div>
+    <h1 id="pf-nome"></h1>
+    <div class="pf-sub">🏫 Escola / Instituição de Ensino</div>
+    <div class="pf-lin" id="pf-nif"></div>
+    <div class="pf-lin" id="pf-tel"></div>
+    <div class="pf-lin" id="pf-mail"></div>
+    <div class="pf-lin" id="pf-loc"></div>
+  </div>
+  <div class="botoes">
+    <button class="bt azul" onclick="abrirCadAluno()">+ Cadastrar Aluno</button>
+    <button class="bt" onclick="abrirCadProf()">+ Professor</button>
+    <button class="bt" onclick="abrirEditar()">✏️ Editar</button>
+    <button class="bt" onclick="sair()">🚪 Sair</button>
+  </div>
+  <div class="vagas" id="vagas"></div>
+  <div class="ad" id="ad"></div>
+  <div class="abas" id="abas"></div>
+  <div class="box"><div class="card" id="aba-conteudo"></div></div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const LS={
+  get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){alert('Sem espaço para guardar. Use fotos mais pequenas.');return false}}
+};
+const NIVEIS={iniciacao:'Iniciação',primario:'Ensino Primário',secundario:'Ensino Secundário',medio:'Ensino Médio'};
+const CAMPOS=['nome','nif','tel','local','diretor','secretaria','professor','licenca','prov','mun','vagasProf','vagasEst'];
+const MIN=['de','da','do','das','dos','e'];
+const vazio=()=>({nome:'',nif:'',tel:'',local:'',nivel:'',diretor:'',secretaria:'',professor:'',enc:[''],capa:'',perfil:''});
+let email='',d=vazio(),passo=1,modo='entrar';
+
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const titulo=s=>s.trim().toLowerCase().split(/\s+/).map((w,i)=>i&&MIN.includes(w)?w:w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+function tela(id){['auth','form','perfil','edit','cad','ver','pl','pb','reg','pend','adm','te','tok'].forEach(t=>$('t-'+t).classList.toggle('oculto',t!==id));window.scrollTo(0,0)}
+async function hash(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+
+/* ---------- LOGIN ---------- */
+function setModo(m){modo=m;$('tb-entrar').classList.toggle('on',m==='entrar');$('tb-criar').classList.toggle('on',m==='criar');$('a-conf').classList.toggle('oculto',m!=='criar');$('a-btn').textContent=m==='criar'?'Criar conta':'Entrar';$('a-erro').textContent=''}
+async function enviarAuth(){
+  const e=$('a-email').value.trim().toLowerCase(),s=$('a-senha').value;let erro='';
+  if(!/^\S+@\S+\.\S+$/.test(e))erro='Email inválido.';
+  else if(s.length<6)erro='A senha deve ter no mínimo 6 caracteres.';
+  else if(modo==='criar'&&s!==$('a-senha2').value)erro='As senhas não coincidem.';
+  if(!erro){
+    const users=LS.get('pe_users',{}),h=await hash(s);
+    if(modo==='criar'){if(users[e])erro='Este email já tem conta. Use "Entrar".';else{users[e]=h;LS.set('pe_users',users)}}
+    else if(users[e]!==h)erro='Email ou senha incorretos.';
+  }
+  $('a-erro').textContent=erro;if(erro)return;
+  LS.set('pe_sessao',e);iniciar();
+}
+function sair(){localStorage.removeItem('pe_sessao');email='';tela('auth')}
+function iniciar(){
+  email=LS.get('pe_sessao','');
+  if(!email){tela('auth');return}
+  const inst=LS.get('pe_inst_'+email,null);
+  if(inst){d=Object.assign(vazio(),inst);verPerfil()}
+  else{d=Object.assign(vazio(),LS.get('pe_rasc_'+email,{}));abrirForm(1)}
+}
+
+/* ---------- FORMULÁRIO ---------- */
+function sv(){
+  CAMPOS.forEach(k=>d[k]=$('f-'+k).value.trim());
+  if(email&&!LS.get('pe_inst_'+email,null))LS.set('pe_rasc_'+email,d);
+}
+function tc(el){el.value=titulo(el.value);sv()}
+function err(id,m){const e=$('e-'+id);if(e)e.textContent=m||'';const f=$('f-'+id);if(f)f.classList.toggle('inv',!!m);return !m}
+function setNivel(n){d.nivel=n;nivelUI();err('nivel','');sv()}
+function nivelUI(){
+  document.querySelectorAll('.nivel').forEach(b=>b.classList.toggle('on',b.dataset.n===d.nivel));
+  $('bloco-ini').classList.toggle('oculto',d.nivel!=='iniciacao');
+}
+function renderEnc(){
+  const box=$('enc-lista');box.innerHTML='';
+  if(!d.enc||!d.enc.length)d.enc=[''];
+  d.enc.forEach((v,i)=>{
+    const l=document.createElement('div');l.className='linha';
+    const inp=document.createElement('input');inp.placeholder='Nome do encarregado '+(i+1);inp.value=v;
+    inp.oninput=()=>{d.enc[i]=inp.value;sv()};
+    inp.onblur=()=>{inp.value=titulo(inp.value);d.enc[i]=inp.value;sv()};
+    l.appendChild(inp);
+    if(d.enc.length>1){const b=document.createElement('button');b.textContent='×';b.onclick=()=>{d.enc.splice(i,1);renderEnc();sv()};l.appendChild(b)}
+    box.appendChild(l);
+  });
+}
+function addEnc(){d.enc.push('');renderEnc();sv()}
+function foto(tipo,inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{const im=new Image();im.onload=()=>{
+    const max=tipo==='capa'?900:400,k=Math.min(1,max/im.width);
+    const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    d[tipo]=c.toDataURL('image/jpeg',.7);renderFotos();sv();err(tipo,'');
+  };im.src=ev.target.result};
+  r.readAsDataURL(f);
+}
+function renderFotos(){
+  [['capa','Toque para escolher a foto de capa'],['perfil','Foto de perfil']].forEach(([t,txt])=>{
+    const el=$('p-'+t);el.style.backgroundImage=d[t]?'url('+d[t]+')':'';el.textContent=d[t]?'':txt;
+  });
+}
+function abrirFormA(p){editando=!!LS.get('pe_inst_'+email,null);
+  CAMPOS.forEach(k=>$('f-'+k).value=d[k]||'');
+  nivelUI();renderEnc();renderFotos();mostrar(p);tela('form');
+}
+function mostrar(p){
+  passo=p;[1,2,3].forEach(i=>$('p'+i).classList.toggle('oculto',i!==p));
+  $('barra').style.width=(p*33.33)+'%';
+  $('lbl').textContent='Passo '+p+' de 3 · '+['Identidade','Direção e nível','Fotografias'][p-1];
+  $('b-volt').classList.toggle('oculto',p===1&&!editando);
+  $('b-prox').textContent=p===3?(editando?'💾 Guardar alterações':'✅ Criar perfil'):'Continuar';
+  window.scrollTo(0,0);
+}
+function validarA(p){
+  sv();let ok=true;
+  const c=(id,cond,m)=>{if(!err(id,cond?'':m))ok=false};
+  if(p===1){
+    c('nome',d.nome.length>=3,'Escreva o nome da instituição.');
+    c('nif',/^[0-9]{9,10}([A-Z]{2}[0-9]{2,3})?$/.test(d.nif),'NIF inválido. Exemplo: 0012345678LA01');
+    c('tel',!d.tel||/^9\d{8}$/.test(d.tel),'Telefone: 9 dígitos, começa por 9.');
+  }
+  if(p===2){
+    c('nivel',!!d.nivel,'Escolha o nível da instituição.');
+    c('diretor',d.diretor.length>=3,'Escreva o nome do(a) diretor(a).');
+    c('secretaria',d.secretaria.length>=3,'Escreva o nome do(a) secretário(a).');
+    if(d.nivel==='iniciacao'){
+      c('professor',d.professor.length>=3,'Escreva o nome do professor responsável.');
+      c('enc',d.enc.some(x=>x.trim().length>=3),'Adicione pelo menos um encarregado.');
+    }
+  }
+  if(p===3){c('capa',!!d.capa,'Escolha a foto de capa.');c('perfil',!!d.perfil,'Escolha a foto de perfil.')}
+  return ok;
+}
+function proxB(){
+  if(!validar(passo))return;
+  if(passo<3)return mostrar(passo+1);
+  if(d.nivel!=='iniciacao'){d.professor='';d.enc=[]}
+  if(!LS.set('pe_inst_'+email,d))return;
+  localStorage.removeItem('pe_rasc_'+email);
+  verPerfil();
+}
+
+/* ---------- PERFIL ---------- */
+const ADS=[
+  {t:'💻 Informática & Tablets Educativos',p:'Venda de computadores portáteis e tablets de estudo com suporte técnico.'},
+  {t:'👕 Uniformes & Fardamentos',p:'Produção de fardas escolares para colégios e institutos, com a melhor qualidade de Luanda.'}
+];
+const ABAS=[['geral','🏠 Visão Geral'],['classes','📚 Classes'],['eventos','📅 Eventos'],['destaque','⭐ Alunos em Destaque'],['pautas','📑 Pautas'],['alunos','🎓 Alunos'],['professores','👨‍🏫 Professores']];
+const TRIM=['1º Trimestre','2º Trimestre','3º Trimestre','Final'];
+const SEC={
+  classes:{ic:'📚',t:'Classes',novo:'Nova classe',c:[['nome','Nome da classe','text','Ex.: 7ª Classe'],['turma','Turma / Período (opcional)','text','Ex.: Turma A · Manhã'],['prof','Professor(a) (opcional)','text','']]},
+  eventos:{ic:'📅',t:'Eventos',novo:'Novo evento',c:[['titulo','Título','text','Ex.: Reunião de pais'],['data','Data','date',''],['desc','Descrição (opcional)','area','']]},
+  destaque:{ic:'⭐',t:'Alunos em Destaque',novo:'Novo destaque',c:[['nome','Nome do aluno','text',''],['classe','Classe','text','Ex.: 9ª Classe'],['motivo','Motivo (opcional)','text','Ex.: Melhor média do trimestre']]},
+  pautas:{ic:'📑',t:'Pautas',novo:'Nova pauta',c:[['titulo','Título','text','Ex.: Pauta do 1º Trimestre'],['classe','Classe / Turma','text',''],['trim','Trimestre','sel',''],['foto','Foto da pauta (opcional)','foto','']]}
+};
+const GERAL_PADRAO='Bem-vindo ao painel geral da instituição de ensino.';
+let adI=0,adT=null,abaAtual='geral',editando=false,gt=null;
+
+function garantir(){['classes','eventos','destaque','pautas','alunos','professores'].forEach(function(k){if(!Array.isArray(d[k]))d[k]=[]})}
+function gravar(){clearTimeout(gt);gt=setTimeout(function(){LS.set('pe_inst_'+email,d)},400)}
+function soon(n){alert(n+': será criado nas próximas partes.')}
+function fdata(s){return s?s.split('-').reverse().join('/'):''}
+function principal(k,it){const v=it[SEC[k].c[0][0]];return v&&String(v).trim()}
+function adMostrar(){const a=ADS[adI];$('ad').innerHTML='<small>📢 PUBLICIDADE</small><h3>'+a.t+'</h3><p>'+a.p+'</p>'}
+
+function itemHtml(k,it){
+  let x='<div class="it">';
+  if(k==='classes')x+='<b>'+esc(it.nome)+'</b><span>'+esc([it.turma,it.prof].filter(Boolean).join(' · '))+'</span>';
+  if(k==='eventos')x+='<b>📅 '+esc(it.titulo)+'</b><span>'+esc(fdata(it.data))+'</span>'+(it.desc?'<p>'+esc(it.desc)+'</p>':'');
+  if(k==='destaque')x+='<b>⭐ '+esc(it.nome)+'</b><span>'+esc(it.classe||'')+'</span>'+(it.motivo?'<p>'+esc(it.motivo)+'</p>':'');
+  if(k==='pautas')x+='<b>'+esc(it.titulo)+'</b><span>'+esc([it.classe,it.trim].filter(Boolean).join(' · '))+'</span>'+(it.foto&&it.foto.indexOf('data:image/')===0?'<img src="'+it.foto+'">':'');
+  return x+'</div>';
+}
+function abaHtmlBase(k){
+  garantir();
+  const t={geral:'Visão Geral da Instituição',classes:'Classes',eventos:'Eventos',destaque:'Alunos em Destaque',pautas:'Pautas'}[k];
+  let x='<h3 class="ct">'+t+'</h3>';
+  if(k==='geral'){
+    x+='<p class="cp">'+esc(d.geral||GERAL_PADRAO)+'</p>';
+    const L=[['Nível',NIVEIS[d.nivel]],['Diretor(a)',d.diretor],['Secretário(a)',d.secretaria]];
+    if(d.nivel==='iniciacao')L.push(['Professor(a)',d.professor],['Encarregados',(d.enc||[]).filter(function(v){return v.trim()}).join(', ')]);
+    if(d.licenca)L.push(['Licença (MED)',d.licenca]);if(locTxt(d))L.push(['Localização',locTxt(d)]);
+    x+=L.map(function(p){return '<div class="info"><b>'+p[0]+'</b><span>'+esc(p[1])+'</span></div>'}).join('');
+  }else{
+    let L=d[k].filter(function(it){return principal(k,it)});
+    if(k==='eventos')L.sort(function(a,b){return (a.data||'').localeCompare(b.data||'')});
+    x+=L.length?L.map(function(it){return itemHtml(k,it)}).join(''):'<p class="cp">Ainda não há registos. Toque em ✏️ Editar para adicionar.</p>';
+  }
+  return x;
+}
+function abasUI(){
+  const box=$('abas');box.innerHTML='';
+  ABAS.forEach(function(a){
+    const b=document.createElement('button');
+    b.className='aba'+(a[0]===abaAtual?' on':'');b.textContent=a[1];
+    b.onclick=function(){abaAtual=a[0];abasUI()};
+    box.appendChild(b);
+  });
+  $('aba-conteudo').innerHTML=abaHtml(abaAtual);
+}
+function verPerfilA(){
+  garantir();
+  $('capa').style.backgroundImage='url('+d.capa+')';
+  $('avatar').style.backgroundImage='url('+d.perfil+')';
+  $('pf-nome').textContent=d.nome;
+  $('pf-nif').textContent='NIF: '+d.nif;
+  const t=d.tel?'+244 '+d.tel.slice(0,3)+' '+d.tel.slice(3,6)+' '+d.tel.slice(6):'+244 9XX XXX XXX';
+  $('pf-tel').textContent='📞 Contacto: '+t;
+  $('pf-mail').textContent='✉️ Email: '+email;
+  adMostrar();
+  if(!adT)adT=setInterval(function(){
+    adI=(adI+1)%ADS.length;const el=$('ad');el.style.opacity=0;
+    setTimeout(function(){adMostrar();el.style.opacity=1},400);
+  },5000);
+  abaAtual=abaPend||'geral';abaPend=null;abasUI();tela('perfil');
+}
+
+/* ---------- EDITAR ---------- */
+function reduzir(inp,max,cb){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=function(ev){const im=new Image();im.onload=function(){
+    const k=Math.min(1,max/im.width),c=document.createElement('canvas');
+    c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    cb(c.toDataURL('image/jpeg',.7));
+  };im.src=ev.target.result};
+  r.readAsDataURL(f);
+}
+function voltarForm(){
+  if(passo>1)return mostrar(passo-1);
+  if(editando){d=Object.assign(vazio(),LS.get('pe_inst_'+email,{}));abrirEditar()}
+}
+function edBtn(box,tit,sub,fn){
+  const b=document.createElement('button');b.className='nivel';
+  b.innerHTML=tit+'<small>'+sub+'</small>';b.onclick=fn;box.appendChild(b);
+}
+function abrirEditarB(){
+  garantir();tela('edit');
+  $('ed-tit').textContent='✏️ Editar Página';
+  $('ed-sub').textContent='Escolha o que quer editar. As alterações são guardadas automaticamente.';
+  $('ed-voltar').textContent='← Perfil';$('ed-voltar').onclick=function(){verPerfil()};
+  const box=$('ed-corpo');box.innerHTML='';
+  const g=document.createElement('div');g.className='niveis';box.appendChild(g);
+  edBtn(g,'🏫 Dados da Instituição','Nome, NIF, contactos, direção, nível e fotos',function(){abrirForm(1)});
+  edBtn(g,'🏠 Visão Geral','Texto de boas-vindas',edGeral);
+  Object.keys(SEC).forEach(function(k){
+    const n=d[k].filter(function(it){return principal(k,it)}).length;
+    edBtn(g,SEC[k].ic+' '+SEC[k].t,n+(n===1?' registo':' registos'),function(){edLista(k)});
+  });
+}
+function edGeral(){
+  $('ed-tit').textContent='🏠 Visão Geral';
+  $('ed-sub').textContent='Este texto aparece no topo da aba Visão Geral.';
+  $('ed-voltar').textContent='← Editar';$('ed-voltar').onclick=abrirEditar;
+  const box=$('ed-corpo');
+  box.innerHTML='<div class="card"><label>Texto de boas-vindas</label><textarea id="ed-geral" rows="6"></textarea></div>';
+  const t=$('ed-geral');t.value=d.geral||'';t.placeholder=GERAL_PADRAO;
+  t.oninput=function(){d.geral=t.value;gravar()};
+}
+function edLista(k){
+  const S=SEC[k];garantir();
+  $('ed-tit').textContent=S.ic+' '+S.t;
+  $('ed-sub').textContent='As alterações são guardadas automaticamente.';
+  $('ed-voltar').textContent='← Editar';$('ed-voltar').onclick=abrirEditar;
+  const box=$('ed-corpo');box.innerHTML='';
+  if(!d[k].length){const p=document.createElement('p');p.className='sub';p.textContent='Ainda não há registos. Toque em "＋ '+S.novo+'".';box.appendChild(p)}
+  d[k].forEach(function(it,i){
+    const card=document.createElement('div');card.className='card';
+    S.c.forEach(function(f){
+      const key=f[0],tipo=f[2];
+      const lb=document.createElement('label');lb.textContent=f[1];card.appendChild(lb);
+      if(tipo==='foto'){
+        const pv=document.createElement('div');pv.className='foto-capa';
+        const fi=document.createElement('input');fi.type='file';fi.accept='image/*';fi.className='oculto';
+        const pintar=function(){pv.style.backgroundImage=it.foto?'url('+it.foto+')':'';pv.textContent=it.foto?'':'Toque para escolher a foto'};
+        pintar();
+        pv.onclick=function(){fi.click()};
+        fi.onchange=function(){reduzir(fi,900,function(u){it.foto=u;pintar();gravar()})};
+        card.appendChild(pv);card.appendChild(fi);return;
+      }
+      let el;
+      if(tipo==='area'){el=document.createElement('textarea');el.rows=3}
+      else if(tipo==='sel'){el=document.createElement('select');TRIM.forEach(function(o){const op=document.createElement('option');op.textContent=o;el.appendChild(op)})}
+      else{el=document.createElement('input');el.type=tipo==='date'?'date':'text'}
+      el.placeholder=f[3]||'';
+      el.value=it[key]||(tipo==='sel'?TRIM[0]:'');
+      if(tipo==='sel')it[key]=el.value;
+      el.oninput=el.onchange=function(){it[key]=el.value;gravar()};
+      card.appendChild(el);
+    });
+    const rm=document.createElement('button');rm.className='btn sec';rm.style.color='#dc2626';rm.textContent='🗑️ Remover';
+    rm.onclick=function(){if(confirm('Remover este registo?')){d[k].splice(i,1);gravar();edLista(k)}};
+    card.appendChild(rm);box.appendChild(card);
+  });
+  const add=document.createElement('button');add.className='btn';add.textContent='＋ '+S.novo;
+  add.onclick=function(){d[k].push(k==='pautas'?{trim:TRIM[0]}:{});gravar();edLista(k);window.scrollTo(0,document.body.scrollHeight)};
+  const ok=document.createElement('button');ok.className='btn sec';ok.textContent='✔ Concluído';ok.onclick=abrirEditar;
+  box.appendChild(add);box.appendChild(ok);
+}
+/* ---------- ALUNOS E PROFESSORES ---------- */
+const CAP=40;
+const CLASSE='10ª Classe';
+const LETRAS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const CURSOS=['Informática','Contabilidade e Gestão','Enfermagem','Electricidade','Construção Civil','Ciências Físicas e Biológicas','Ciências Económicas e Jurídicas','Ciências Humanas'];
+const GRAUS=['Ensino Médio','Bacharelato','Licenciatura','Mestrado','Doutoramento'];
+const OUT='✏️ Outro (escrever)';
+const F_MEDIO=[
+  {k:'nome',l:'Nome completo',t:'nome',req:1,ph:'Nome e apelido'},
+  {k:'foto',l:'Foto do aluno',t:'foto',req:1},
+  {k:'bi',l:'Número do bilhete',t:'bi',req:1,ph:'Ex.: 001234567LA041'},
+  {k:'biCopia',l:'Cópia do bilhete',t:'doc',req:1},
+  {k:'enc',l:'Nome do encarregado',t:'nome',req:1},
+  {k:'tel',l:'Telefone do encarregado',t:'tel',req:1,ph:'9XXXXXXXX'},
+  {k:'cert',l:'Cópia do certificado da 9ª classe',t:'doc',req:1},
+  {k:'curso',l:'Curso',t:'curso',req:1}
+];
+const F_INIC=[
+  {k:'foto',l:'Foto do aluno',t:'foto',req:1},
+  {k:'nome',l:'Nome completo do estudante',t:'nome',req:1},
+  {k:'nasc',l:'Data de nascimento',t:'data',req:1},
+  {k:'natural',l:'Local de nascimento',t:'txt',req:1,ph:'Município / Província'},
+  {k:'genero',l:'Género',t:'sel',ops:['Masculino','Feminino'],req:1},
+  {k:'morada',l:'Morada / Bairro (opcional)',t:'txt'},
+  {k:'obs',l:'Informação adicional do estudante (opcional)',t:'area',ph:'Saúde, alergias, observações...'},
+  {k:'pai',l:'Nome completo do pai',t:'nome'},
+  {k:'mae',l:'Nome completo da mãe',t:'nome'},
+  {k:'prof',l:'Professor(a) responsável',t:'prof',req:1}
+];
+const F_PROF=[
+  {k:'nome',l:'Nome completo',t:'nome',req:1,ph:'Nome e apelido'},
+  {k:'foto',l:'Foto do professor',t:'foto',req:1},
+  {k:'bi',l:'Número do bilhete',t:'bi',req:1,ph:'Ex.: 001234567LA041'},
+  {k:'biCopia',l:'Cópia do bilhete',t:'doc',req:1},
+  {k:'cert',l:'Cópia do certificado',t:'doc',req:1},
+  {k:'grau',l:'Grau académico',t:'sel',ops:GRAUS,req:1},
+  {k:'area',l:'Área / curso de formação',t:'txt',req:1,ph:'Ex.: Matemática, Informática...'},
+  {k:'estudou',l:'Onde estudou (instituição)',t:'txt',req:1},
+  {k:'exp',l:'Experiência profissional (opcional)',t:'area',ph:'Onde trabalhou, cargos, anos...'}
+];
+let pes={k:'alunos',i:-1},cfgAtual=null,abaPend=null;
+
+function ANO(){return new Date().getFullYear()}
+function hoje(){return new Date().toISOString().slice(0,10)}
+function idade(s){
+  if(!s)return '';
+  const n=new Date(s),t=new Date();
+  let a=t.getFullYear()-n.getFullYear();
+  const m=t.getMonth()-n.getMonth();
+  if(m<0||(m===0&&t.getDate()<n.getDate()))a--;
+  return a;
+}
+function erro(k,m){const e=$('er-'+k);if(e)e.textContent=m||''}
+function opsProf(){
+  const s=[];
+  (d.professores||[]).forEach(function(p){if(p.nome&&s.indexOf(p.nome)<0)s.push(p.nome)});
+  if(d.professor&&s.indexOf(d.professor)<0)s.push(d.professor);
+  return s;
+}
+function comprimir(inp,max,q,cb){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=function(ev){
+    const im=new Image();
+    im.onload=function(){
+      const k=Math.min(1,max/im.width),c=document.createElement('canvas');
+      c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+      cb(c.toDataURL('image/jpeg',q));
+    };
+    im.onerror=function(){alert('Ficheiro inválido. Escolha uma imagem (foto).')};
+    im.src=ev.target.result;
+  };
+  r.readAsDataURL(f);
+}
+
+/* Turma automática: 40 alunos por turma, por curso e ano */
+function atribuirTurma(cur,ign){
+  const ano=ANO();
+  for(let l=0;l<LETRAS.length;l++){
+    const L=LETRAS.charAt(l);
+    const mem=d.alunos.filter(function(a,i){return i!==ign&&a.tipo==='medio'&&a.curso===cur&&a.ano===ano&&a.turma===L&&!a.transf});
+    if(mem.length<CAP){
+      const usados=mem.map(function(m){return m.ordem});
+      let o=1;while(usados.indexOf(o)>=0)o++;
+      return {turma:L,ordem:o};
+    }
+  }
+  return {turma:'Z',ordem:1};
+}
+function extraMedio(w){
+  const ex=$('cd-extra');if(!ex)return;
+  const cur=(w.curso||'').trim(),i=pes.i;
+  const proc=w.proc||(ANO()+'/'+String((d.seqAluno||0)+1).padStart(4,'0'));
+  let x='<b>🔢 Atribuição automática</b>';
+  x+='<div class="info"><b>Nº de processo</b><span>'+esc(proc)+'</span></div>';
+  if(cur){
+    const at=(i>=0&&d.alunos[i]&&d.alunos[i].curso===cur)?{turma:d.alunos[i].turma,ordem:d.alunos[i].ordem}:atribuirTurma(cur,i);
+    x+='<div class="info"><b>Turma</b><span>'+esc(CLASSE+' · '+cur+' · Turma '+at.turma)+'</span></div>';
+    x+='<div class="info"><b>Nº na turma</b><span>'+at.ordem+' de '+CAP+'</span></div>';
+  }else x+='<p class="cp" style="font-size:14px">Escolha o curso para ver a turma.</p>';
+  ex.innerHTML=x;
+}
+function extraInic(w){
+  const ex=$('cd-extra');if(!ex)return;
+  if(!w.nasc){ex.innerHTML='🎂 Preencha a data de nascimento para calcular a idade.';return}
+  const a=idade(w.nasc);
+  ex.innerHTML='🎂 Idade: <b>'+a+' anos</b>'+(a>10?' ⚠️ Confirme a data de nascimento.':'');
+}
+function customInic(w,bad){
+  if(!(w.pai||'').trim()&&!(w.mae||'').trim())bad('mae','Indique o nome do pai ou da mãe.');
+}
+
+/* Seleção com opção "Outro (escrever)" */
+function selOutro(card,ops,w,key,onCh){
+  const sel=document.createElement('select'),inp=document.createElement('input');
+  [''].concat(ops).concat([OUT]).forEach(function(o){
+    const op=document.createElement('option');op.value=o;op.textContent=o||'Escolher…';sel.appendChild(op);
+  });
+  const v=w[key]||'';
+  if(v&&ops.indexOf(v)>=0)sel.value=v;else if(v){sel.value=OUT;inp.value=v}
+  inp.placeholder='Escreva aqui';inp.style.marginTop='8px';
+  const mostrar=function(){inp.classList.toggle('oculto',sel.value!==OUT)};
+  mostrar();
+  sel.onchange=function(){w[key]=sel.value===OUT?inp.value.trim():sel.value;mostrar();onCh()};
+  inp.oninput=function(){w[key]=inp.value.trim();onCh()};
+  inp.onblur=function(){inp.value=titulo(inp.value);w[key]=inp.value;onCh()};
+  card.appendChild(sel);card.appendChild(inp);
+}
+
+/* Construtor genérico de formulários */
+function montarForm(cfg,w,onSave,extra,custom){
+  cfgAtual={cfg:cfg,w:w,custom:custom};
+  const box=$('cd-corpo');box.innerHTML='';
+  const card=document.createElement('div');card.className='card';box.appendChild(card);
+  const onCh=function(){if(extra)extra(w)};
+  cfg.forEach(function(f){
+    const t=f.t;
+    const lb=document.createElement('label');lb.textContent=f.l+(f.req?' *':'');card.appendChild(lb);
+    if(t==='foto'||t==='doc'){
+      const pv=document.createElement('div');pv.className=t==='foto'?'foto-perfil':'foto-capa';
+      const fi=document.createElement('input');fi.type='file';fi.accept='image/*';fi.className='oculto';
+      const pintar=function(){
+        pv.style.backgroundImage=w[f.k]?'url('+w[f.k]+')':'';
+        if(t==='doc'){pv.style.backgroundSize='contain';pv.style.backgroundRepeat='no-repeat';pv.style.height='180px'}
+        pv.textContent=w[f.k]?'':(t==='foto'?'Foto':'Toque para enviar a cópia');
+      };
+      pintar();
+      pv.onclick=function(){fi.click()};
+      fi.onchange=function(){comprimir(fi,t==='foto'?400:900,t==='foto'?0.7:0.55,function(u){w[f.k]=u;pintar();erro(f.k,'')})};
+      card.appendChild(pv);card.appendChild(fi);
+    }else if(t==='curso'){
+      selOutro(card,CURSOS,w,f.k,function(){erro(f.k,'');onCh()});
+    }else if(t==='prof'){
+      selOutro(card,opsProf(),w,f.k,function(){erro(f.k,'');onCh()});
+    }else if(t==='sel'){
+      const s=document.createElement('select');
+      [''].concat(f.ops).forEach(function(o){const op=document.createElement('option');op.value=o;op.textContent=o||'Escolher…';s.appendChild(op)});
+      s.value=w[f.k]||'';
+      s.onchange=function(){w[f.k]=s.value;erro(f.k,'');onCh()};
+      card.appendChild(s);
+    }else{
+      const el=document.createElement(t==='area'?'textarea':'input');
+      if(t==='area')el.rows=3;
+      if(t==='data'){el.type='date';el.max=hoje()}
+      if(t==='tel'){el.inputMode='numeric';el.maxLength=9}
+      if(t==='bi')el.maxLength=14;
+      el.placeholder=f.ph||'';el.value=w[f.k]||'';
+      el.oninput=function(){
+        if(t==='tel')el.value=el.value.replace(/[^0-9]/g,'');
+        if(t==='bi')el.value=el.value.toUpperCase().replace(/[^0-9A-Z]/g,'');
+        w[f.k]=el.value;erro(f.k,'');onCh();
+      };
+      el.onchange=el.oninput;
+      if(t==='nome')el.onblur=function(){el.value=titulo(el.value);w[f.k]=el.value;onCh()};
+      card.appendChild(el);
+    }
+    const er=document.createElement('div');er.className='erro';er.id='er-'+f.k;card.appendChild(er);
+  });
+  if(extra){
+    const ex=document.createElement('div');ex.id='cd-extra';ex.className='card';ex.style.background='#eff6ff';
+    box.appendChild(ex);
+  }
+  const bt=document.createElement('button');bt.className='btn verde';bt.textContent='💾 Guardar';bt.onclick=onSave;
+  box.appendChild(bt);
+  onCh();
+}
+function validarForm(lista,ign){
+  const c=cfgAtual,w=c.w;let ok=true,primeiro=null;
+  const bad=function(k,m){erro(k,m);ok=false;if(!primeiro)primeiro=k};
+  c.cfg.forEach(function(f){
+    const v=w[f.k],sem=!v||!String(v).trim();
+    if(f.req&&sem){bad(f.k,(f.t==='foto'||f.t==='doc')?'Envie a imagem.':'Campo obrigatório.');return}
+    if(sem)return;
+    if(f.t==='nome'&&v.trim().split(' ').filter(Boolean).length<2)bad(f.k,'Escreva o nome completo (nome e apelido).');
+    if(f.t==='tel'&&!/^9[0-9]{8}$/.test(v))bad(f.k,'Telefone: 9 dígitos, começa por 9.');
+    if(f.t==='bi'){
+      if(!(v.length===14&&/^[0-9]{9,10}[A-Z]{2}[0-9]{2,3}$/.test(v)))bad(f.k,'Bilhete inválido. Exemplo: 001234567LA041');
+      else if(d[lista].some(function(p,i){return i!==ign&&p.bi===v}))bad(f.k,'Já existe um registo com este bilhete.');
+    }
+    if(f.t==='data'&&v>hoje())bad(f.k,'A data não pode ser no futuro.');
+  });
+  if(c.custom)c.custom(w,bad);
+  if(!ok&&primeiro){const e=$('er-'+primeiro);if(e)e.scrollIntoView({behavior:'smooth',block:'center'})}
+  return ok;
+}
+
+/* ---- Aluno ---- */
+function abrirCadAlunoA(){
+  garantir();pes={k:'alunos',i:-1};
+  tela('cad');
+  $('cd-tit').textContent='+ Cadastrar Aluno';
+  $('cd-sub').textContent='Escolha o nível do aluno.';
+  $('cd-voltar').textContent='← Perfil';
+  $('cd-voltar').onclick=function(){abaPend='alunos';verPerfil()};
+  const box=$('cd-corpo');box.innerHTML='';
+  const g=document.createElement('div');g.className='niveis';box.appendChild(g);
+  edBtn(g,'🎓 Ensino Médio','Bilhete, certificado da 9ª classe, curso e turma automática',function(){formAluno('medio')});
+  edBtn(g,'🧸 Iniciação','Nascimento, pais e professor responsável',function(){formAluno('iniciacao')});
+}
+function formAluno(tipo,idx){
+  garantir();
+  const i=(typeof idx==='number')?idx:-1;
+  pes={k:'alunos',i:i};
+  const w=i>=0?JSON.parse(JSON.stringify(d.alunos[i])):{};
+  tela('cad');
+  $('cd-tit').textContent=(i>=0?'✏️ Editar aluno':'+ Aluno')+' · '+(tipo==='medio'?'Ensino Médio':'Iniciação');
+  $('cd-sub').textContent='Campos com * são obrigatórios.';
+  $('cd-voltar').textContent='← Voltar';
+  $('cd-voltar').onclick=function(){if(i>=0)verPessoa('alunos',i);else abrirCadAluno()};
+  montarForm(tipo==='medio'?F_MEDIO:F_INIC,w,function(){guardarAluno(tipo)},tipo==='medio'?extraMedio:extraInic,tipo==='medio'?null:customInic);
+}
+function guardarAluno(tipo){
+  const w=cfgAtual.w,i=pes.i;
+  if(!validarForm('alunos',i))return;
+  const antigo=i>=0?d.alunos[i]:null,seq0=d.seqAluno;
+  w.tipo=tipo;
+  if(tipo==='medio'){
+    const at=(antigo&&antigo.curso===w.curso)?{turma:antigo.turma,ordem:antigo.ordem}:atribuirTurma(w.curso,i);
+    w.turma=at.turma;w.ordem=at.ordem;
+    if(!w.proc){d.seqAluno=(d.seqAluno||0)+1;w.proc=ANO()+'/'+String(d.seqAluno).padStart(4,'0');w.ano=ANO()}
+  }
+  if(i<0)w.criado=hoje();
+  if(i>=0)d.alunos[i]=w;else{d.alunos.push(w);pes.i=d.alunos.length-1}
+  if(!LS.set('pe_inst_'+email,d)){
+    if(antigo)d.alunos[i]=antigo;else{d.alunos.pop();pes.i=-1}
+    d.seqAluno=seq0;return;
+  }
+  verPessoa('alunos',pes.i);
+}
+
+/* ---- Professor ---- */
+function abrirCadProfA(idx){
+  garantir();
+  const i=(typeof idx==='number')?idx:-1;
+  pes={k:'professores',i:i};
+  const w=i>=0?JSON.parse(JSON.stringify(d.professores[i])):{};
+  tela('cad');
+  $('cd-tit').textContent=i>=0?'✏️ Editar professor':'+ Cadastrar Professor';
+  $('cd-sub').textContent='Campos com * são obrigatórios.';
+  $('cd-voltar').textContent='← Voltar';
+  $('cd-voltar').onclick=function(){if(i>=0)verPessoa('professores',i);else{abaPend='professores';verPerfil()}};
+  montarForm(F_PROF,w,guardarProf,null,null);
+}
+function guardarProf(){
+  const w=cfgAtual.w,i=pes.i;
+  if(!validarForm('professores',i))return;
+  const antigo=i>=0?d.professores[i]:null;
+  if(i<0)w.criado=hoje();
+  if(i>=0)d.professores[i]=w;else{d.professores.push(w);pes.i=d.professores.length-1}
+  if(!LS.set('pe_inst_'+email,d)){
+    if(antigo)d.professores[i]=antigo;else{d.professores.pop();pes.i=-1}
+    return;
+  }
+  verPessoa('professores',pes.i);
+}
+
+/* ---- Perfil do aluno / professor ---- */
+function verPessoaBase(k,i){
+  garantir();pes={k:k,i:i};
+  const p=d[k][i];if(!p){verPerfil();return}
+  const aluno=k==='alunos',med=aluno&&p.tipo==='medio';
+  $('v-foto').style.backgroundImage=p.foto?'url('+p.foto+')':'';
+  $('v-nome').textContent=p.nome;
+  $('v-sub').textContent=aluno?(med?'🎓 Aluno · Ensino Médio':'🧸 Aluno · Iniciação'):'👨‍🏫 Professor(a)';
+  let L=[];
+  if(med)L=[['Nº de processo',p.proc],['Curso',p.curso],['Turma',CLASSE+' · Turma '+p.turma],['Nº na turma',p.ordem],['Bilhete nº',p.bi],['Encarregado',p.enc],['Telefone',p.tel]];
+  else if(aluno)L=[['Data de nascimento',fdata(p.nasc)+' ('+idade(p.nasc)+' anos)'],['Local de nascimento',p.natural],['Género',p.genero],['Morada',p.morada],['Pai',p.pai],['Mãe',p.mae],['Professor(a)',p.prof],['Informação',p.obs]];
+  else L=[['Grau académico',p.grau],['Formação',p.area],['Onde estudou',p.estudou],['Bilhete nº',p.bi],['Experiência',p.exp]];
+  L.push(['Registado em',fdata(p.criado)]);
+  $('v-info').innerHTML='<h3 class="ct">Informações</h3>'+L.filter(function(r){return r[1]!==undefined&&r[1]!==null&&r[1]!==''}).map(function(r){
+    return '<div class="info"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>';
+  }).join('');
+  const docs=med?[['biCopia','Cópia do bilhete'],['cert','Certificado da 9ª classe']]:(aluno?[]:[['biCopia','Cópia do bilhete'],['cert','Certificado']]);
+  const dc=$('v-docs');
+  if(docs.length){
+    dc.classList.remove('oculto');
+    dc.innerHTML='<h3 class="ct">Documentos (toque para ampliar)</h3>'+docs.map(function(x){
+      return (p[x[0]]&&p[x[0]].indexOf('data:image/')===0)?'<div class="it"><b>'+x[1]+'</b><img data-c="'+x[0]+'" src="'+p[x[0]]+'"></div>':'';
+    }).join('');
+    dc.onclick=function(ev){const c=ev.target.getAttribute&&ev.target.getAttribute('data-c');if(c)abrirLb(c)};
+  }else dc.classList.add('oculto');
+  tela('ver');
+}
+function abrirLb(c){
+  const p=d[pes.k][pes.i];
+  if(p&&p[c]){$('lb-img').src=p[c];$('lb').classList.remove('oculto')}
+}
+function voltarLista(){abaPend=pes.k;verPerfil()}
+function editarPessoa(){
+  if(pes.k==='alunos')formAluno(d.alunos[pes.i].tipo,pes.i);
+  else abrirCadProf(pes.i);
+}
+function eliminarPessoa(){
+  if(!confirm('Eliminar este registo? Esta ação não pode ser desfeita.'))return;
+  d[pes.k].splice(pes.i,1);
+  LS.set('pe_inst_'+email,d);
+  voltarLista();
+}
+
+/* ---- Abas Alunos e Professores ---- */
+function listaPessoas(k){
+  garantir();
+  const L=d[k],aluno=k==='alunos';
+  const x='<h3 class="ct">'+(aluno?'Alunos':'Professores')+' ('+L.filter(function(p){return !p.transf}).length+')</h3>';
+  if(!L.length)return x+'<p class="cp">Ainda não há registos. Toque em '+(aluno?'"+ Cadastrar Aluno"':'"+ Professor"')+' para adicionar.</p>';
+  return x+L.map(function(p,i){
+    const sub=aluno?(p.tipo==='medio'?[p.curso,'Turma '+p.turma,'Proc. '+p.proc].join(' · '):'Iniciação · '+(p.prof||'')):[p.grau,p.area].filter(Boolean).join(' · ');
+    const foto=(p.foto&&p.foto.indexOf('data:image/')===0)?' style="background-image:url('+p.foto+')"':'';
+    return '<div class="pes" data-k="'+k+'" data-i="'+i+'"'+(p.transf?' style="opacity:.55"':'')+'><div class="fi"'+foto+'></div><div><b>'+esc(p.nome)+'</b><span>'+esc(sub)+(p.transf?' · 🔄 Transferido':'')+'</span></div></div>';
+  }).join('');
+}
+function abaHtml(k){
+  if(k==='alunos'||k==='professores')return listaPessoas(k);
+  return abaHtmlBase(k);
+}
+$('aba-conteudo').addEventListener('click',function(ev){
+  const el=ev.target.closest('.pes');
+  if(el)verPessoa(el.dataset.k,parseInt(el.dataset.i,10));
+});
+
+/* ---------- TRANSFERÊNCIA ---------- */
+const MOTIVOS=['Mudança de residência','Mudança de curso','Motivos familiares','Motivos financeiros','Procura de outra escola','Outro'];
+const F_TRANSF=[
+  {k:'destino',l:'Instituição de destino',t:'txt',req:1,ph:'Nome da escola / colégio'},
+  {k:'local',l:'Localização (opcional)',t:'txt',ph:'Município / Província'},
+  {k:'data',l:'Data da transferência',t:'data',req:1},
+  {k:'motivo',l:'Motivo',t:'sel',ops:MOTIVOS,req:1},
+  {k:'obs',l:'Observações (opcional)',t:'area'}
+];
+
+function verPessoaBase2(k,i){
+  verPessoaBase(k,i);
+  const p=d[k]&&d[k][i];if(!p)return;
+  const al=k==='alunos',t=al?p.transf:null;
+  const bt=$('bt-transf');
+  bt.classList.toggle('oculto',!al);
+  bt.textContent=t?'↩️ Reativar':'🔄 Transferir';
+  const c=$('v-transf');
+  if(t){
+    const L=[['Instituição de destino',t.destino],['Localização',t.local],['Data',fdata(t.data)],['Motivo',t.motivo],['Observações',t.obs]];
+    c.innerHTML='<h3 class="ct" style="color:#b45309">🔄 Aluno transferido</h3>'+L.filter(function(r){return r[1]}).map(function(r){
+      return '<div class="info"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>';
+    }).join('')+'<button class="btn sec" onclick="imprimirGuia()">🖨️ Imprimir guia de transferência</button>';
+    c.classList.remove('oculto');
+    $('v-sub').textContent=$('v-sub').textContent+' · Transferido';
+  }else c.classList.add('oculto');
+}
+
+function abrirTransfA(){
+  const i=pes.i,a=d.alunos[i];if(!a)return;
+  if(a.transf){
+    if(!confirm('Reativar '+a.nome+' nesta instituição?'))return;
+    const antigo=a.transf,t0=a.turma,o0=a.ordem;
+    delete a.transf;
+    if(a.tipo==='medio'){const at=atribuirTurma(a.curso,i);a.turma=at.turma;a.ordem=at.ordem}
+    if(!LS.set('pe_inst_'+email,d)){a.transf=antigo;a.turma=t0;a.ordem=o0;return}
+    verPessoa('alunos',i);return;
+  }
+  pes={k:'alunos',i:i};
+  tela('cad');
+  $('cd-tit').textContent='🔄 Transferir aluno';
+  $('cd-sub').textContent=a.nome+' será marcado como transferido e deixa de ocupar vaga na turma.';
+  $('cd-voltar').textContent='← Voltar';
+  $('cd-voltar').onclick=function(){verPessoa('alunos',i)};
+  montarForm(F_TRANSF,{data:hoje()},guardarTransf,null,null);
+  $('cd-corpo').lastChild.textContent='🔄 Confirmar transferência';
+}
+function guardarTransf(){
+  const w=cfgAtual.w,i=pes.i,a=d.alunos[i];
+  if(!validarForm('alunos',i))return;
+  if(!confirm('Confirmar a transferência de '+a.nome+' para '+w.destino+'?'))return;
+  const antigo=a.transf;
+  a.transf={destino:w.destino,local:w.local||'',data:w.data,motivo:w.motivo,obs:w.obs||''};
+  if(!LS.set('pe_inst_'+email,d)){if(antigo)a.transf=antigo;else delete a.transf;return}
+  verPessoa('alunos',i);
+}
+function imprimirGuia(){
+  const a=d.alunos[pes.i];if(!a||!a.transf)return;
+  const t=a.transf;
+  const L=[['Nome',a.nome],['Nível',a.tipo==='medio'?'Ensino Médio':'Iniciação']];
+  if(a.tipo==='medio')L.push(['Nº de processo',a.proc],['Curso',a.curso],['Turma',CLASSE+' · Turma '+a.turma],['Bilhete nº',a.bi]);
+  else L.push(['Data de nascimento',fdata(a.nasc)]);
+  L.push(['Instituição de destino',t.destino],['Localização',t.local],['Data da transferência',fdata(t.data)],['Motivo',t.motivo],['Observações',t.obs]);
+  const tr=L.filter(function(r){return r[1]}).map(function(r){return '<tr><td><b>'+r[0]+'</b></td><td>'+esc(r[1])+'</td></tr>'}).join('');
+  const html='<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>Guia de Transferência</title><style>body{font-family:Arial,sans-serif;padding:32px;color:#111}h1{text-align:center;font-size:22px}h2{text-align:center;font-size:16px;font-weight:normal;margin-top:0}table{width:100%;border-collapse:collapse;margin-top:24px}td{border:1px solid #999;padding:10px;font-size:15px}.ass{display:flex;justify-content:space-around;margin-top:80px;text-align:center;font-size:14px}.ass div{border-top:1px solid #000;padding-top:6px;min-width:40%}</style></head><body><h1>'+esc(d.nome)+'</h1><h2>GUIA DE TRANSFERÊNCIA</h2><table>'+tr+'</table><div class="ass"><div>O(A) Diretor(a)<br>'+esc(d.diretor)+'</div><div>O(A) Secretário(a)<br>'+esc(d.secretaria)+'</div></div></body></html>';
+  const w=window.open('','_blank');
+  if(!w){alert('O navegador bloqueou a janela. Permita pop-ups e tente de novo.');return}
+  w.document.write(html);w.document.close();w.focus();
+  setTimeout(function(){w.print()},300);
+}
+
+/* ---------- PESQUISA RESTRITA ---------- */
+let modoPesq=false,tInat=null;
+const INATIV=300000;
+function resetInat(){clearTimeout(tInat);tInat=setTimeout(function(){sairPesq('Sessão terminada por inatividade.')},INATIV)}
+['click','keydown','touchstart'].forEach(function(ev){
+  document.addEventListener(ev,function(){if(modoPesq)resetInat()},true);
+});
+
+function verPessoa(k,i){
+  verPessoaBase2(k,i);
+  const ro=modoPesq;
+  $('t-ver').querySelector('.botoes').classList.toggle('oculto',ro);
+  $('v-back-pesq').classList.toggle('oculto',!ro);
+  const gb=$('v-transf').querySelector('button');
+  if(gb)gb.classList.toggle('oculto',ro);
+}
+function iniciarPesq(){
+  document.querySelector('header .logo').textContent='Pesquisa de Alunos';
+  tela('pl');
+}
+async function loginPesq(){
+  const t=LS.get('pe_pesq_tent',{n:0,bloq:0}),agora=Date.now();
+  if(t.bloq>agora){$('pl-erro').textContent='Demasiadas tentativas. Aguarde '+Math.ceil((t.bloq-agora)/1000)+' segundos.';return}
+  const e=$('pl-email').value.trim().toLowerCase(),s=$('pl-senha').value;
+  const users=LS.get('pe_users',{}),hh=await hash(s);
+  const ok=e&&users[e]&&users[e]===hh;
+  if(!ok){
+    t.n=(t.n||0)+1;
+    if(t.n>=5){t.bloq=agora+60000;t.n=0}
+    LS.set('pe_pesq_tent',t);
+    $('pl-erro').textContent='Email ou palavra-passe incorretos, ou sem conta autorizada.';
+    $('pl-senha').value='';
+    return;
+  }
+  const inst0=LS.get('pe_inst_'+e,null);if(!inst0){$('pl-erro').textContent='Esta conta ainda não tem uma instituição cadastrada.';return}if((inst0.estado||'aprovada')!=='aprovada'){$('pl-erro').textContent='A conta desta instituição ainda não foi aprovada pela administração.';return}
+  LS.set('pe_pesq_tent',{n:0,bloq:0});
+  entrarPesq(e);
+}
+function entrarPesq(e){
+  email=e;d=Object.assign(vazio(),LS.get('pe_inst_'+e,{}));garantir();
+  modoPesq=true;
+  $('pb-inst').textContent=d.nome;$('pb-user').textContent=e;
+  $('pl-email').value='';$('pl-senha').value='';$('pl-erro').textContent='';
+  $('pb-q').value='';$('pb-msg').textContent='';
+  tela('pb');resetInat();
+}
+function pesquisar(){
+  resetInat();
+  let q=$('pb-q').value.trim().toUpperCase().replace(/ /g,'').replace(/-/g,'/');
+  if(/^[0-9]{8}$/.test(q))q=q.slice(0,4)+'/'+q.slice(4);
+  const msg=$('pb-msg');
+  if(!/^[0-9]{4}[/][0-9]{4}$/.test(q)){msg.textContent='Escreva o número de processo completo. Exemplo: 2026/0001';return}
+  const i=d.alunos.findIndex(function(a){return a.proc===q});
+  if(i<0){msg.textContent='Nenhum aluno encontrado com este número de processo.';return}
+  msg.textContent='';$('pb-q').value='';
+  verPessoa('alunos',i);
+}
+function voltarPesq(){
+  tela('pb');resetInat();$('pb-q').focus();
+}
+function sairPesq(msg){
+  clearTimeout(tInat);modoPesq=false;email='';d=vazio();
+  ['v-info','v-docs','v-transf'].forEach(function(id){$(id).innerHTML=''});
+  $('v-foto').style.backgroundImage='';$('v-nome').textContent='';
+  $('lb').classList.add('oculto');$('lb-img').removeAttribute('src');
+  tela('pl');$('pl-erro').textContent=msg||'';
+}
+
+/* ---------- REGULAMENTO, LOCALIZAÇÃO E VAGAS ---------- */
+function locTxt(x){return [x.local,x.mun,x.prov].filter(Boolean).join(', ')}
+function vagasInfo(t){
+  const max=parseInt(t==='prof'?d.vagasProf:d.vagasEst,10);
+  const usado=t==='prof'?(d.professores||[]).length:(d.alunos||[]).filter(function(a){return !a.transf}).length;
+  if(!(max>0))return {sem:true,usado:usado};
+  return {sem:false,max:max,usado:usado,livre:Math.max(0,max-usado),cheio:usado>=max};
+}
+function cartaoVaga(ic,tit,v){
+  if(v.sem)return '';
+  const pc=Math.min(100,Math.round(v.usado*100/v.max));
+  const txt=v.cheio?'🚫 Vagas esgotadas':'✅ '+v.livre+(v.livre===1?' vaga disponível':' vagas disponíveis');
+  return '<div class="vg '+(v.cheio?'no':'ok')+'"><div>'+ic+' '+tit+'</div><div class="n">'+v.usado+' / '+v.max+'</div><small>'+txt+'</small><div class="bar"><i style="width:'+pc+'%"></i></div></div>';
+}
+function renderVagas(){
+  const box=$('vagas');if(!box)return;
+  box.innerHTML=cartaoVaga('👨‍🏫','Professores',vagasInfo('prof'))+cartaoVaga('🎓','Estudantes',vagasInfo('est'));
+}
+function verPerfilB(){
+  verPerfilA();
+  renderVagas();
+  const lt=locTxt(d),el=$('pf-loc');
+  if(el)el.textContent=lt?'📍 '+lt:'';
+}
+function abrirCadAluno(){
+  if(vagasInfo('est').cheio){alert('🚫 Vagas de estudantes esgotadas ('+d.vagasEst+'). Aumente as vagas em Editar → Dados da Instituição ou transfira alunos.');return}
+  abrirCadAlunoA();
+}
+function abrirCadProf(idx){
+  if(typeof idx!=='number'&&vagasInfo('prof').cheio){alert('🚫 Vagas de professores esgotadas ('+d.vagasProf+'). Aumente as vagas em Editar → Dados da Instituição.');return}
+  abrirCadProfA(idx);
+}
+function abrirTransf(){
+  const a=d.alunos[pes.i];
+  if(a&&a.transf&&vagasInfo('est').cheio){alert('🚫 Não há vagas de estudantes para reativar este aluno.');return}
+  abrirTransfA();
+}
+function validar(p){
+  let ok=validarA(p);
+  const c=function(id,cond,m){if(!err(id,cond?'':m))ok=false};
+  if(p===1){
+    c('licenca',(d.licenca||'').length>=3,'Escreva o número da licença do Ministério da Educação.');
+    c('prov',(d.prov||'').length>=3,'Indique a província.');
+    c('mun',(d.mun||'').length>=3,'Indique o município.');
+  }
+  if(p===2){
+    const vp=parseInt(d.vagasProf,10),ve=parseInt(d.vagasEst,10);
+    const np=(d.professores||[]).length,ne=(d.alunos||[]).filter(function(a){return !a.transf}).length;
+    c('vagasProf',vp>=Math.max(1,np)&&vp<=500,np?'Mínimo '+np+' (já tem '+np+' professores). Máximo 500.':'Indique um número entre 1 e 500.');
+    c('vagasEst',ve>=Math.max(1,ne)&&ve<=20000,ne?'Mínimo '+ne+' (já tem '+ne+' estudantes). Máximo 20000.':'Indique um número entre 1 e 20000.');
+  }
+  return ok;
+}
+
+/* Regulamento antes do formulário */
+function abrirForm(p){
+  if(!LS.get('pe_inst_'+email,null)&&!LS.get('pe_reg_'+email,null)){abrirReg();return}
+  abrirFormA(p);
+}
+function abrirReg(){
+  tela('reg');
+  $('reg-ck').checked=false;$('reg-ck').disabled=true;$('reg-btn').disabled=true;
+  $('reg-dica').classList.remove('oculto');$('reg-txt').scrollTop=0;
+  setTimeout(regScroll,80);
+}
+function regScroll(){
+  const b=$('reg-txt');
+  if(b.scrollTop+b.clientHeight>=b.scrollHeight-24){$('reg-ck').disabled=false;$('reg-dica').classList.add('oculto')}
+}
+function regOk(){$('reg-btn').disabled=!$('reg-ck').checked}
+function aceitarReg(){
+  d.regAceite=hoje();
+  LS.set('pe_reg_'+email,{aceite:hoje(),versao:1});
+  abrirFormA(1);
+}
+
+/* ---------- APROVAÇÃO, ADMINISTRAÇÃO E ESTUDANTES ---------- */
+function outbox(){return LS.get('pe_outbox',[])}
+function enviarEmail(para,assunto,texto){
+  const o=outbox();
+  o.unshift({para:para,assunto:assunto,texto:texto,data:new Date().toLocaleString('pt-PT')});
+  LS.set('pe_outbox',o.slice(0,50));
+}
+
+/* Instituição: estado do cadastro */
+function verPerfil(){
+  const est=d.estado||'aprovada';
+  if(est==='aprovada'){verPerfilB();return}
+  const rej=est==='rejeitada';
+  $('pend-ic').textContent=rej?'❌':'⏳';
+  $('pend-tit').textContent=rej?'Cadastro não aprovado':'Cadastro pendente';
+  $('pend-txt').textContent=rej?'A administração verificou o cadastro e precisa que corrija alguns dados. Corrija e reenvie.':'A sua instituição foi cadastrada e está a aguardar a confirmação da administração, que vai verificar se todos os requisitos foram cumpridos. Quando for aprovada, receberá um email a informar que a conta foi criada.';
+  const L=[['Instituição',d.nome],['NIF',d.nif],['Nível',NIVEIS[d.nivel]],['Email da conta',email],['Enviado em',fdata(d.enviadoEm)],['Estado',rej?'Não aprovado':'Pendente']];
+  if(rej&&d.motivoRej)L.push(['Motivo',d.motivoRej]);
+  $('pend-info').innerHTML=L.filter(function(r){return r[1]}).map(function(r){return '<div class="info"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>'}).join('');
+  $('pend-corrigir').classList.toggle('oculto',!rej);
+  tela('pend');
+}
+function verificarEstado(){d=Object.assign(vazio(),LS.get('pe_inst_'+email,{}));verPerfil()}
+function abrirEditar(){
+  if((d.estado||'aprovada')!=='aprovada'){verPerfil();return}
+  abrirEditarB();
+}
+function prox(){
+  let novo=false;
+  if(passo===3&&validar(3)&&(d.estado==='rejeitada'||(!editando&&!d.estado))){
+    d.estado='pendente';d.enviadoEm=hoje();d.motivoRej='';novo=true;
+  }
+  proxB();
+  if(novo&&LS.get('pe_inst_'+email,{}).estado==='pendente')
+    enviarEmail(email,'Cadastro recebido — Portal Escola','Recebemos o cadastro da instituição "'+d.nome+'". A administração vai verificar os dados e receberá um novo email quando a conta for aprovada.');
+}
+
+/* Administração (simulação da base de dados) */
+function todasInst(){
+  const r=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.indexOf('pe_inst_')===0){const v=LS.get(k,null);if(v&&v.nome)r.push({email:k.slice(8),inst:v})}
+  }
+  return r;
+}
+function requisitos(v){
+  const r=[
+    ['Nome da instituição',!!v.nome&&v.nome.length>=3],
+    ['NIF válido',/^[0-9]{9,10}([A-Z]{2}[0-9]{2,3})?$/.test(v.nif||'')],
+    ['Nº da licença (MED)',!!v.licenca],
+    ['Localização (província e município)',!!(v.prov&&v.mun)],
+    ['Vagas de professores e estudantes',parseInt(v.vagasProf,10)>0&&parseInt(v.vagasEst,10)>0],
+    ['Diretor(a)',!!v.diretor],['Secretário(a)',!!v.secretaria],
+    ['Foto de capa',!!v.capa],['Foto de perfil',!!v.perfil],
+    ['Regulamento aceite',!!v.regAceite]
+  ];
+  if(v.nivel==='iniciacao')r.push(['Professor responsável',!!v.professor],['Encarregados',(v.enc||[]).some(function(x){return x.trim()})]);
+  return r;
+}
+function iniciarAdmin(){
+  document.querySelector('header .logo').textContent='Administração';
+  admRender();
+}
+function admRender(){
+  tela('adm');
+  const cor={pendente:['#fef3c7','#92400e','⏳ Pendente'],aprovada:['#d1fae5','#065f46','✅ Aprovada'],rejeitada:['#fee2e2','#991b1b','❌ Não aprovada']};
+  const ord={pendente:0,rejeitada:1,aprovada:2};
+  const L=todasInst().sort(function(a,b){return ord[a.inst.estado||'aprovada']-ord[b.inst.estado||'aprovada']});
+  $('adm-lista').innerHTML=L.length?L.map(function(x){
+    const v=x.inst,est=v.estado||'aprovada',c=cor[est];
+    const foto=(v.perfil&&v.perfil.indexOf('data:image/')===0)?' style="background-image:url('+v.perfil+')"':'';
+    const info=[['NIF',v.nif],['Licença (MED)',v.licenca],['Nível',NIVEIS[v.nivel]],['Localização',locTxt(v)],['Diretor(a)',v.diretor],['Secretário(a)',v.secretaria],['Telefone',v.tel],['Vagas',(v.vagasProf||'?')+' professores · '+(v.vagasEst||'?')+' estudantes'],['Enviado em',fdata(v.enviadoEm)],['Aprovado em',fdata(v.aprovadoEm)],['Motivo da rejeição',v.motivoRej]].filter(function(r){return r[1]}).map(function(r){return '<div class="info"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>'}).join('');
+    const req=requisitos(v).map(function(r){return '<div style="font-size:14px;color:'+(r[1]?'#065f46':'#991b1b')+'">'+(r[1]?'✔ ':'✖ ')+r[0]+'</div>'}).join('');
+    let bt='';
+    if(est!=='aprovada')bt+='<button class="btn verde" data-a="aprovar" data-e="'+esc(x.email)+'" style="margin-top:12px;padding:12px">✅ Aprovar</button>';
+    if(est==='pendente')bt+='<button class="btn sec" data-a="rejeitar" data-e="'+esc(x.email)+'" style="padding:12px">❌ Rejeitar</button>';
+    if(est==='aprovada')bt+='<button class="btn sec" data-a="pendente" data-e="'+esc(x.email)+'" style="padding:12px">↩️ Repor pendente (teste)</button>';
+    return '<div class="card"><div style="display:flex;gap:12px;align-items:center"><div class="fi-adm"'+foto+'></div><div style="flex:1;min-width:0"><b>'+esc(v.nome)+'</b><br><small style="color:#6b7280">'+esc(x.email)+'</small></div><span style="background:'+c[0]+';color:'+c[1]+';font-size:12px;font-weight:700;padding:4px 8px;border-radius:12px;white-space:nowrap">'+c[2]+'</span></div>'+info+'<div style="margin-top:8px"><b style="font-size:14px">Requisitos</b>'+req+'</div>'+bt+'</div>';
+  }).join(''):'<p class="sub">Ainda não há instituições cadastradas.</p>';
+  const em=outbox();
+  $('adm-emails').innerHTML=em.length?em.map(function(m){
+    return '<div class="card" style="font-size:14px"><b>'+esc(m.assunto)+'</b><br><span style="color:#6b7280">Para: '+esc(m.para)+' · '+esc(m.data)+'</span><p style="margin-top:6px">'+esc(m.texto)+'</p></div>';
+  }).join(''):'<p class="sub">Ainda não foram enviados emails.</p>';
+}
+function admAcao(a,em){
+  const v=LS.get('pe_inst_'+em,null);if(!v)return;
+  if(a==='aprovar'){
+    v.estado='aprovada';v.aprovadoEm=hoje();v.motivoRej='';
+    LS.set('pe_inst_'+em,v);
+    enviarEmail(em,'Conta criada — Portal Escola','Olá! O cadastro da instituição "'+v.nome+'" foi verificado e aprovado pela administração. A sua conta foi criada e já pode entrar com o seu email e palavra-passe.');
+    alert('✅ Aprovada. Email enviado para '+em+' (simulação).');
+  }else if(a==='rejeitar'){
+    const m=prompt('Motivo da rejeição (será enviado à instituição):');
+    if(m===null)return;
+    if(!m.trim()){alert('Escreva o motivo.');return}
+    v.estado='rejeitada';v.motivoRej=m.trim();
+    LS.set('pe_inst_'+em,v);
+    enviarEmail(em,'Cadastro não aprovado — Portal Escola','O cadastro da instituição "'+v.nome+'" não foi aprovado. Motivo: '+m.trim()+'. Entre na sua conta, corrija os dados e reenvie.');
+    alert('❌ Rejeitada. Email enviado para '+em+' (simulação).');
+  }else if(a==='pendente'){
+    v.estado='pendente';LS.set('pe_inst_'+em,v);
+  }
+  admRender();
+}
+$('adm-lista').addEventListener('click',function(ev){
+  const b=ev.target.closest('button[data-a]');
+  if(b)admAcao(b.dataset.a,b.dataset.e);
+});
+
+/* Cadastramento de estudantes (só para ter acesso ao aplicativo) */
+function iniciarEst(){
+  document.querySelector('header .logo').textContent='Cadastramento de Estudantes';
+  const sel=$('te-inst');
+  sel.innerHTML='<option value="">Escolher instituição…</option>';
+  todasInst().filter(function(x){return (x.inst.estado||'aprovada')==='aprovada'}).forEach(function(x){
+    const o=document.createElement('option');o.value=x.email;o.textContent=x.inst.nome;sel.appendChild(o);
+  });
+  tela('te');
+}
+async function criarContaEst(){
+  const err2=function(m){$('te-erro').textContent=m};
+  const t=LS.get('pe_est_tent',{n:0,bloq:0}),agora=Date.now();
+  if(t.bloq>agora){err2('Demasiadas tentativas. Aguarde '+Math.ceil((t.bloq-agora)/1000)+' segundos.');return}
+  const ie=$('te-inst').value;
+  let q=$('te-proc').value.trim().toUpperCase().replace(/ /g,'').replace(/-/g,'/');
+  if(/^[0-9]{8}$/.test(q))q=q.slice(0,4)+'/'+q.slice(4);
+  const bi=$('te-bi').value.trim().toUpperCase(),em=$('te-email').value.trim().toLowerCase(),s=$('te-senha').value;
+  if(!ie||!q||!bi||!em||!s){err2('Preencha todos os campos.');return}
+  if(!/^\S+@\S+\.\S+$/.test(em)){err2('Email inválido.');return}
+  if(s.length<6){err2('A palavra-passe deve ter no mínimo 6 caracteres.');return}
+  if(s!==$('te-senha2').value){err2('As palavras-passe não coincidem.');return}
+  const inst=LS.get('pe_inst_'+ie,null);
+  const idx=(inst&&(inst.estado||'aprovada')==='aprovada')?(inst.alunos||[]).findIndex(function(a){return a.tipo==='medio'&&a.proc===q&&a.bi===bi&&!a.transf}):-1;
+  if(idx<0){
+    t.n=(t.n||0)+1;if(t.n>=5){t.bloq=agora+60000;t.n=0}
+    LS.set('pe_est_tent',t);
+    err2('Não encontrámos um aluno com estes dados. Confirme o número de processo e o bilhete com a secretaria da sua escola.');
+    return;
+  }
+  const us=LS.get('pe_est_users',{});
+  if(inst.alunos[idx].contaEst||us[em]){err2('Já existe uma conta para este aluno ou para este email.');return}
+  us[em]={h:await hash(s),inst:ie,proc:q,criado:hoje()};
+  LS.set('pe_est_users',us);
+  inst.alunos[idx].contaEst=true;
+  LS.set('pe_inst_'+ie,inst);
+  LS.set('pe_est_tent',{n:0,bloq:0});
+  $('tok-txt').textContent='A conta de '+inst.alunos[idx].nome+' foi criada. Já tem acesso ao aplicativo para consultas e funções futuras.';
+  ['te-proc','te-bi','te-email','te-senha','te-senha2'].forEach(function(id){$(id).value=''});
+  tela('tok');
+}
+
+if(location.hash==='#pesquisa')iniciarPesq();else if(location.hash==='#admin')iniciarAdmin();else if(location.hash==='#estudante')iniciarEst();else iniciar();
+</script>
+</body>
+</html>
