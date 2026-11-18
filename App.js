@@ -1,46 +1,42 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, BackHandler } from 'react-native';
+import MenuPrincipal from './src/screens/MenuPrincipal';
 
-import HomeScreen from './HomeScreen';
-import PerfilInstituicao from './PerfilInstituicao';
-import ProfessorScreen from './src/screens/ProfessorScreen';
-import LoginEscola from './src/screens/LoginEscola';
-
-const Stack = createNativeStackNavigator();
+const TITULOS = {
+  PaginaInstituicao: 'Página da Instituição',
+  PesquisaAlunos: 'Pesquisa de Alunos e Encarregados',
+  CadastroProfessores: 'Cadastramento de Professores',
+};
 
 export default function App() {
+  const [tela, setTela] = useState('MenuPrincipal');
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (tela !== 'MenuPrincipal') {
+        setTela('MenuPrincipal');
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [tela]);
+
+  if (tela === 'MenuPrincipal') {
+    return <MenuPrincipal navigation={{ navigate: setTela }} />;
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator 
-        initialRouteName="Home"
-        screenOptions={{
-          headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTintColor: '#2563EB',
-          headerTitleStyle: { fontWeight: 'bold' },
-        }}
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, marginBottom: 20 }}>
+        {TITULOS[tela]} (em construção)
+      </Text>
+      <TouchableOpacity
+        onPress={() => setTela('MenuPrincipal')}
+        style={{ backgroundColor: '#2563eb', padding: 14, borderRadius: 10 }}
       >
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen} 
-          options={{ title: 'Portal Escola' }} 
-        />
-        <Stack.Screen 
-          name="PerfilInstituicao" 
-          component={PerfilInstituicao} 
-          options={{ title: 'Página da Instituição' }} 
-        />
-        <Stack.Screen 
-          name="Professores" 
-          component={ProfessorScreen} 
-          options={{ title: 'Cadastramento de Professores' }} 
-        />
-        <Stack.Screen 
-          name="Login" 
-          component={LoginEscola} 
-          options={{ title: 'Acesso Restrito' }} 
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+        <Text style={{ color: '#fff', fontWeight: 'bold' }}>← Voltar ao Menu</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
